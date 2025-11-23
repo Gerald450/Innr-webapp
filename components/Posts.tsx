@@ -19,26 +19,26 @@ export const Post: React.FC<PostProps> = ({
   image,
 }) => {
   return (
-    <article className="w-full px-4 sm:px-5 max-w-2xl md:max-w-3xl mx-auto bg-white rounded-xl shadow-sm border border-neutral-200 mb-6">
+    <article className="w-full px-3 sm:px-4 max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
       {/* TOP ROW */}
-      <header className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5">
+      <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
         <img
           src={avatar || "/images/avatar_placeholder.png"}
-          className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover bg-gray-300 flex-shrink-0"
+          className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-gray-300 flex-shrink-0"
           alt={`${name} avatar`}
         />
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <p className="font-semibold text-neutral-900 text-sm sm:text-base leading-none truncate flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 min-w-0">
+              <p className="font-semibold text-neutral-900 text-sm sm:text-sm leading-none truncate flex items-center gap-1">
                 <span className="truncate">{name}</span>
                 {gradYear && (
-                  <span className="flex items-center gap-1 text-neutral-500 text-xs sm:text-sm shrink-0">
+                  <span className="flex items-center gap-1 text-neutral-500 text-xs sm:text-xs shrink-0">
                     <img
                       src="/svgs/graduate.svg"
                       alt="Graduate cap"
-                      className="h-3.5 w-3.5 sm:h-4 sm:w-4 object-contain"
+                      className="h-3 w-3 sm:h-3 sm:w-3 object-contain"
                     />
                     <span className="leading-none">{gradYear}</span>
                   </span>
@@ -46,46 +46,37 @@ export const Post: React.FC<PostProps> = ({
               </p>
             </div>
 
-            <span className="text-sm text-neutral-500 ml-2 shrink-0">
+            <span className="text-xs text-neutral-500 ml-1 shrink-0">
               {time}
             </span>
           </div>
-
-          {/* optional subtitle row if you want more info later */}
         </div>
       </header>
 
       {/* TEXT */}
-      <div className="px-0 sm:px-0 pb-4 sm:pb-4">
-        <div className="px-0 sm:px-0">
-          <p className="text-neutral-800 text-sm sm:text-[15px] leading-relaxed whitespace-pre-line px-0 sm:px-0">
-            {text}
-          </p>
-        </div>
+      <div className="px-2 sm:px-3 pb-3 sm:pb-4">
+        <p className="text-neutral-800 text-sm sm:text-sm leading-relaxed whitespace-pre-line">
+          {text}
+        </p>
       </div>
 
-      {/* IMAGE / MEDIA - contained in same horizontal padding */}
-      <div className="px-0 sm:px-0 pb-4">
-        <div className="px-0 sm:px-0">
-          {image ? (
-            <div className="px-0 sm:px-0">
-              <img
-                src={image}
-                alt="Post Media"
-                className="w-full rounded-md object-cover max-h-[320px] sm:max-h-[420px] md:max-h-[550px]"
-                style={{ display: "block" }}
-              />
-            </div>
-          ) : (
-            <div className="h-[220px] sm:h-[320px] md:h-[420px] w-full bg-neutral-200 rounded-md" />
-          )}
-        </div>
+      {/* IMAGE / MEDIA */}
+      <div className="px-2 sm:px-3 pb-3">
+        {image ? (
+          <img
+            src={image}
+            alt="Post Media"
+            className="w-full rounded-md object-cover max-h-[250px] sm:max-h-[350px] md:max-h-[450px]"
+            style={{ display: "block" }}
+          />
+        ) : (
+          <div className="h-[180px] sm:h-[250px] md:h-[350px] w-full bg-neutral-200 rounded-md" />
+        )}
       </div>
 
       {/* ACTION BAR */}
-      <div className="flex justify-between items-center py-3 text-neutral-600">
-        {/* LEFT ICON ROW */}
-        <div className="flex flex-1 items-center px-2 sm:px-4">
+      <div className="flex justify-between items-center py-2 text-neutral-600">
+        <div className="flex flex-1 items-center px-2 sm:px-3">
           <div className="flex w-full justify-between">
             <button
               aria-label="Like"
@@ -94,7 +85,7 @@ export const Post: React.FC<PostProps> = ({
               <img
                 src="/svgs/like.svg"
                 alt="Like"
-                className="h-5 w-5 sm:h-6 sm:w-6"
+                className="h-4 w-4 sm:h-5 sm:w-5"
               />
             </button>
 
@@ -105,7 +96,7 @@ export const Post: React.FC<PostProps> = ({
               <img
                 src="/svgs/comment.svg"
                 alt="Comment"
-                className="h-5 w-5 sm:h-6 sm:w-6"
+                className="h-4 w-4 sm:h-5 sm:w-5"
               />
             </button>
 
@@ -116,7 +107,7 @@ export const Post: React.FC<PostProps> = ({
               <img
                 src="/svgs/repost.svg"
                 alt="Repost"
-                className="h-5 w-5 sm:h-6 sm:w-6"
+                className="h-4 w-4 sm:h-5 sm:w-5"
               />
             </button>
 
@@ -127,7 +118,7 @@ export const Post: React.FC<PostProps> = ({
               <img
                 src="/svgs/download.svg"
                 alt="Download"
-                className="h-5 w-5 sm:h-6 sm:w-6"
+                className="h-4 w-4 sm:h-5 sm:w-5"
               />
             </button>
           </div>

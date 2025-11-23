@@ -53,89 +53,95 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black/5 shadow-sm">
-      <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
-        <div className="flex h-14 items-center justify-between">
-          {/* LEFT: logo + search */}
-          <div className="flex items-center min-w-[160px] gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0866ff] text-lg font-bold text-white sm:h-10 sm:w-10">
-              In
-            </div>
-
-            {/* Wide: full search */}
-            {isWide && (
-              <div className="hidden md:flex h-9 items-center rounded-full bg-[#f0f2f5] px-3">
-                <span className="text-sm text-neutral-500">🔍</span>
-                <input
-                  type="search"
-                  placeholder="Search Innr"
-                  className="ml-2 w-44 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none"
-                />
-              </div>
-            )}
-
-            {/* Medium & small: search icon */}
-            {(isMedium || !isWide) && (
-              <div ref={containerRef} className="relative">
-                <button
-                  onClick={() => setSearchExpanded((s) => !s)}
-                  aria-expanded={searchExpanded}
-                  aria-label={searchExpanded ? "Close search" : "Open search"}
-                  className="ml-2 p-2 rounded-full text-neutral-600 hover:bg-[#f0f2f5] transition"
-                >
-                  🔍
-                </button>
-
-                {searchExpanded && (
-                  <div className="absolute left-0 top-10 z-50 w-[260px] max-w-[90vw] rounded-md bg-white p-2 shadow-lg">
-                    <div className="flex items-center rounded-md bg-[#f5f7f9] px-2 py-1">
-                      <span className="text-neutral-500">🔍</span>
-                      <input
-                        ref={inputRef}
-                        type="search"
-                        placeholder="Search Innr"
-                        className="ml-2 w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none"
-                        aria-label="Search Innr"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+      <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 h-14">
+        {/* LEFT: logo + search */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0866ff] text-lg font-bold text-white sm:h-10 sm:w-10">
+            In
           </div>
 
-          {/* CENTER tabs */}
-          <nav className="hidden md:flex flex-1 items-stretch justify-center gap-1">
-            {navTabs.map((tab) => (
+          {/* Wide: full search */}
+          {isWide && (
+            <div className="flex h-9 items-center rounded-full bg-[#f0f2f5] px-3">
+              <span className="text-sm text-neutral-500">🔍</span>
+              <input
+                type="search"
+                placeholder="Search Innr"
+                className="ml-2 w-44 max-w-[80vw] bg-transparent text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none"
+              />
+            </div>
+          )}
+
+          {/* Medium & small: search icon */}
+          {(isMedium || !isWide) && (
+            <div ref={containerRef} className="relative">
+              <button
+                onClick={() => setSearchExpanded((s) => !s)}
+                aria-expanded={searchExpanded}
+                aria-label={searchExpanded ? "Close search" : "Open search"}
+                className="ml-2 p-2 rounded-full text-neutral-600 hover:bg-[#f0f2f5] transition"
+              >
+                🔍
+              </button>
+
+              {searchExpanded && (
+                <div className="absolute left-0 top-10 z-50 w-[260px] max-w-[90vw] rounded-md bg-white p-2 shadow-lg">
+                  <div className="flex items-center rounded-md bg-[#f5f7f9] px-2 py-1">
+                    <span className="text-neutral-500">🔍</span>
+                    <input
+                      ref={inputRef}
+                      type="search"
+                      placeholder="Search Innr"
+                      className="ml-2 w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none"
+                      aria-label="Search Innr"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* CENTER tabs aligned with post width */}
+        <div className="hidden md:flex flex-1 justify-center">
+          <div className="flex w-full max-w-2xl justify-between">
+            {navTabs.map((tab, idx) => (
               <button
                 key={tab.id}
-                className={`relative flex w-24 items-center justify-center rounded-xl text-xl transition hover:bg-[#f0f2f5] ${
+                className={`flex flex-col items-center text-xl transition ${
                   tab.active ? "text-[#0866ff]" : "text-neutral-500"
                 }`}
                 aria-label={tab.label}
               >
                 <img src={tab.icon} alt={tab.label} className="h-5 w-5" />
-                {tab.active && (
-                  <span className="absolute -bottom-2 h-0.5 w-4/5 rounded-full bg-[#0866ff]" />
-                )}
+                {tab.active && <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />}
               </button>
             ))}
-          </nav>
-
-          {/* RIGHT icons */}
-          <div className="flex items-center gap-2 min-w-[120px] justify-end">
-            <button className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]" aria-label="Menu">
-              <img src="/svgs/menu.svg" alt="Menu" className="h-4 w-4" />
-            </button>
-
-            <button className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]" aria-label="Notifications">
-              <img src="/svgs/notification.svg" alt="Notifications" className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">3</span>
-            </button>
-
-            <button className="flex h-8 w-8 items-center justify-center rounded-full" aria-label="Profile">
-              <img src="/images/avatar_placeholder.png" alt="Profile" className="h-8 w-8 rounded-full object-cover" />
-            </button>
           </div>
+        </div>
+
+        {/* RIGHT icons */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+            aria-label="Menu"
+          >
+            <img src="/svgs/menu.svg" alt="Menu" className="h-4 w-4" />
+          </button>
+
+          <button
+            className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+            aria-label="Notifications"
+          >
+            <img src="/svgs/notification.svg" alt="Notifications" className="h-4 w-4" />
+            <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+              3
+            </span>
+          </button>
+
+          <button className="flex h-8 w-8 items-center justify-center rounded-full" aria-label="Profile">
+            <img src="/images/avatar_placeholder.png" alt="Profile" className="h-8 w-8 rounded-full object-cover" />
+          </button>
         </div>
       </div>
     </header>
