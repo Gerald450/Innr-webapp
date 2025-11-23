@@ -28,13 +28,21 @@ export const Post: React.FC<PostProps> = ({
           alt="Avatar"
         />
 
-        <div className="flex-1">
-          <p className="font-semibold text-neutral-900 text-base leading-none">
+        <div className="flex justify-between items-start w-full">
+          <p className="font-semibold text-neutral-900 text-base leading-none flex items-center gap-1">
             {name}
             {gradYear && (
-              <span className="text-neutral-500 text-sm"> {gradYear}</span>
+              <span className="flex items-center gap-1 text-neutral-500 text-sm">
+                <img
+                  src="/svgs/graduate.svg"
+                  alt="Graduate cap"
+                  className="h-4 w-4 object-contain"
+                />
+                {gradYear}
+              </span>
             )}
           </p>
+
           <span className="text-sm text-neutral-500">{time}</span>
         </div>
       </div>
