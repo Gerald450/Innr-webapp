@@ -2,11 +2,11 @@
 import React from "react";
 
 const navTabs = [
-  { id: "home", label: "Home", icon: "🏠", active: true },
-  { id: "friends", label: "Friends", icon: "👥" },
-  { id: "marketplace", label: "Marketplace", icon: "🛒" },
-  { id: "groups", label: "Groups", icon: "🌐" },
-  { id: "gaming", label: "Gaming", icon: "🎮" },
+  { id: "home", label: "Home", icon: "svgs/home.svg", active: true },
+  { id: "chats", label: "Chats", icon: "svgs/chat.svg" },
+  { id: "groups", label: "Groups", icon: "svgs/groups.svg" },
+  { id: "pages", label: "Pages", icon: "svgs/pages.svg" },
+  { id: "gaming", label: "Gaming", icon: "svgs/gaming.svg" },
 ];
 
 export const Navbar: React.FC = () => {
@@ -38,7 +38,7 @@ export const Navbar: React.FC = () => {
             }`}
             aria-label={tab.label}
           >
-            <span>{tab.icon}</span>
+            <img src={tab.icon} alt={tab.label} className="h-5 w-5" />
             {tab.active && (
               <span className="absolute -bottom-2 h-0.5 w-4/5 rounded-full bg-[#0866ff]" />
             )}
@@ -61,7 +61,7 @@ export const Navbar: React.FC = () => {
           className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[#e4e6eb] text-lg text-neutral-900 transition hover:bg-[#d8dadf]"
           aria-label="Notifications"
         >
-          <img src="/svgs/notification.svg" alt="Menu" className="h-5 w-5" />
+          <img src="/svgs/notification.svg" alt="notification" className="h-5 w-5" />
         </button>
 
         {/* avatar */}
