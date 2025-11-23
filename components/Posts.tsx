@@ -19,7 +19,7 @@ export const Post: React.FC<PostProps> = ({
   image,
 }) => {
   return (
-    <div className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-neutral-200 mb-6">
+    <div className="w-full px-4 max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-neutral-200 mb-6">
       {/* TOP ROW */}
       <div className="flex items-center gap-4 p-5">
         <img
@@ -55,7 +55,7 @@ export const Post: React.FC<PostProps> = ({
       </div>
 
       {/* IMAGE / MEDIA */}
-      <div className="w-full bg-neutral-200">
+   
         {image ? (
           <img
             src={image}
@@ -63,9 +63,9 @@ export const Post: React.FC<PostProps> = ({
             alt="Post Media"
           />
         ) : (
-          <div className="h-[420px] w-full bg-neutral-200" />
+          <div className="h-[420px] w-full bg-neutral-200 rounded-md" />
         )}
-      </div>
+     
 
       {/* ACTION BAR */}
       <div className="flex justify-around items-center py-4 text-neutral-600 text-2xl">
