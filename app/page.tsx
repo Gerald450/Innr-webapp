@@ -7,6 +7,7 @@ export default function Home() {
         name="Gerald Shimo"
         text="This is the text that the post will have, it is a pretty neat gimmick isn't it?"
         time="2w"
+        gradYear="27"
       />
     </div>
   );
