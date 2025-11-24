@@ -53,7 +53,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black/5 shadow-sm">
-      <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 h-14">
+      <div className="grid grid-cols-[1fr_670px_1fr] items-center px-3 sm:px-4 lg:px-6 h-14">
         {/* LEFT: logo + search */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0866ff] text-lg font-bold text-white sm:h-10 sm:w-10">
@@ -83,13 +83,15 @@ export const Navbar: React.FC = () => {
                 aria-label={searchExpanded ? "Close search" : "Open search"}
                 className="ml-2 p-2 rounded-full text-neutral-600 hover:bg-[#f0f2f5] transition"
               >
-                🔍
+                <img src="svgs/search.svg" alt="Menu" className="h-4 w-4" />
               </button>
 
               {searchExpanded && (
                 <div className="absolute left-0 top-10 z-50 w-[260px] max-w-[90vw] rounded-md bg-white p-2 shadow-lg">
                   <div className="flex items-center rounded-md bg-[#f5f7f9] px-2 py-1">
-                    <span className="text-neutral-500">🔍</span>
+                    <span className="text-neutral-500">
+                        <img src="svgs/search.svg" alt="Menu" className="h-4 w-4" />
+                    </span>
                     <input
                       ref={inputRef}
                       type="search"
@@ -106,7 +108,7 @@ export const Navbar: React.FC = () => {
 
         {/* CENTER tabs aligned with post width */}
         <div className="hidden md:flex flex-1 justify-center">
-          <div className="flex w-full max-w-[768px] items-center">
+          <div className="flex w-full max-w-[768px] ">
             {navTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -115,7 +117,7 @@ export const Navbar: React.FC = () => {
                 }`}
                 aria-label={tab.label}
               >
-                <img src={tab.icon} alt={tab.label} className="h-5 w-5" />
+                <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
                 {tab.active && <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />}
               </button>
             ))}
@@ -123,7 +125,7 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* RIGHT icons */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 justify-self-end">
           <button
             className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
             aria-label="Menu"

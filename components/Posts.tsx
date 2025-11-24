@@ -19,7 +19,7 @@ export const Post: React.FC<PostProps> = ({
   image,
 }) => {
   return (
-    <article className="w-full px-3 sm:px-4 max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
+   <article className="w-full px-3 sm:px-4 max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
       {/* TOP ROW */}
       <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
         <img
