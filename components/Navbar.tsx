@@ -6,7 +6,7 @@ const navTabs = [
   { id: "chats", label: "Chats", icon: "/svgs/chat.svg" },
   { id: "groups", label: "Groups", icon: "/svgs/groups.svg" },
   { id: "pages", label: "Pages", icon: "/svgs/pages.svg" },
-  { id: "gaming", label: "Gaming", icon: "/svgs/gaming.svg" },
+  { id: "gaming", label: "Gaming", icon: "/svgs/gaming.svg"},
 ];
 
 export const Navbar: React.FC = () => {
@@ -53,10 +53,11 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black/5 shadow-sm">
-      <div className="grid grid-cols-[1fr_670px_1fr] items-center px-3 sm:px-4 lg:px-6 h-14">
+      <div className="grid grid-cols-[1fr_minmax(0,670px)_1fr] items-center px-3 sm:px-4 lg:px-6 h-14">
+
         {/* LEFT: logo + search */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0866ff] text-lg font-bold text-white sm:h-10 sm:w-10">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0866ff] text-lg font-bold text-white sm:h-10 sm:w-10 flex-shrink-0">
             In
           </div>
 
@@ -76,12 +77,12 @@ export const Navbar: React.FC = () => {
 
           {/* Medium & small: search icon */}
           {(isMedium || !isWide) && (
-            <div ref={containerRef} className="relative">
+            <div ref={containerRef} className="relative flex-shrink-0">
               <button
                 onClick={() => setSearchExpanded((s) => !s)}
                 aria-expanded={searchExpanded}
                 aria-label={searchExpanded ? "Close search" : "Open search"}
-                className="ml-2 p-2 rounded-full text-neutral-600 hover:bg-[#f0f2f5] transition"
+                className="ml-2 p-2 rounded-full text-neutral-600 hover:bg-[#f0f2f5] transition flex-shrink-0"
               >
                 <img src="svgs/search.svg" alt="Menu" className="h-4 w-4" />
               </button>
