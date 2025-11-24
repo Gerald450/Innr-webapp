@@ -104,11 +104,11 @@ export const Navbar: React.FC = () => {
 
         {/* CENTER tabs aligned with post width */}
         <div className="hidden md:flex flex-1 justify-center">
-          <div className="flex w-full max-w-2xl justify-between">
-            {navTabs.map((tab, idx) => (
+          <div className="flex w-full max-w-[768px] items-center">
+            {navTabs.map((tab) => (
               <button
                 key={tab.id}
-                className={`flex flex-col items-center text-xl transition ${
+                className={`flex-1 flex flex-col items-center text-xl transition py-1 ${
                   tab.active ? "text-[#0866ff]" : "text-neutral-500"
                 }`}
                 aria-label={tab.label}
