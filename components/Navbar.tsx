@@ -63,7 +63,9 @@ export const Navbar: React.FC = () => {
           {/* Wide: full search */}
           {isWide && (
             <div className="flex h-9 items-center rounded-full bg-[#f0f2f5] px-3">
-              <span className="text-sm text-neutral-500">🔍</span>
+              <span className="text-sm text-neutral-500">
+                <img src="svgs/search.svg" alt="Menu" className="h-4 w-4" />
+              </span>
               <input
                 type="search"
                 placeholder="Search Innr"
