@@ -16,8 +16,8 @@ type CreatePostModalProps = {
 };
 
 export default function CreatePostModal({
-  initialName = "Gerald Shimo",
-  initialGradYear = "27",
+  initialName = "",
+  initialGradYear = "",
   onClose,
   onSubmit,
 }: CreatePostModalProps) {
@@ -91,13 +91,13 @@ export default function CreatePostModal({
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-1/2 rounded-md border px-3 py-1 text-sm"
+                className="w-1/2 rounded-md border px-3 py-1 text-sm text-black"
                 placeholder="Your name"
               />
               <input
                 value={gradYear}
                 onChange={(e) => setGradYear(e.target.value)}
-                className="w-1/4 rounded-md border px-3 py-1 text-sm"
+                className="w-1/4 rounded-md border px-3 py-1 text-sm text-black"
                 placeholder="Grad year"
               />
             </div>
@@ -108,14 +108,14 @@ export default function CreatePostModal({
               onChange={(e) => setText(e.target.value)}
               rows={5}
               placeholder="What's happening on campus?"
-              className="w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 text-black "
             />
           </div>
 
           <button
             onClick={onClose}
             aria-label="Close"
-            className="ml-3 rounded-full px-2 py-1 text-gray-600 hover:bg-gray-100"
+            className="ml-3 rounded-full px-2 py-1 text-gray-600 hover:bg-gray-100 text-black"
           >
             ✕
           </button>
@@ -145,7 +145,7 @@ export default function CreatePostModal({
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
+              className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50 text-black"
             >
               Cancel
             </button>
