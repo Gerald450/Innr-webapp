@@ -2,101 +2,120 @@
 import { useEffect, useRef, useState } from "react";
 import { Post } from "../components/Posts";
 import { MakePost } from "@/components/MakePost";
+import CreatePostModal from "@/components/CreatePostModal";
+import { postsData } from "./postsData";
+
+type PostItem = {
+  id: number;
+  name: string;
+  text: string;
+  time: string;
+  gradYear: string;
+  image: string;
+};
 
 export default function Home() {
   const postRef = useRef<HTMLDivElement | null>(null);
   const [showBubble, setShowBubble] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  // Initialize posts from postsData, map to include an id if missing
+  const [posts, setPosts] = useState<PostItem[]>(
+    () =>
+      postsData.map((p, i) => ({
+        id: typeof (p as any).id === "number" ? (p as any).id : Date.now() + i,
+        name: p.name,
+        text: p.text,
+        time: p.time,
+        gradYear: p.gradYear,
+        image: p.image,
+      })) as PostItem[]
+  );
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setShowBubble(!entry.isIntersecting); // show bubble when MakePost is not visible
+        setShowBubble(!entry.isIntersecting);
       },
       { threshold: 0.1 }
     );
 
-    if (postRef.current) observer.observe(postRef.current);
+    const el = postRef.current;
+    if (el) observer.observe(el);
 
     return () => {
-      if (postRef.current) observer.unobserve(postRef.current);
+      if (el) observer.unobserve(el);
+      observer.disconnect();
     };
   }, []);
 
-  const handleStartPost = () => {
-    console.log("open create-post modal");
+  const openCreatePost = () => setShowModal(true);
+
+  const handleCreatePost = (newPost: Omit<PostItem, "id"> | PostItem) => {
+    const postWithId: PostItem = {
+      id: typeof (newPost as any).id === "number" ? (newPost as any).id : Date.now(),
+      name: (newPost as any).name,
+      text: (newPost as any).text,
+      time: (newPost as any).time ?? "just now",
+      gradYear: (newPost as any).gradYear,
+      image: (newPost as any).image ?? "",
+    };
+
+    setPosts((prev) => [postWithId, ...prev]);
   };
 
   return (
-    <div className="bg-[#F2F4F7]">
-      <div
-        ref={postRef}
-        className="flex justify-center items-start pt-10 pb-10"
-      >
+    <div className="bg-[#F2F4F7] min-h-screen py-10 flex flex-col items-center gap-6">
+      {/* MakePost with ref observed by IntersectionObserver */}
+      <div ref={postRef} className="w-full flex justify-center">
         <MakePost
           avatarUrl="/images/avatar_placeholder.png"
-          onStartPost={handleStartPost}
+          onStartPost={openCreatePost}
           onVideoClick={() => console.log("open video upload")}
           onPhotoClick={() => console.log("open photo upload")}
           onArticleClick={() => console.log("open write-article editor")}
         />
       </div>
 
-      <Post
-        name="Gerald Shimo"
-        text="Come enjoy soccer with us every Friday at 4pm at the campus field. We run friendly matches, meet new people, and have fun on the field. All skill levels welcome!"
-        time="2w"
-        gradYear="27"
-        image="images/bros_in_street.jpeg"
-      />
+      {/* Posts list */}
+      <div className="w-full max-w-2xl flex flex-col gap-6">
+        {posts.map((p) => (
+          <Post
+            key={p.id}
+            name={p.name}
+            text={p.text}
+            time={p.time}
+            gradYear={p.gradYear}
+            image={p.image}
+          />
+        ))}
+      </div>
 
-      <Post
-        name="Aaliyah Carter"
-        text="The campus hackathon kicks off this weekend! Join us to build creative projects, network with peers, and win prizes."
-        time="2h"
-        gradYear="26"
-        image="images/hakathon.jpeg"
-      />
-
-      <Post
-        name="Marcus Lee"
-        text="Don’t miss the 10k charity run on Saturday morning! Proceeds go to local scholarships, and refreshments will be provided."
-        time="6h"
-        gradYear="27"
-        image="images/Volunteering.jpeg"
-      />
-
-      <Post
-        name="Sofia Nguyen"
-        text="Campus volunteering day at the community garden is happening tomorrow! Help plant, clean, and beautify our green spaces."
-        time="1d"
-        gradYear="28"
-        image="images/scarecrow.jpeg"
-      />
-
-      <Post
-        name="David Kim"
-        text="Student soccer tournament finals are on Friday! Come cheer for your favorite teams and enjoy snacks and music."
-        time="2d"
-        gradYear="27"
-        image="images/football.jpeg"
-      />
-
-      <Post
-        name="Lila Thompson"
-        text="Coffee and Conversation event at the student center today! Meet new people, enjoy free coffee, and discuss campus life."
-        time="3d"
-        gradYear="26"
-        image="images/meet.jpeg"
-      />
-
-      {/* Floating "Start a Post" bubble */}
+      {/* Floating circular bubble (appears only when MakePost is out of view) */}
       {showBubble && (
         <button
-          onClick={handleStartPost}
-          className="fixed bottom-10 right-5 z-50 rounded-full bg-blue-600 text-white px-5 py-3 shadow-lg hover:bg-blue-700 transition"
+          onClick={openCreatePost}
+          aria-label="Start a post"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl hover:scale-105 active:scale-95 transition-transform"
         >
-          Post
+          {/* simple plus icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
         </button>
+      )}
+
+      {/* Create post modal */}
+      {showModal && (
+        <CreatePostModal
+          initialName=""
+          initialGradYear=""
+          onClose={() => setShowModal(false)}
+          onSubmit={(post) => {
+            handleCreatePost(post);
+            setShowModal(false);
+          }}
+        />
       )}
     </div>
   );
