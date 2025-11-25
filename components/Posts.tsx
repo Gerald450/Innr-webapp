@@ -19,7 +19,8 @@ export const Post: React.FC<PostProps> = ({
   image,
 }) => {
   return (
-    <article className="w-full px-3 sm:px-4 max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
+    <article className="w-full max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
+
       {/* TOP ROW */}
       <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
         <img
@@ -31,14 +32,14 @@ export const Post: React.FC<PostProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1 min-w-0">
-              <p className="font-semibold text-neutral-900 text-sm sm:text-sm leading-none truncate flex items-center gap-1">
+              <p className="font-semibold text-neutral-900 text-sm leading-none truncate flex items-center gap-1">
                 <span className="truncate">{name}</span>
                 {gradYear && (
-                  <span className="flex items-center gap-1 text-neutral-500 text-xs sm:text-xs shrink-0">
+                  <span className="flex items-center gap-1 text-neutral-500 text-xs shrink-0">
                     <img
                       src="/svgs/graduate.svg"
                       alt="Graduate cap"
-                      className="h-3 w-3 sm:h-3 sm:w-3 object-contain"
+                      className="h-3 w-3 object-contain"
                     />
                     <span className="leading-none">{gradYear}</span>
                   </span>
@@ -54,75 +55,74 @@ export const Post: React.FC<PostProps> = ({
       </header>
 
       {/* TEXT */}
-      <div className="px-2 sm:px-3 pb-3 sm:pb-4">
-        <p className="text-neutral-800 text-sm sm:text-sm leading-relaxed whitespace-pre-line">
+      <div className="px-3 sm:px-4 pb-3 border-b border-[#E5E7EB]">
+        <p className="text-neutral-800 text-sm leading-relaxed whitespace-pre-line">
           {text}
         </p>
       </div>
 
-      {/* IMAGE / MEDIA */}
-      <div className="px-2 sm:px-3 pb-3">
-  {image && (
-    <div className="w-full max-h-[80vh] overflow-hidden rounded-md bg-[#F3F3F3] mb-2">
-      <img
-        src={image}
-        alt="Post Media"
-        className="w-full h-auto object-cover"
-        style={{ display: "block" }}
-      />
-    </div>
-  )}
-</div>
-
+      {/* IMAGE SECTION – full width, no padding */}
+      {image && (
+        <div className="w-full bg-black">
+          <div className="w-full max-h-[80vh] overflow-hidden bg-[#F3F3F3]">
+            <img
+              src={image}
+              alt="Post Media"
+              className="w-full h-auto object-cover"
+              style={{ display: "block" }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ACTION BAR */}
-      <div className="flex justify-between items-center py-2 text-neutral-600 border-t border-[#F2F4F7]">
-        <div className="flex flex-1 items-center px-2 sm:px-3">
-          <div className="flex w-full justify-between">
-            <button
-              aria-label="Like"
-              className="flex items-center justify-center flex-1 p-2 rounded-md hover:text-neutral-800 transition"
-            >
-              <img
-                src="/svgs/like.svg"
-                alt="Like"
-                className="h-4 w-4 sm:h-5 sm:w-5"
-              />
-            </button>
+      <div className="flex justify-between items-center py-2 text-neutral-600 border-t border-[#E5E7EB] px-3 sm:px-4">
+        <div className="flex w-full justify-between">
 
-            <button
-              aria-label="Comment"
-              className="flex items-center justify-center flex-1 p-2 rounded-md hover:text-neutral-800 transition"
-            >
-              <img
-                src="/svgs/comment.svg"
-                alt="Comment"
-                className="h-4 w-4 sm:h-5 sm:w-5"
-              />
-            </button>
+          <button
+            aria-label="Like"
+            className="flex items-center justify-center flex-1 p-2 rounded-md hover:text-neutral-800 transition"
+          >
+            <img
+              src="/svgs/like.svg"
+              alt="Like"
+              className="h-4 w-4 sm:h-5 sm:w-5"
+            />
+          </button>
 
-            <button
-              aria-label="Repost"
-              className="flex items-center justify-center flex-1 p-2 rounded-md hover:text-neutral-800 transition"
-            >
-              <img
-                src="/svgs/repost.svg"
-                alt="Repost"
-                className="h-4 w-4 sm:h-5 sm:w-5"
-              />
-            </button>
+          <button
+            aria-label="Comment"
+            className="flex items-center justify-center flex-1 p-2 rounded-md hover:text-neutral-800 transition"
+          >
+            <img
+              src="/svgs/comment.svg"
+              alt="Comment"
+              className="h-4 w-4 sm:h-5 sm:w-5"
+            />
+          </button>
 
-            <button
-              aria-label="Download"
-              className="flex items-center justify-center flex-1 p-2 rounded-md hover:text-neutral-800 transition"
-            >
-              <img
-                src="/svgs/download.svg"
-                alt="Download"
-                className="h-4 w-4 sm:h-5 sm:w-5"
-              />
-            </button>
-          </div>
+          <button
+            aria-label="Repost"
+            className="flex items-center justify-center flex-1 p-2 rounded-md hover:text-neutral-800 transition"
+          >
+            <img
+              src="/svgs/repost.svg"
+              alt="Repost"
+              className="h-4 w-4 sm:h-5 sm:w-5"
+            />
+          </button>
+
+          <button
+            aria-label="Download"
+            className="flex items-center justify-center flex-1 p-2 rounded-md hover:text-neutral-800 transition"
+          >
+            <img
+              src="/svgs/download.svg"
+              alt="Download"
+              className="h-4 w-4 sm:h-5 sm:w-5"
+            />
+          </button>
+
         </div>
       </div>
     </article>
