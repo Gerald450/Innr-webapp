@@ -19,7 +19,7 @@ export const Post: React.FC<PostProps> = ({
   image,
 }) => {
   return (
-   <article className="w-full px-3 sm:px-4 max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
+    <article className="w-full px-3 sm:px-4 max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
       {/* TOP ROW */}
       <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
         <img
@@ -62,20 +62,21 @@ export const Post: React.FC<PostProps> = ({
 
       {/* IMAGE / MEDIA */}
       <div className="px-2 sm:px-3 pb-3">
-        {image ? (
-          <img
-            src={image}
-            alt="Post Media"
-            className="w-full rounded-md object-cover max-h-[250px] sm:max-h-[350px] md:max-h-[450px]"
-            style={{ display: "block" }}
-          />
-        ) : (
-          <div className="h-[180px] sm:h-[250px] md:h-[350px] w-full bg-neutral-200 rounded-md" />
-        )}
-      </div>
+  {image && (
+    <div className="w-full max-h-[80vh] overflow-hidden rounded-md bg-[#F3F3F3] mb-2">
+      <img
+        src={image}
+        alt="Post Media"
+        className="w-full h-auto object-cover"
+        style={{ display: "block" }}
+      />
+    </div>
+  )}
+</div>
+
 
       {/* ACTION BAR */}
-      <div className="flex justify-between items-center py-2 text-neutral-600">
+      <div className="flex justify-between items-center py-2 text-neutral-600 border-t border-[#F2F4F7]">
         <div className="flex flex-1 items-center px-2 sm:px-3">
           <div className="flex w-full justify-between">
             <button
