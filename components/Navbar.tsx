@@ -144,28 +144,28 @@ export const Navbar: React.FC = () => {
         {/* RIGHT icons */}
         <div className="flex items-center gap-3 flex-shrink-0 justify-self-end relative">
           {/* Menu Button */}
-          <div
-            className="relative flex h-10 w-10 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
-            aria-label="Notifications"
-          >
-            <TooltipButton label="Menu" iconSrc="/svgs/menu.svg" />
-          </div>
-          
+          <TooltipButton label="Menu" iconSrc="/svgs/menu.svg">
+            <div
+              className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+              aria-label="Menu"
+            >
+              <img src="svgs/menu.svg" className="h-5 w-5" />
+            </div>
+          </TooltipButton>
 
           {/* Notifications Button */}
-          <div
-            className="relative flex h-10 w-10 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
-            aria-label="Notifications"
-          >
-            <TooltipButton
-              label="Notification"
-              iconSrc="/svgs/notification.svg"
-            />
 
-            <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
-              3
-            </span>
-          </div>
+          <TooltipButton label="Notification" iconSrc="/svgs/notification.svg">
+            <div
+              className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+              aria-label="Notifications"
+            >
+              <img src="svgs/notification.svg" />
+              <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                3
+              </span>
+            </div>
+          </TooltipButton>
 
           {/* Profile Button */}
           <TooltipButton
