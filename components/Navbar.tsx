@@ -59,10 +59,13 @@ export const Navbar: React.FC = () => {
       <div className="grid grid-cols-[1fr_minmax(0,670px)_1fr] items-center px-3 sm:px-4 lg:px-6 h-14">
         {/* LEFT: logo + search */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gray-100 cursor-pointer overflow-hidden">
-  <img src="images/logo.png" alt="logo" className="object-contain h-full w-full" />
-</div>
-
+          <div className="flex items-center justify-center h-9 w-9 shrink-0 rounded-full bg-gray-100 cursor-pointer overflow-hidden">
+            <img
+              src="images/logo.png"
+              alt="logo"
+              className="object-contain h-full w-full"
+            />
+          </div>
 
           {/* Wide: full search */}
           {isWide && (
