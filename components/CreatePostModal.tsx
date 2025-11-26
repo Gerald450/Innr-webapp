@@ -29,18 +29,8 @@ export default function CreatePostModal({
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  useEffect(() => {
-  // keep page scrollbar visible while modal is open to prevent layout shift
-  const prev = document.body.style.overflowY;
-  document.body.style.overflowY = "scroll";
-  return () => {
-    document.body.style.overflowY = prev || "";
-  };
-}, []);
-
 
   useEffect(() => {
-    textareaRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -89,11 +79,11 @@ export default function CreatePostModal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 pb-20"
       aria-modal="true"
       role="dialog"
     >
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="mb-3 flex gap-2">
