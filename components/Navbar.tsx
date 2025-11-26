@@ -100,13 +100,7 @@ export const Navbar: React.FC = () => {
                     className="flex items-center rounded-md bg-[#f5f7f9] px-2 py-1"
                     title="Menu"
                   >
-                    <span className="text-neutral-500">
-                      <img
-                        src="svgs/search.svg"
-                        alt="Menu"
-                        className="h-4 w-4"
-                      />
-                    </span>
+                    <span className="text-neutral-500"></span>
                     <input
                       ref={inputRef}
                       type="search"
@@ -123,32 +117,44 @@ export const Navbar: React.FC = () => {
 
         {/* CENTER tabs aligned with post width */}
         <div className="hidden md:flex flex-1 justify-center">
-          <div className="flex w-full max-w-[768px] ">
+          <div className="flex w-full max-w-[768px]">
             {navTabs.map((tab) => (
-              <button
+              <TooltipButton
                 key={tab.id}
-                className={`flex-1 flex flex-col items-center text-xl transition py-1 ${
-                  tab.active ? "text-[#0866ff]" : "text-neutral-500"
-                }`}
-                aria-label={tab.label}
+                label={tab.label}
+                fullWidth
+                as="button" // render as <button> to keep spacing
               >
-                <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
-                {tab.active && (
-                  <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
-                )}
-              </button>
+                <div
+                  className={`flex-1 flex flex-col items-center text-xl transition py-1 ${
+                    tab.active ? "text-[#0866ff]" : "text-neutral-500"
+                  }`}
+                  aria-label={tab.label}
+                >
+                  <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
+                  {tab.active && (
+                    <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
+                  )}
+                </div>
+              </TooltipButton>
             ))}
           </div>
         </div>
 
         {/* RIGHT icons */}
-        <div className="flex items-center gap-2 flex-shrink-0 justify-self-end relative">
+        <div className="flex items-center gap-3 flex-shrink-0 justify-self-end relative">
           {/* Menu Button */}
-          <TooltipButton label="Menu" iconSrc="/svgs/menu.svg" />
+          <div
+            className="relative flex h-10 w-10 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+            aria-label="Notifications"
+          >
+            <TooltipButton label="Menu" iconSrc="/svgs/menu.svg" />
+          </div>
+          
 
           {/* Notifications Button */}
           <div
-            className="group relative flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+            className="relative flex h-10 w-10 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
             aria-label="Notifications"
           >
             <TooltipButton
@@ -169,7 +175,7 @@ export const Navbar: React.FC = () => {
             <img
               src="/images/avatar_placeholder.png"
               alt="Profile"
-              className="h-6 w-6 scale-110 rounded-full object-cover"
+              className="h-9 w-9 scale-110 rounded-full shrink-0 object-cover"
             />
           </TooltipButton>
         </div>
