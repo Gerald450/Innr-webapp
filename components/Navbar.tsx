@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import React, { useEffect, useRef, useState } from "react";
 
 const navTabs = [
@@ -6,7 +6,7 @@ const navTabs = [
   { id: "chats", label: "Chats", icon: "/svgs/chat.svg" },
   { id: "groups", label: "Groups", icon: "/svgs/groups.svg" },
   { id: "pages", label: "Pages", icon: "/svgs/pages.svg" },
-  { id: "gaming", label: "Gaming", icon: "/svgs/gaming.svg"},
+  { id: "gaming", label: "Gaming", icon: "/svgs/gaming.svg" },
 ];
 
 export const Navbar: React.FC = () => {
@@ -30,7 +30,10 @@ export const Navbar: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (!searchExpanded) return;
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setSearchExpanded(false);
       }
     };
@@ -54,12 +57,12 @@ export const Navbar: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black/5 shadow-sm">
       <div className="grid grid-cols-[1fr_minmax(0,670px)_1fr] items-center px-3 sm:px-4 lg:px-6 h-14">
-
         {/* LEFT: logo + search */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0866ff] text-lg font-bold text-white sm:h-10 sm:w-10 flex-shrink-0">
-            In
-          </div>
+          <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gray-100 cursor-pointer overflow-hidden">
+  <img src="images/logo.png" alt="logo" className="object-contain h-full w-full" />
+</div>
+
 
           {/* Wide: full search */}
           {isWide && (
@@ -91,7 +94,11 @@ export const Navbar: React.FC = () => {
                 <div className="absolute left-0 top-10 z-50 w-[260px] max-w-[90vw] rounded-md bg-white p-2 shadow-lg">
                   <div className="flex items-center rounded-md bg-[#f5f7f9] px-2 py-1">
                     <span className="text-neutral-500">
-                        <img src="svgs/search.svg" alt="Menu" className="h-4 w-4" />
+                      <img
+                        src="svgs/search.svg"
+                        alt="Menu"
+                        className="h-4 w-4"
+                      />
                     </span>
                     <input
                       ref={inputRef}
@@ -119,7 +126,9 @@ export const Navbar: React.FC = () => {
                 aria-label={tab.label}
               >
                 <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
-                {tab.active && <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />}
+                {tab.active && (
+                  <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
+                )}
               </button>
             ))}
           </div>
@@ -138,14 +147,25 @@ export const Navbar: React.FC = () => {
             className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
             aria-label="Notifications"
           >
-            <img src="/svgs/notification.svg" alt="Notifications" className="h-4 w-4" />
+            <img
+              src="/svgs/notification.svg"
+              alt="Notifications"
+              className="h-4 w-4"
+            />
             <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
               3
             </span>
           </button>
 
-          <button className="flex h-8 w-8 items-center justify-center rounded-full" aria-label="Profile">
-            <img src="/images/avatar_placeholder.png" alt="Profile" className="h-8 w-8 rounded-full object-cover" />
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-full"
+            aria-label="Profile"
+          >
+            <img
+              src="/images/avatar_placeholder.png"
+              alt="Profile"
+              className="h-8 w-8 rounded-full object-cover"
+            />
           </button>
         </div>
       </div>
