@@ -53,7 +53,10 @@ export default function Home() {
 
   const handleCreatePost = (newPost: Omit<PostItem, "id"> | PostItem) => {
     const postWithId: PostItem = {
-      id: typeof (newPost as any).id === "number" ? (newPost as any).id : Date.now(),
+      id:
+        typeof (newPost as any).id === "number"
+          ? (newPost as any).id
+          : Date.now(),
       name: (newPost as any).name,
       text: (newPost as any).text,
       time: (newPost as any).time ?? "just now",
@@ -96,11 +99,30 @@ export default function Home() {
         <button
           onClick={openCreatePost}
           aria-label="Start a post"
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl hover:scale-105 active:scale-95 transition-transform"
->
-          {/* simple plus icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          className="
+      fixed
+      bottom-20 right-[350px]        /* default: for large screens, bubble sits near posts */
+      max-[1625px]:bottom-20          /* when screen < 1625px, move to bottom-right */
+      max-[1625px]:right-5
+      z-50
+      flex h-20 w-20 items-center justify-center
+      rounded-full bg-blue-600 text-white shadow-xl
+      hover:scale-105 active:scale-95 transition-transform
+    "
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-8 w-8"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 4v16m8-8H4"
+            />
           </svg>
         </button>
       )}
