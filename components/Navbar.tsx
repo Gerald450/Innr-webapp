@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import TooltipButton from "./TooltipButton";
 
 const navTabs = [
   { id: "home", label: "Home", icon: "/svgs/home.svg", active: true },
@@ -95,7 +96,10 @@ export const Navbar: React.FC = () => {
 
               {searchExpanded && (
                 <div className="absolute left-0 top-10 z-50 w-[260px] max-w-[90vw] rounded-md bg-white p-2 shadow-lg">
-                  <div className="flex items-center rounded-md bg-[#f5f7f9] px-2 py-1">
+                  <div
+                    className="flex items-center rounded-md bg-[#f5f7f9] px-2 py-1"
+                    title="Menu"
+                  >
                     <span className="text-neutral-500">
                       <img
                         src="svgs/search.svg"
@@ -138,38 +142,36 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* RIGHT icons */}
-        <div className="flex items-center gap-2 flex-shrink-0 justify-self-end">
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
-            aria-label="Menu"
-          >
-            <img src="/svgs/menu.svg" alt="Menu" className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-2 flex-shrink-0 justify-self-end relative">
+          {/* Menu Button */}
+          <TooltipButton label="Menu" iconSrc="/svgs/menu.svg" />
 
-          <button
-            className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+          {/* Notifications Button */}
+          <div
+            className="group relative flex h-8 w-8 items-center justify-center rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
             aria-label="Notifications"
           >
-            <img
-              src="/svgs/notification.svg"
-              alt="Notifications"
-              className="h-4 w-4"
+            <TooltipButton
+              label="Notification"
+              iconSrc="/svgs/notification.svg"
             />
+
             <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
               3
             </span>
-          </button>
+          </div>
 
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-full"
-            aria-label="Profile"
+          {/* Profile Button */}
+          <TooltipButton
+            label="Profile"
+            iconSrc="/images/avatar_placeholder.png"
           >
             <img
               src="/images/avatar_placeholder.png"
               alt="Profile"
-              className="h-8 w-8 rounded-full object-cover"
+              className="h-6 w-6 scale-110 rounded-full object-cover"
             />
-          </button>
+          </TooltipButton>
         </div>
       </div>
     </header>
