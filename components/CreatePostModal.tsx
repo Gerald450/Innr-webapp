@@ -29,7 +29,6 @@ export default function CreatePostModal({
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -79,7 +78,10 @@ export default function CreatePostModal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 pb-20"
+      className="
+    fixed inset-0 z-50 flex items-start justify-center bg-black/40
+    pt-6 md:pt-8 lg:pt-10
+  "
       aria-modal="true"
       role="dialog"
     >
@@ -122,7 +124,11 @@ export default function CreatePostModal({
 
         {imagePreview ? (
           <div className="mt-4 flex items-center gap-3">
-            <img src={imagePreview} alt="preview" className="max-h-32 rounded-md" />
+            <img
+              src={imagePreview}
+              alt="preview"
+              className="max-h-32 rounded-md"
+            />
             <button
               onClick={() => {
                 setImageFile(null);
@@ -137,7 +143,12 @@ export default function CreatePostModal({
 
         <div className="mt-4 flex items-center justify-between">
           <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100">
-            <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
             <span className="text-sm text-gray-600">Attach image</span>
           </label>
 
