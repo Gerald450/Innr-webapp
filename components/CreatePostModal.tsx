@@ -30,8 +30,17 @@ export default function CreatePostModal({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
-    textareaRef.current?.focus();
+  // keep page scrollbar visible while modal is open to prevent layout shift
+  const prev = document.body.style.overflowY;
+  document.body.style.overflowY = "scroll";
+  return () => {
+    document.body.style.overflowY = prev || "";
+  };
+}, []);
 
+
+  useEffect(() => {
+    textareaRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
