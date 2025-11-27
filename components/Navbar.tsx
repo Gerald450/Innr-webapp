@@ -3,9 +3,9 @@ import React, { useEffect, useRef, useState } from "react";
 import TooltipButton from "./TooltipButton";
 
 const navTabs = [
-  { id: "home", label: "Home", icon: "/svgs/home.svg", active: true },
+  { id: "home", label: "Home", icon: "/svgs/home.svg"},
   { id: "chats", label: "Chats", icon: "/svgs/chat.svg" },
-  { id: "groups", label: "Groups", icon: "/svgs/groups.svg" },
+  { id: "events", label: "Events", icon: "/svgs/events.svg" },
   { id: "pages", label: "Pages", icon: "/svgs/pages.svg" },
   { id: "gaming", label: "Gaming", icon: "/svgs/gaming.svg" },
 ];
@@ -17,6 +17,8 @@ export const Navbar: React.FC = () => {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [activeTab, setActiveTab] = useState("home");
+
 
   useEffect(() => {
     const onResize = () => setWindowWidth(window.innerWidth);
@@ -124,15 +126,16 @@ export const Navbar: React.FC = () => {
                 label={tab.label}
                 fullWidth
                 as="button" // render as <button> to keep spacing
+                onClick={() => setActiveTab(tab.id)}
               >
                 <div
                   className={`flex-1 flex flex-col items-center text-xl transition py-1 ${
-                    tab.active ? "text-[#0866ff]" : "text-neutral-500"
+                    activeTab == tab.id ? "text-[#0866ff]" : "text-neutral-500"
                   }`}
                   aria-label={tab.label}
                 >
                   <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
-                  {tab.active && (
+                  {activeTab == tab.id && (
                     <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
                   )}
                 </div>
