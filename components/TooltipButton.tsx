@@ -66,7 +66,7 @@ const TooltipButton: FC<TooltipButtonProps> = ({
       )}
 
       {showTooltip && (
-        <span className="absolute left-1/2 top-full mt-3 -translate-x-1/2 px-2 py-1 text-xs text-white bg-black rounded whitespace-nowrap opacity-80">
+        <span className="absolute left-1/2 top-full mt-3 -translate-x-1/2 px-2 py-1 text-xs text-white bg-black rounded whitespace-nowrap opacity-50">
           {label}
         </span>
       )}
