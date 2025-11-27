@@ -1,13 +1,15 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import TooltipButton from "./TooltipButton";
+import { useRouter } from "next/navigation";
+
 
 const navTabs = [
-  { id: "home", label: "Home", icon: "/svgs/home.svg"},
-  { id: "chats", label: "Chats", icon: "/svgs/chat.svg" },
-  { id: "events", label: "Events", icon: "/svgs/events.svg" },
-  { id: "pages", label: "Pages", icon: "/svgs/pages.svg" },
-  { id: "gaming", label: "Gaming", icon: "/svgs/gaming.svg" },
+  { id: "home", label: "Home", icon: "/svgs/home.svg", path: "/" },
+  { id: "chats", label: "Chats", icon: "/svgs/chat.svg", path: "/chats" },
+  { id: "events", label: "Events", icon: "/svgs/events.svg", path: "/events" },
+  { id: "pages", label: "Pages", icon: "/svgs/pages.svg", path: "/pages" },
+  { id: "gaming", label: "Gaming", icon: "/svgs/gaming.svg", path: "/gaming" },
 ];
 
 export const Navbar: React.FC = () => {
@@ -18,7 +20,7 @@ export const Navbar: React.FC = () => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useState("home");
-
+  const router = useRouter();
 
   useEffect(() => {
     const onResize = () => setWindowWidth(window.innerWidth);
@@ -126,7 +128,10 @@ export const Navbar: React.FC = () => {
                 label={tab.label}
                 fullWidth
                 as="button" // render as <button> to keep spacing
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  router.push(tab.path);
+                }}
               >
                 <div
                   className={`flex-1 flex flex-col items-center text-xl transition py-1 ${
