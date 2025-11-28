@@ -48,7 +48,7 @@ export default function MenuDrawer({
         aria-hidden={!open}
         className={`fixed top-0 right-0 z-50 h-full w-[92%] max-w-[420px] transform bg-white shadow-2xl transition-transform duration-300
           ${open ? "translate-x-0" : "translate-x-full"}
-          rounded-l-2xl overflow-auto`}
+          rounded-l-2xl overflow-auto text-black`}
       >
         <div className="p-5">
           {/* Header */}

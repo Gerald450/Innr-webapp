@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import MenuDrawer from "./MenuDrawer";
 import { usePathname } from "next/navigation";
 
-
 const navTabs = [
   { id: "home", label: "Home", icon: "/svgs/home.svg", path: "/" },
   { id: "chats", label: "Chats", icon: "/svgs/chat.svg", path: "/chats" },
@@ -15,18 +14,20 @@ const navTabs = [
 ];
 
 export const Navbar: React.FC = () => {
-  const [windowWidth, setWindowWidth] = useState<number>(
-    typeof window !== "undefined" ? window.innerWidth : 1024
-  );
+  // NOTE: initialize to null so server and client initial render match
+  const [windowWidth, setWindowWidth] = useState<number | null>(null);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [activeTab, setActiveTab] = useState("home");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname() ?? "/";
   const router = useRouter();
 
   useEffect(() => {
+    // set initial width on mount and subscribe to resize
+    const setWidth = () => setWindowWidth(window.innerWidth);
+    setWidth();
+
     const onResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -60,8 +61,9 @@ export const Navbar: React.FC = () => {
     };
   }, [searchExpanded]);
 
-  const isWide = windowWidth >= 928;
-  const isMedium = windowWidth >= 768 && windowWidth < 928;
+  // compute breakpoints only when we have a real width
+  const isWide = windowWidth !== null ? windowWidth >= 928 : false;
+  const isMedium = windowWidth !== null ? windowWidth >= 768 && windowWidth < 928 : false;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black/5 shadow-sm">
@@ -76,8 +78,8 @@ export const Navbar: React.FC = () => {
             />
           </div>
 
-          {/* Wide: full search */}
-          {isWide && (
+          {/* Wide: full search (renders only when we know width and it's wide) */}
+          {windowWidth !== null && isWide && (
             <div className="flex h-9 items-center rounded-full bg-[#f0f2f5] px-3">
               <span className="text-sm text-neutral-500">
                 <img src="svgs/search.svg" alt="Menu" className="h-4 w-4" />
@@ -90,8 +92,8 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Medium & small: search icon */}
-          {(isMedium || !isWide) && (
+          {/* Medium & small: search icon (stable fallback rendered on server and initial client) */}
+          {!isWide && (
             <div ref={containerRef} className="relative flex-shrink-0">
               <button
                 onClick={() => setSearchExpanded((s) => !s)}
@@ -126,30 +128,35 @@ export const Navbar: React.FC = () => {
         {/* CENTER tabs aligned with post width */}
         <div className="hidden md:flex flex-1 justify-center">
           <div className="flex w-full max-w-[768px]">
-            {navTabs.map((tab) => (
-              <TooltipButton
-                key={tab.id}
-                label={tab.label}
-                fullWidth
-                as="button" // render as <button> to keep spacing
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  router.push(tab.path);
-                }}
-              >
-                <div
-                  className={`flex-1 flex flex-col items-center text-xl transition py-1 ${
-                    pathname == tab.path ? "text-[#0866ff]" : "text-neutral-500"
-                  }`}
-                  aria-label={tab.label}
+            {navTabs.map((tab) => {
+              const isActive =
+                pathname === tab.path || (tab.path !== "/" && pathname.startsWith(tab.path));
+
+              return (
+                <TooltipButton
+                  key={tab.id}
+                  label={tab.label}
+                  fullWidth
+                  as="button"
+                  onClick={() => {
+                    // we derive active from pathname so no need to set local activeTab
+                    router.push(tab.path);
+                  }}
                 >
-                  <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
-                  {pathname == tab.path && (
-                    <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
-                  )}
-                </div>
-              </TooltipButton>
-            ))}
+                  <div
+                    className={`flex-1 flex flex-col items-center text-xl transition py-1 ${
+                      isActive ? "text-[#0866ff]" : "text-neutral-500"
+                    }`}
+                    aria-label={tab.label}
+                  >
+                    <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
+                    {isActive && (
+                      <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
+                    )}
+                  </div>
+                </TooltipButton>
+              );
+            })}
           </div>
         </div>
 
@@ -167,7 +174,6 @@ export const Navbar: React.FC = () => {
           <MenuDrawer open={isMenuOpen} onClose={() => setIsMenuOpen(false)} tabs={navTabs} />
 
           {/* Notifications Button */}
-
           <TooltipButton label="Notification" iconSrc="/svgs/notification.svg">
             <div
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
