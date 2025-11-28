@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import TooltipButton from "./TooltipButton";
 import { useRouter } from "next/navigation";
+import MenuDrawer from "./MenuDrawer";
 
 
 const navTabs = [
@@ -20,6 +21,7 @@ export const Navbar: React.FC = () => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useState("home");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -152,7 +154,7 @@ export const Navbar: React.FC = () => {
         {/* RIGHT icons */}
         <div className="flex items-center gap-3 flex-shrink-0 justify-self-end relative">
           {/* Menu Button */}
-          <TooltipButton label="Menu" iconSrc="/svgs/menu.svg">
+          <TooltipButton label="Menu" iconSrc="/svgs/menu.svg" onClick={() => setIsMenuOpen(true)}>
             <div
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
               aria-label="Menu"
@@ -160,6 +162,7 @@ export const Navbar: React.FC = () => {
               <img src="svgs/menu.svg" className="h-5 w-5" />
             </div>
           </TooltipButton>
+          <MenuDrawer open={isMenuOpen} onClose={() => setIsMenuOpen(false)} tabs={navTabs} />
 
           {/* Notifications Button */}
 
