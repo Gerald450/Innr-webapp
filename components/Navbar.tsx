@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import TooltipButton from "./TooltipButton";
 import { useRouter } from "next/navigation";
 import MenuDrawer from "./MenuDrawer";
+import { usePathname } from "next/navigation";
 
 
 const navTabs = [
@@ -22,6 +23,7 @@ export const Navbar: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useState("home");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname() ?? "/";
   const router = useRouter();
 
   useEffect(() => {
@@ -137,12 +139,12 @@ export const Navbar: React.FC = () => {
               >
                 <div
                   className={`flex-1 flex flex-col items-center text-xl transition py-1 ${
-                    activeTab == tab.id ? "text-[#0866ff]" : "text-neutral-500"
+                    pathname == tab.path ? "text-[#0866ff]" : "text-neutral-500"
                   }`}
                   aria-label={tab.label}
                 >
                   <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
-                  {activeTab == tab.id && (
+                  {pathname == tab.path && (
                     <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
                   )}
                 </div>
