@@ -72,7 +72,7 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="flex items-center justify-center h-9 w-9 shrink-0 rounded-full bg-gray-100 cursor-pointer overflow-hidden">
             <img
-              src="images/logo.png"
+              src="/images/logo.png"
               alt="logo"
               className="object-contain h-full w-full"
             />
@@ -82,7 +82,7 @@ export const Navbar: React.FC = () => {
           {windowWidth !== null && isWide && (
             <div className="flex h-9 items-center rounded-full bg-[#f0f2f5] px-3">
               <span className="text-sm text-neutral-500">
-                <img src="svgs/search.svg" alt="Menu" className="h-4 w-4" />
+                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4" />
               </span>
               <input
                 type="search"
@@ -101,7 +101,7 @@ export const Navbar: React.FC = () => {
                 aria-label={searchExpanded ? "Close search" : "Open search"}
                 className="ml-2 p-2 rounded-full text-neutral-600 hover:bg-[#f0f2f5] transition flex-shrink-0"
               >
-                <img src="svgs/search.svg" alt="Menu" className="h-4 w-4" />
+                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4" />
               </button>
 
               {searchExpanded && (
@@ -168,7 +168,7 @@ export const Navbar: React.FC = () => {
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
               aria-label="Menu"
             >
-              <img src="svgs/menu.svg" className="h-5 w-5" />
+              <img src="/svgs/menu.svg" className="h-5 w-5" />
             </div>
           </TooltipButton>
           <MenuDrawer open={isMenuOpen} onClose={() => setIsMenuOpen(false)} tabs={navTabs} />
@@ -179,7 +179,7 @@ export const Navbar: React.FC = () => {
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
               aria-label="Notifications"
             >
-              <img src="svgs/notification.svg" />
+              <img src="/svgs/notification.svg" />
               <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
                 3
               </span>

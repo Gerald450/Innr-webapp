@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {events} from '../../data/events'
 
 type EventItem = {
   id: string;
@@ -14,18 +15,6 @@ type EventItem = {
   attendees?: number;
   description?: string;
 };
-
-const sampleEvents: EventItem[] = Array.from({ length: 200 }).map((_, i) => ({
-  id: String(i + 1),
-  title: i === 0 ? "STEEL CONSTRUCTION EXPO 2025" : "SGA General Meeting",
-  datetime: "Thu, Nov 27, 2025, 1:00 AM",
-  location: "Kountz Kyle Room 104",
-  imageSrc: "/images/sga.png",
-  organizer: "TradeIndia Trade Fairs",
-  attendees: 17 + i * 5,
-  description:
-    "Short description for the event that shows a preview in the card.",
-}));
 
 export default function EventsClient() {
   const [joinedMap, setJoinedMap] = useState<Record<string, boolean>>({});
@@ -72,7 +61,7 @@ export default function EventsClient() {
 
         {/* Centered, smaller cards - LinkedIn style */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
-          {sampleEvents.map((ev) => {
+          {events.map((ev) => {
             const joined = !!joinedMap[ev.id];
 
             return (
@@ -165,7 +154,7 @@ export default function EventsClient() {
                           {joined ? "Joined" : "Attend"}
                         </button>
 
-                        {/* SHARE ALWAYS SHOWS */}
+                       
                         <button
                           type="button"
                           onClick={(e) => handleShare(e, ev)}

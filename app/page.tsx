@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Post } from "../components/Posts";
 import { MakePost } from "@/components/MakePost";
 import CreatePostModal from "@/components/CreatePostModal";
-import { postsData } from "./postsData";
+import { postsData } from "../data/postsData";
 
 type PostItem = {
   id: number;
