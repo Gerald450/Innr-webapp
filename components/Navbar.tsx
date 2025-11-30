@@ -192,6 +192,7 @@ export const Navbar: React.FC = () => {
             label="Menu"
             iconSrc="/svgs/menu.svg"
             onClick={() => setIsMenuOpen(true)}
+            className="flex md:hidden"
           >
             <div
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
@@ -207,7 +208,7 @@ export const Navbar: React.FC = () => {
           />
 
           {/* Notifications Button */}
-          <TooltipButton label="Notification" iconSrc="/svgs/notification.svg">
+          <TooltipButton label="Notification" iconSrc="/svgs/notification.svg" className="flex md:hidden">
             <div
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
               aria-label="Notifications"
