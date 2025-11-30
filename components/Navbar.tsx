@@ -235,7 +235,7 @@ export const Navbar: React.FC = () => {
             </TooltipButton>
           </div>
 
-          {openProfile && <ProfileSidebar />}
+          <ProfileSidebar isOpen={openProfile} setIsOpen={setOpenProfile} />
         </div>
       </div>
     </header>

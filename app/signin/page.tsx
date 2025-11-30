@@ -34,10 +34,60 @@ export default function AuthPageSupabase() {
       if (fullName.trim().length < 2) e.fullName = "Enter your full name";
       if (username.trim().length < 2) e.username = "Enter a username";
     }
-    if (password.length < 8) e.password = "Password must be at least 8 characters";
+    if (password.length < 8)
+      e.password = "Password must be at least 8 characters";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
+  
+  async function createOrUpdateProfile(userId: string) {
+    const payload = {
+      username,
+      full_name: fullName,
+      bio: "",
+      avatar_url: "",
+      cover_image_url: "",
+      program_of_study: "",
+      graduation_year: null,
+      role: "regular", // must match your enum
+    };
+
+    // 1) Try UPDATE (safe when row already exists)
+    const { data: updatedData, error: updateError } = await supabase
+      .from("profiles")
+      .update(payload)
+      .eq("id", userId)
+      .select(); // returns array of updated rows
+
+    if (updateError) {
+      // If update failed due to policy/permission or other DB error, surface it
+      throw updateError;
+    }
+
+    if (Array.isArray(updatedData) && updatedData.length > 0) {
+      // update succeeded and returned row(s)
+      return updatedData[0];
+    }
+
+    // 2) No rows updated -> try INSERT (fallback)
+    const { data: insertedData, error: insertError } = await supabase
+      .from("profiles")
+      .insert([
+        {
+          id: userId,
+          ...payload,
+        },
+      ])
+      .select()
+      .single();
+
+    if (insertError) {
+      // insert may fail if RLS blocks inserts; give helpful message
+      throw insertError;
+    }
+
+    return insertedData;
+  }
 
   const onSubmit = async (ev?: React.FormEvent) => {
     ev?.preventDefault();
@@ -58,20 +108,23 @@ export default function AuthPageSupabase() {
         const userId = data.user?.id;
         if (!userId) throw new Error("User ID not found");
 
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: userId,
-          username,
-          full_name: fullName,
-          bio: "",
-          avatar_url: "",
-          cover_image_url: "",
-          program_of_study: "",
-          graduation_year: null,
-          role: "regular",
-          created_at: new Date().toISOString(),
-        });
-
-        if (profileError) throw profileError;
+        try {
+          await createOrUpdateProfile(userId);
+        } catch (profileErr: any) {
+          // handle common cases: RLS blocking insert, enum mismatch, unique username conflict
+          console.error("Profile create/update error:", profileErr);
+          // Provide friendly, actionable messages
+          if (profileErr.message?.includes("violates row-level security")) {
+            throw new Error(
+              "Unable to create profile due to database security policy. Ensure your RLS policies allow the server or authenticated user to create/update their profile."
+            );
+          }
+          if (profileErr.message?.includes("duplicate key value")) {
+            throw new Error("Username already taken, please choose another.");
+          }
+          // rethrow if unknown
+          throw profileErr;
+        }
 
         setStatusMsg("Account created! Check your email for confirmation if required.");
         router.push("/");
@@ -93,24 +146,7 @@ export default function AuthPageSupabase() {
     }
   };
 
-  const handleOAuth = async (provider: string) => {
-    setLoading(true);
-    setErrors({});
-    setStatusMsg(null);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: provider as any,
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (error) throw error;
-      setStatusMsg("Redirecting to provider...");
-    } catch (err: any) {
-      console.error("OAuth error:", err);
-      setErrors({ general: err.message ?? "OAuth error" });
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const sendPasswordReset = async () => {
     setLoading(true);
@@ -136,7 +172,7 @@ export default function AuthPageSupabase() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#F0F2F5] flex items-center text-black justify-center px-4">
       {/* Main 2-column layout like Facebook */}
       <div className="w-full max-w-6xl flex flex-col md:flex-row md:items-center md:justify-between gap-10">
         {/* Left: Innr logo + tagline */}
@@ -174,7 +210,8 @@ export default function AuthPageSupabase() {
               </div>
 
               <p className="mt-2 text-sm text-slate-500">
-                Use your email to {mode === "signin" ? "sign in" : "create an account"}
+                Use your email to{" "}
+                {mode === "signin" ? "sign in" : "create an account"}
               </p>
 
               <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
@@ -195,7 +232,9 @@ export default function AuthPageSupabase() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.fullName ? "border-red-400" : "border-slate-200"
+                          errors.fullName
+                            ? "border-red-400"
+                            : "border-slate-200"
                         }`}
                         placeholder="Jane Doe"
                       />
@@ -214,7 +253,9 @@ export default function AuthPageSupabase() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.username ? "border-red-400" : "border-slate-200"
+                          errors.username
+                            ? "border-red-400"
+                            : "border-slate-200"
                         }`}
                         placeholder="janedoe"
                       />
@@ -238,7 +279,7 @@ export default function AuthPageSupabase() {
                     className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
                       errors.email ? "border-red-400" : "border-slate-200"
                     }`}
-                    placeholder="you@domain.com"
+                    placeholder="you@university.edu"
                   />
                   {errors.email && (
                     <div className="mt-1 text-xs text-red-600">
@@ -275,30 +316,30 @@ export default function AuthPageSupabase() {
                     </div>
                   )}
 
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-slate-100 rounded overflow-hidden">
-                      <div
-                        aria-hidden
-                        className={`h-2 transition-all ${
-                          pwScore(password) >= 4
-                            ? "bg-green-500"
-                            : pwScore(password) >= 2
-                            ? "bg-yellow-400"
-                            : "bg-red-400"
-                        }`}
-                        style={{ width: `${(pwScore(password) / 4) * 100}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-slate-500 w-28 text-right">
-                      {password.length === 0
-                        ? "—"
-                        : (
-                            ["Weak", "Okay", "Good", "Strong"][
+                  {mode == "signup" && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-slate-100 rounded overflow-hidden">
+                        <div
+                          aria-hidden
+                          className={`h-2 transition-all ${
+                            pwScore(password) >= 4
+                              ? "bg-green-500"
+                              : pwScore(password) >= 2
+                              ? "bg-yellow-400"
+                              : "bg-red-400"
+                          }`}
+                          style={{ width: `${(pwScore(password) / 4) * 100}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-slate-500 w-28 text-right">
+                        {password.length === 0
+                          ? "—"
+                          : ["Weak", "Okay", "Good", "Strong"][
                               Math.max(0, pwScore(password) - 1)
-                            ] ?? "Weak"
-                          )}
+                            ] ?? "Weak"}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </label>
 
                 <div className="flex items-center justify-between">
