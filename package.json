@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.86.0",
     "color-thief-browser": "^2.0.2",
     "next": "16.0.3",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "supabase": "^2.63.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
