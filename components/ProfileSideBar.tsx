@@ -1,71 +1,144 @@
 "use client";
-
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
 
-export default function ProfileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [fullName, setFullName] = useState<string | null>(null);
+const navItems = [
+  { label: "Profile", icon: "/svgs/profile.svg" },
+  { label: "Lists", icon: "/svgs/lists.svg" },
+  { label: "Saves", icon: "/svgs/save.svg" },
+  { label: "Logout", icon: "/svgs/logout.svg" },
+];
+
+export default function ProfileSidebar() {
+  const [user, setUser] = useState<{ name: string; username: string } | null>(
+    null
+  );
   const avatar = useUserAvatar();
-  const router = useRouter();
+
+  //   useEffect(() => {
+  //     async function fetchUser() {
+  //       try {
+  //         const {
+  //           data: { user },
+  //         } = await supabase.auth.getUser();
+  //       
+
+  //         if (!user) return;
+
+  //         const { data, error } = await supabase
+  //           .from("profiles")
+  //           .select("name, username")
+  //           .eq("id", user.id)
+  //           .single();
+  //         console.log("Profile data:", data);
+  //         if (error) {
+  //           console.error("Error fetching profile:", error);
+  //         } else if (data) {
+  //           setUser({ name: data.name, username: data.username });
+  //         }
+  //       } catch (err) {
+  //         console.error("Unexpected error fetching user:", err);
+  //       }
+  //     }
+
+  //     fetchUser();
+  //   }, []);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
+  async function fetchProfile() {
+    try {
+      // Get the authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError) {
+        console.error("Error getting auth user:", authError);
+        return;
+      }
 
       if (!user) return;
 
-      setFullName(user.user_metadata.full_name ?? "Profile");
-    };
+      // Fetch the user's profile from the profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*") // select all columns
+        .eq("id", user.id); // match profile to auth user
 
-    fetchProfile();
-  }, []);
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      } else {
+        console.log("Profile data:", profileData); // ✅ logs the profile record(s)
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+    }
+  }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/signin");
-  };
+  fetchProfile();
+}, []);
+
 
   return (
-    <div
-      className={`fixed top-0 text-black right-0 h-full w-64 bg-white shadow-xl p-6 transition-transform duration-300
-        ${open ? "translate-x-0" : "translate-x-full"}
-      `}
+    <aside
+      className="
+        fixed top-14 right-4 bottom-110 z-40
+        w-80 max-w-full bg-white text-gray-900
+        shadow-sm
+        rounded-xl
+        p-6
+        overflow-auto
+      "
+      style={{ borderRight: "3px solid rgba(0,0,0,0.03)" }}
     >
-      {/* Close button */}
-      <button className="text-gray-500 mb-4" onClick={onClose}>
-        ✕
-      </button>
-
-      {/* Avatar */}
-      <div className="flex justify-center mb-4">
+      {/* Big avatar + header */}
+      <div className="flex items-center gap-4">
         <img
           src={avatar}
-          alt="Profile Picture"
-          className="w-20 h-20 rounded-full object-cover border"
+          className="w-16 h-16 rounded-full bg-black shrink-0"
         />
+        <div>
+          <div className="text-lg font-semibold leading-5">
+            {user ? user.name : "Not Logged in"}
+          </div>
+          <div className="text-sm text-black mt-1">
+            {user ? `@${user.username}` : "No username"}
+          </div>
+        </div>
       </div>
 
-      {/* Clickable Name */}
-      <div
-        className="text-xl font-semibold text-center cursor-pointer hover:text-blue-600"
-        onClick={() => {
-          onClose(); // close sidebar
-          router.push("/profile");
-        }}
-      >
-        {fullName}
+      {/* spacing like the screenshot */}
+      <div className="mt-10 space-y-8">
+        {navItems.map((item) => (
+          <NavItem key={item.label} icon={item.icon}>
+            {item.label}
+          </NavItem>
+        ))}
       </div>
 
-      {/* Logout Button */}
-      <button
-        onClick={handleLogout}
-        className="mt-8 bg-red-500 text-white w-full py-2 rounded-lg hover:bg-red-600 transition"
-      >
-        Log Out
-      </button>
-    </div>
+      <div className="flex-1" />
+    </aside>
+  );
+}
+
+function NavItem({
+  icon,
+  children,
+}: {
+  icon: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      className="
+        flex items-center gap-4 w-full text-left
+        text-base font-medium
+        hover:bg-gray-50
+        transition-colors duration-150
+        px-1 py-2
+      "
+    >
+      <img src={icon} className="text-gray-400 h-6 w-6" />
+      <span className="text-gray-800">{children}</span>
+    </button>
   );
 }

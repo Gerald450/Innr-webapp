@@ -169,15 +169,11 @@ export const Navbar: React.FC = () => {
                         </span>
                       )}
                     </div>
-                
 
                     {/* underline if active */}
                     {isActive && (
                       <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
                     )}
-
-    
-            
                   </div>
                 </TooltipButton>
               );
@@ -208,7 +204,11 @@ export const Navbar: React.FC = () => {
           />
 
           {/* Notifications Button */}
-          <TooltipButton label="Notification" iconSrc="/svgs/notification.svg" className="flex md:hidden">
+          <TooltipButton
+            label="Notification"
+            iconSrc="/svgs/notification.svg"
+            className="flex md:hidden"
+          >
             <div
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
               aria-label="Notifications"
@@ -221,8 +221,12 @@ export const Navbar: React.FC = () => {
           </TooltipButton>
 
           {/* Profile Button */}
-          <div onClick={() => setOpenProfile(true)}>
-            <TooltipButton label="Profile" iconSrc={avatar}>
+          <div onClick={() => setOpenProfile((prev) => !prev)}>
+            <TooltipButton
+              label="Profile"
+              iconSrc={avatar}
+              className="transition-transform duration-150 ease-in-out active:scale-95"
+            >
               <img
                 src={avatar}
                 alt="Profile"
@@ -230,10 +234,8 @@ export const Navbar: React.FC = () => {
               />
             </TooltipButton>
           </div>
-          <ProfileSidebar
-            open={openProfile}
-            onClose={() => setOpenProfile(false)}
-          />
+
+          {openProfile && <ProfileSidebar />}
         </div>
       </div>
     </header>
