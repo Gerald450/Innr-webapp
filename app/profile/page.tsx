@@ -134,7 +134,7 @@ export default function MyProfilePage() {
   // Normal authenticated + profile present render
   return (
     <div className="min-h-screen bg-[#F5F5F5] flex justify-center text-black px-4 py-6">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-md overflow-hidden">
+      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-md overflow-hidden">
         {/* HEADER */}
         <div className="pt-4 px-4 pb-2 flex items-center gap-3">
           <span className="text-base text-black font-semibold">My Profile</span>

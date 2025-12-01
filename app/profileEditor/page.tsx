@@ -464,6 +464,7 @@ export default function ProfileEditor() {
             type="submit"
             disabled={loading}
             className="inline-flex items-center px-4 py-2 bg-[#FF4136] text-white rounded shadow disabled:opacity-60"
+            onClick={() => router.push('/profile')}
           >
             {loading ? "Saving..." : "Save changes"}
           </button>
