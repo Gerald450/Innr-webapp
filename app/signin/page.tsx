@@ -52,7 +52,12 @@ export default function AuthPageSupabase() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName } },
+          options: {
+            data: {
+              full_name: fullName,
+              username: username,
+            },
+          },
         });
 
         if (error) throw error;
@@ -72,7 +77,7 @@ export default function AuthPageSupabase() {
 
         setStatusMsg("Signed in successfully!");
 
-        // Route to profile editor after signin
+        // Route to profile after signin
         router.push("/");
       }
     } catch (err: any) {
@@ -142,7 +147,8 @@ export default function AuthPageSupabase() {
               </div>
 
               <p className="mt-2 text-sm text-slate-500">
-                Use your email to {mode === "signin" ? "sign in" : "create an account"}
+                Use your email to{" "}
+                {mode === "signin" ? "sign in" : "create an account"}
               </p>
 
               <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
@@ -163,12 +169,16 @@ export default function AuthPageSupabase() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.fullName ? "border-red-400" : "border-slate-200"
+                          errors.fullName
+                            ? "border-red-400"
+                            : "border-slate-200"
                         }`}
                         placeholder="Jane Doe"
                       />
                       {errors.fullName && (
-                        <div className="mt-1 text-xs text-red-600">{errors.fullName}</div>
+                        <div className="mt-1 text-xs text-red-600">
+                          {errors.fullName}
+                        </div>
                       )}
                     </label>
 
@@ -180,12 +190,16 @@ export default function AuthPageSupabase() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.username ? "border-red-400" : "border-slate-200"
+                          errors.username
+                            ? "border-red-400"
+                            : "border-slate-200"
                         }`}
                         placeholder="janedoe"
                       />
                       {errors.username && (
-                        <div className="mt-1 text-xs text-red-600">{errors.username}</div>
+                        <div className="mt-1 text-xs text-red-600">
+                          {errors.username}
+                        </div>
                       )}
                     </label>
                   </>
@@ -205,12 +219,16 @@ export default function AuthPageSupabase() {
                     placeholder="you@university.edu"
                   />
                   {errors.email && (
-                    <div className="mt-1 text-xs text-red-600">{errors.email}</div>
+                    <div className="mt-1 text-xs text-red-600">
+                      {errors.email}
+                    </div>
                   )}
                 </label>
 
                 <label className="block relative">
-                  <span className="text-sm font-medium text-slate-700">Password</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    Password
+                  </span>
                   <div className="mt-1 flex items-center">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -257,16 +275,25 @@ export default function AuthPageSupabase() {
                     disabled={loading}
                     className="w-full inline-flex items-center justify-center rounded-md bg-[#FF4136] text-white px-4 py-2 font-medium shadow hover:bg-[#e23a30] disabled:opacity-60"
                   >
-                    {loading ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
+                    {loading
+                      ? "Working..."
+                      : mode === "signin"
+                      ? "Sign in"
+                      : "Create account"}
                   </button>
                 </div>
               </form>
 
               <div className="mt-4 text-center text-sm text-slate-500">
                 By continuing you agree to our{" "}
-                <button className="text-[#FF4136] hover:underline">Terms</button>{" "}
+                <button className="text-[#FF4136] hover:underline">
+                  Terms
+                </button>{" "}
                 and{" "}
-                <button className="text-[#FF4136] hover:underline">Privacy Policy</button>.
+                <button className="text-[#FF4136] hover:underline">
+                  Privacy Policy
+                </button>
+                .
               </div>
             </main>
           </div>
