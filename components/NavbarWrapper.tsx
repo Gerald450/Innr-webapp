@@ -6,7 +6,7 @@ export default function NavbarWrapper() {
   const pathname = usePathname();
 
   // Pages where navbar should NOT show
-  const hideOn = ["/signin", "/signup", "/auth"];
+  const hideOn = ["/signin", "/signup", "/auth", '/profileEditor'];
 
   if (hideOn.includes(pathname)) {
     return null; // hide it

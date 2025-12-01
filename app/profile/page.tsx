@@ -6,57 +6,138 @@ import { useRouter } from "next/navigation";
 
 export default function MyProfilePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [connectionsCount, setConnectionsCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
 
   useEffect(() => {
+    let mounted = true;
     const load = async () => {
       setLoading(true);
+      setErrorMsg(null);
 
-      // 1️⃣ Get logged-in user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        // 1️⃣ Get logged-in user
+        const {
+          data: { user },
+          error: authErr,
+        } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.push("/sign-in");
-        return;
+        if (authErr) {
+          console.error("Auth getUser error:", authErr);
+          if (!mounted) return;
+          setErrorMsg("Error checking authentication.");
+          setAuthChecked(true);
+          return;
+        }
+
+        if (!user) {
+          // For debugging it's nicer to show a sign-in CTA instead of forcing a router.push.
+          // If you prefer immediate redirect, uncomment the next line:
+          // router.push("/sign-in");
+          if (!mounted) return;
+          setAuthChecked(true);
+          setLoading(false);
+          setProfile(null);
+          return;
+        }
+
+        const userId = user.id;
+        console.log(user)
+
+        // 2️⃣ Fetch user profile (check error)
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select(
+            "id, full_name, program_of_study, bio, avatar_url, graduation_year"
+          )
+          .eq("id", userId)
+          .single();
+
+        if (profileError) {
+          console.warn("Profile fetch error or not found:", profileError);
+          // It's okay if no profile yet — show 'Profile not found' UI
+          if (!mounted) return;
+          setProfile(null);
+        } else {
+          if (!mounted) return;
+          setProfile(profileData ?? null);
+        }
+
+      
+
+        if (mounted) setAuthChecked(true);
+      } catch (err) {
+        console.error("Unexpected load error:", err);
+        if (mounted) setErrorMsg("Unexpected error loading profile.");
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      const userId = user.id;
-
-      // 2️⃣ Fetch user profile
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select(
-          "id, full_name, program_of_study, bio, avatar_url, graduation_year, org_role"
-        )
-        .eq("id", userId)
-        .single();
-
-      setProfile(profileData);
-
-      // 3️⃣ Fetch campus connections count
-      const count = 0
-
-      setConnectionsCount(count ?? 0);
-
-      setLoading(false);
     };
 
     load();
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
 
+  // quick debug UI to inspect state if something's failing
   if (loading) return <div className="p-10">Loading…</div>;
-  if (!profile) return <div className="p-10">Profile not found.</div>;
 
+  // not authenticated flow (shows sign-in button)
+  if (!authChecked || !profile) {
+    // if authChecked true but profile null => show "profile not found" variant
+    return (
+      <div className="min-h-screen bg-[#F5F5F5] flex justify-center items-start px-4 py-6">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-md overflow-hidden p-6">
+          <h2 className="text-xl font-semibold mb-4">My Profile</h2>
+
+          {errorMsg && <div className="mb-4 text-sm text-red-600">{errorMsg}</div>}
+
+          {!authChecked && <div className="mb-4 text-sm">Checking authentication…</div>}
+
+          {authChecked && !profile && (
+            <>
+              <div className="mb-4 text-sm">No profile found for the signed-in user.</div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => router.push("/signin")}
+                  className="px-4 py-2 bg-[#FF4136] text-white rounded"
+                >
+                  Sign in
+                </button>
+                <button
+                  onClick={() => {
+                    // navigate to profile editor or signup flow
+                    router.push("/profile/edit");
+                  }}
+                  className="px-4 py-2 border rounded"
+                >
+                  Create profile
+                </button>
+              </div>
+            </>
+          )}
+
+          {!authChecked && (
+            <div className="mt-4 text-sm">
+              If you expected to be signed in, check your session or open dev tools.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Normal authenticated + profile present render
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex justify-center px-4 py-6">
+    <div className="min-h-screen bg-[#F5F5F5] flex justify-center text-black px-4 py-6">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-md overflow-hidden">
         {/* HEADER */}
         <div className="pt-4 px-4 pb-2 flex items-center gap-3">
-          <span className="text-base font-semibold">My Profile</span>
+          <span className="text-base text-black font-semibold">My Profile</span>
         </div>
 
         <div className="px-5 pb-4">
@@ -106,10 +187,16 @@ export default function MyProfilePage() {
 
           {/* Buttons */}
           <div className="mt-4 flex gap-3">
-            <button className="flex-1 h-10 rounded-full bg-[#FF4136] text-white font-semibold">
+            <button
+              onClick={() => router.push("/profileEditor")}
+              className="flex-1 h-10 rounded-full bg-[#FF4136] text-white font-semibold"
+            >
               Edit Profile
             </button>
-            <button className="flex-1 h-10 rounded-full border border-slate-300 font-semibold">
+            <button
+              onClick={() => router.push("/settings")}
+              className="flex-1 h-10 rounded-full border border-slate-300 font-semibold"
+            >
               Settings
             </button>
           </div>

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient"; // <- update path if needed
+import { supabase } from "@/lib/supabaseClient";
 
 type Mode = "signin" | "signup";
 
@@ -39,60 +39,12 @@ export default function AuthPageSupabase() {
     setErrors(e);
     return Object.keys(e).length === 0;
   };
-  
-  async function createOrUpdateProfile(userId: string) {
-    const payload = {
-      username,
-      full_name: fullName,
-      bio: "",
-      avatar_url: "",
-      cover_image_url: "",
-      program_of_study: "",
-      graduation_year: null,
-      role: "regular", // must match your enum
-    };
-
-    // 1) Try UPDATE (safe when row already exists)
-    const { data: updatedData, error: updateError } = await supabase
-      .from("profiles")
-      .update(payload)
-      .eq("id", userId)
-      .select(); // returns array of updated rows
-
-    if (updateError) {
-      // If update failed due to policy/permission or other DB error, surface it
-      throw updateError;
-    }
-
-    if (Array.isArray(updatedData) && updatedData.length > 0) {
-      // update succeeded and returned row(s)
-      return updatedData[0];
-    }
-
-    // 2) No rows updated -> try INSERT (fallback)
-    const { data: insertedData, error: insertError } = await supabase
-      .from("profiles")
-      .insert([
-        {
-          id: userId,
-          ...payload,
-        },
-      ])
-      .select()
-      .single();
-
-    if (insertError) {
-      // insert may fail if RLS blocks inserts; give helpful message
-      throw insertError;
-    }
-
-    return insertedData;
-  }
 
   const onSubmit = async (ev?: React.FormEvent) => {
     ev?.preventDefault();
     setStatusMsg(null);
     if (!validate()) return;
+
     setLoading(true);
     setErrors({});
     try {
@@ -105,29 +57,12 @@ export default function AuthPageSupabase() {
 
         if (error) throw error;
 
-        const userId = data.user?.id;
-        if (!userId) throw new Error("User ID not found");
+        setStatusMsg(
+          "Account created! Check your email for confirmation if required."
+        );
 
-        try {
-          await createOrUpdateProfile(userId);
-        } catch (profileErr: any) {
-          // handle common cases: RLS blocking insert, enum mismatch, unique username conflict
-          console.error("Profile create/update error:", profileErr);
-          // Provide friendly, actionable messages
-          if (profileErr.message?.includes("violates row-level security")) {
-            throw new Error(
-              "Unable to create profile due to database security policy. Ensure your RLS policies allow the server or authenticated user to create/update their profile."
-            );
-          }
-          if (profileErr.message?.includes("duplicate key value")) {
-            throw new Error("Username already taken, please choose another.");
-          }
-          // rethrow if unknown
-          throw profileErr;
-        }
-
-        setStatusMsg("Account created! Check your email for confirmation if required.");
-        router.push("/");
+        // Route to profile editor after signup
+        router.push("/profileEditor");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -136,6 +71,8 @@ export default function AuthPageSupabase() {
         if (error) throw error;
 
         setStatusMsg("Signed in successfully!");
+
+        // Route to profile editor after signin
         router.push("/");
       }
     } catch (err: any) {
@@ -145,8 +82,6 @@ export default function AuthPageSupabase() {
       setLoading(false);
     }
   };
-
-
 
   const sendPasswordReset = async () => {
     setLoading(true);
@@ -173,9 +108,7 @@ export default function AuthPageSupabase() {
 
   return (
     <div className="min-h-screen bg-[#F0F2F5] flex items-center text-black justify-center px-4">
-      {/* Main 2-column layout like Facebook */}
       <div className="w-full max-w-6xl flex flex-col md:flex-row md:items-center md:justify-between gap-10">
-        {/* Left: Innr logo + tagline */}
         <div className="flex-1">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[#FF4136]">
             Innr
@@ -185,7 +118,6 @@ export default function AuthPageSupabase() {
           </p>
         </div>
 
-        {/* Right: form card (design kept, colors adapted to palette) */}
         <div className="flex-1 max-w-md">
           <div className="bg-white shadow-lg rounded-xl overflow-hidden">
             <main className="p-8">
@@ -210,8 +142,7 @@ export default function AuthPageSupabase() {
               </div>
 
               <p className="mt-2 text-sm text-slate-500">
-                Use your email to{" "}
-                {mode === "signin" ? "sign in" : "create an account"}
+                Use your email to {mode === "signin" ? "sign in" : "create an account"}
               </p>
 
               <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
@@ -232,16 +163,12 @@ export default function AuthPageSupabase() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.fullName
-                            ? "border-red-400"
-                            : "border-slate-200"
+                          errors.fullName ? "border-red-400" : "border-slate-200"
                         }`}
                         placeholder="Jane Doe"
                       />
                       {errors.fullName && (
-                        <div className="mt-1 text-xs text-red-600">
-                          {errors.fullName}
-                        </div>
+                        <div className="mt-1 text-xs text-red-600">{errors.fullName}</div>
                       )}
                     </label>
 
@@ -253,16 +180,12 @@ export default function AuthPageSupabase() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.username
-                            ? "border-red-400"
-                            : "border-slate-200"
+                          errors.username ? "border-red-400" : "border-slate-200"
                         }`}
                         placeholder="janedoe"
                       />
                       {errors.username && (
-                        <div className="mt-1 text-xs text-red-600">
-                          {errors.username}
-                        </div>
+                        <div className="mt-1 text-xs text-red-600">{errors.username}</div>
                       )}
                     </label>
                   </>
@@ -282,16 +205,12 @@ export default function AuthPageSupabase() {
                     placeholder="you@university.edu"
                   />
                   {errors.email && (
-                    <div className="mt-1 text-xs text-red-600">
-                      {errors.email}
-                    </div>
+                    <div className="mt-1 text-xs text-red-600">{errors.email}</div>
                   )}
                 </label>
 
                 <label className="block relative">
-                  <span className="text-sm font-medium text-slate-700">
-                    Password
-                  </span>
+                  <span className="text-sm font-medium text-slate-700">Password</span>
                   <div className="mt-1 flex items-center">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -310,36 +229,6 @@ export default function AuthPageSupabase() {
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
-                  {errors.password && (
-                    <div className="mt-1 text-xs text-red-600">
-                      {errors.password}
-                    </div>
-                  )}
-
-                  {mode == "signup" && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-slate-100 rounded overflow-hidden">
-                        <div
-                          aria-hidden
-                          className={`h-2 transition-all ${
-                            pwScore(password) >= 4
-                              ? "bg-green-500"
-                              : pwScore(password) >= 2
-                              ? "bg-yellow-400"
-                              : "bg-red-400"
-                          }`}
-                          style={{ width: `${(pwScore(password) / 4) * 100}%` }}
-                        />
-                      </div>
-                      <div className="text-xs text-slate-500 w-28 text-right">
-                        {password.length === 0
-                          ? "—"
-                          : ["Weak", "Okay", "Good", "Strong"][
-                              Math.max(0, pwScore(password) - 1)
-                            ] ?? "Weak"}
-                      </div>
-                    </div>
-                  )}
                 </label>
 
                 <div className="flex items-center justify-between">
@@ -368,25 +257,16 @@ export default function AuthPageSupabase() {
                     disabled={loading}
                     className="w-full inline-flex items-center justify-center rounded-md bg-[#FF4136] text-white px-4 py-2 font-medium shadow hover:bg-[#e23a30] disabled:opacity-60"
                   >
-                    {loading
-                      ? "Working..."
-                      : mode === "signin"
-                      ? "Sign in"
-                      : "Create account"}
+                    {loading ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
                   </button>
                 </div>
               </form>
 
               <div className="mt-4 text-center text-sm text-slate-500">
                 By continuing you agree to our{" "}
-                <button className="text-[#FF4136] hover:underline">
-                  Terms
-                </button>{" "}
+                <button className="text-[#FF4136] hover:underline">Terms</button>{" "}
                 and{" "}
-                <button className="text-[#FF4136] hover:underline">
-                  Privacy Policy
-                </button>
-                .
+                <button className="text-[#FF4136] hover:underline">Privacy Policy</button>.
               </div>
             </main>
           </div>
