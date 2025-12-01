@@ -225,12 +225,12 @@ export const Navbar: React.FC = () => {
             <TooltipButton
               label="Profile"
               iconSrc={avatar}
-              className="transition-transform duration-150 ease-in-out active:scale-95"
+              className="transition-transform flex-shrink-0 duration-150 ease-in-out active:scale-95"
             >
               <img
                 src={avatar}
                 alt="Profile"
-                className="h-9 w-9 scale-110 rounded-full shrink-0 object-cover"
+                className="h-9 w-9 scale-110 rounded-full flex-shrink-0 object-cover"
               />
             </TooltipButton>
           </div>
