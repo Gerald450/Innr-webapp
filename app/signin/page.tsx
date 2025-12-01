@@ -57,17 +57,17 @@ export default function AuthPageSupabase() {
               full_name: fullName,
               username: username,
             },
+            emailRedirectTo: `${window.location.origin}/profileEditor`, // redirect after verification
           },
         });
 
         if (error) throw error;
 
         setStatusMsg(
-          "Account created! Check your email for confirmation if required."
+          "Account created! Check your email for confirmation"
         );
 
-        // Route to profile editor after signup
-        router.push("/profileEditor");
+        
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
