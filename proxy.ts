@@ -13,10 +13,11 @@ const PUBLIC_PREFIXES = [
 const PUBLIC_PAGES = [
   "/signin",
   "/signup",
-  "/auth",                  // e.g. /auth/callback or /auth/settings
-  "/api/auth",              // any API auth handlers you expose
+  "/auth", // e.g. /auth/callback or /auth/settings
+  "/api/auth", // any API auth handlers you expose
   "/api/auth/callback",
-  "/api/auth/set-cookie",   // example if you set cookies server-side
+  "/api/auth/set-cookie",
+  "/updatePassword",
 ];
 export function proxy(req: NextRequest) {
   const { nextUrl } = req;
@@ -94,11 +95,9 @@ function sanitizeNext(nextPath: string | null): string {
   }
 }
 
-
-
 export const config = {
   matcher: [
     // protect everything except API, _next static assets and common static files
-    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)'
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
   ],
 };
