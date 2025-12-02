@@ -179,36 +179,49 @@ export default function MyProfilePage() {
   }, [activeTab, profile?.id]);
 
   // quick debug UI to inspect state if something's failing
-  if (loading) return <div className="p-10">Loading…</div>;
+  if (loading) {
+    return (
+      <div className="bg-[#F2F4F7] min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg text-slate-600">Loading profile…</div>
+        </div>
+      </div>
+    );
+  }
 
   // not authenticated flow (shows sign-in button)
   if (!authChecked || !profile) {
     // if authChecked true but profile null => show "profile not found" variant
     return (
-      <div className="min-h-screen bg-[#F5F5F5] flex justify-center items-start px-4 py-6">
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-md overflow-hidden p-6">
-          <h2 className="text-xl font-semibold mb-4">My Profile</h2>
+      <div className="bg-[#F2F4F7] min-h-screen flex justify-center items-start px-4 py-10">
+        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden p-8">
+          <h2 className="text-2xl font-semibold mb-4 text-black">My Profile</h2>
 
-          {errorMsg && <div className="mb-4 text-sm text-red-600">{errorMsg}</div>}
+          {errorMsg && (
+            <div className="mb-4 p-3 rounded-md bg-red-50 text-red-700 text-sm">
+              {errorMsg}
+            </div>
+          )}
 
-          {!authChecked && <div className="mb-4 text-sm">Checking authentication…</div>}
+          {!authChecked && (
+            <div className="mb-4 text-sm text-slate-600">Checking authentication…</div>
+          )}
 
           {authChecked && !profile && (
             <>
-              <div className="mb-4 text-sm">No profile found for the signed-in user.</div>
+              <div className="mb-6 text-sm text-slate-600">
+                No profile found for the signed-in user.
+              </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => router.push("/signin")}
-                  className="px-4 py-2 bg-[var(--color-accent)] text-white rounded"
+                  className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-md hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"
                 >
                   Sign in
                 </button>
                 <button
-                  onClick={() => {
-                    // navigate to profile editor or signup flow
-                    router.push("/profile/edit");
-                  }}
-                  className="px-4 py-2 border rounded"
+                  onClick={() => router.push("/profileEditor")}
+                  className="px-4 py-2 border border-slate-300 rounded-md hover:bg-gray-50 transition"
                 >
                   Create profile
                 </button>
@@ -217,7 +230,7 @@ export default function MyProfilePage() {
           )}
 
           {!authChecked && (
-            <div className="mt-4 text-sm">
+            <div className="mt-4 text-sm text-slate-500">
               If you expected to be signed in, check your session or open dev tools.
             </div>
           )}
@@ -228,105 +241,127 @@ export default function MyProfilePage() {
 
   // Normal authenticated + profile present render
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex justify-center text-black px-4 py-6">
-      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-md overflow-hidden">
-        {/* HEADER */}
-        <div className="pt-4 px-4 pb-2 flex items-center gap-3">
-          <span className="text-base text-black font-semibold">My Profile</span>
-        </div>
+    <div className="bg-[#F2F4F7] min-h-screen py-10 flex justify-center px-4">
+      <div className="w-full max-w-2xl">
+        {/* Profile Header Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 mb-6 overflow-hidden">
+          {/* Header Section */}
+          <div className="px-6 py-5 border-b border-neutral-200">
+            <h1 className="text-2xl font-semibold text-black">My Profile</h1>
+          </div>
 
-        <div className="px-5 pb-4">
-          {/* Avatar + Name */}
-          <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-black overflow-hidden">
-              {profile.avatar_url && (
-                <img
-                  src={profile.avatar_url}
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
-
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-[16px]">
-                  {profile.full_name}
-                </span>
-
-                {profile.graduation_year && (
-                  <div className="text-xs text-slate-600">
-                    🎓 {String(profile.graduation_year).slice(-2)}
+          {/* Profile Info Section */}
+          <div className="px-6 py-6">
+            {/* Avatar + Name */}
+            <div className="flex gap-4 mb-4">
+              <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm">
+                {profile.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={profile.full_name || "Profile"}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl">
+                    {profile.full_name?.[0]?.toUpperCase() || "?"}
                   </div>
                 )}
               </div>
 
-              <div className="text-xs text-slate-700 mt-1">
-                {profile.program_of_study}
-              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-semibold text-xl text-black">
+                    {profile.full_name || "Unknown User"}
+                  </h2>
+                  {profile.graduation_year && (
+                    <span className="flex items-center gap-1 text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                      <img
+                        src="/svgs/graduate.svg"
+                        alt="Graduate"
+                        className="h-3 w-3"
+                      />
+                      {String(profile.graduation_year).slice(-2)}
+                    </span>
+                  )}
+                </div>
 
-              <div className="text-xs font-semibold text-slate-800 mt-1">
-                {connectionsCount} campus connections
+                {profile.program_of_study && (
+                  <div className="text-sm text-slate-600 mt-1">
+                    {profile.program_of_study}
+                  </div>
+                )}
+
+                <div className="text-sm font-medium text-slate-700 mt-2">
+                  {connectionsCount} campus connections
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Bio */}
-          {profile.bio && (
-            <div className="mt-3 text-sm whitespace-pre-line">{profile.bio}</div>
-          )}
+            {/* Bio */}
+            {profile.bio && (
+              <div className="mt-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {profile.bio}
+              </div>
+            )}
 
-          {/* Role Tag */}
-          {profile.org_role && (
-            <div className="mt-3 inline-flex px-3 py-1 rounded-full bg-black">
-              <span className="text-xs text-white">{profile.org_role}</span>
+            {/* Role Tag */}
+            {profile.org_role && (
+              <div className="mt-4 inline-flex px-3 py-1.5 rounded-full bg-[var(--color-accent)]">
+                <span className="text-xs font-medium text-white">
+                  {profile.org_role}
+                </span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => router.push("/profileEditor")}
+                className="flex-1 h-11 rounded-lg bg-[var(--color-accent)] text-white font-semibold hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition shadow-sm"
+              >
+                Edit Profile
+              </button>
+              <button
+                onClick={() => router.push("/settings")}
+                className="flex-1 h-11 rounded-lg border border-slate-300 font-semibold hover:bg-gray-50 transition text-black"
+              >
+                Settings
+              </button>
             </div>
-          )}
-
-          {/* Buttons */}
-          <div className="mt-4 flex gap-3">
-            <button
-              onClick={() => router.push("/profileEditor")}
-              className="flex-1 h-10 rounded-full bg-[var(--color-accent)] text-white font-semibold"
-            >
-              Edit Profile
-            </button>
-            <button
-              onClick={() => router.push("/settings")}
-              className="flex-1 h-10 rounded-full border border-slate-300 font-semibold"
-            >
-              Settings
-            </button>
           </div>
+        </div>
 
+        {/* Tabs Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
           {/* Tabs */}
-          <div className="mt-5 border-t border-slate-200 -mx-5 px-5">
-            <div className="flex justify-between text-sm font-medium pt-1">
+          <div className="border-b border-neutral-200">
+            <div className="flex text-sm font-medium">
               <button
                 onClick={() => setActiveTab("posts")}
-                className={`flex-1 text-center pb-2 border-b-2 transition ${
+                className={`flex-1 text-center py-4 border-b-2 transition-colors ${
                   activeTab === "posts"
-                    ? "text-black border-[var(--color-accent)]"
-                    : "text-slate-400 border-transparent"
+                    ? "text-black border-[var(--color-accent)] font-semibold"
+                    : "text-slate-400 border-transparent hover:text-slate-600"
                 }`}
               >
                 Posts
               </button>
               <button
                 onClick={() => setActiveTab("activity")}
-                className={`flex-1 text-center pb-2 border-b-2 transition ${
+                className={`flex-1 text-center py-4 border-b-2 transition-colors ${
                   activeTab === "activity"
-                    ? "text-black border-[var(--color-accent)]"
-                    : "text-slate-400 border-transparent"
+                    ? "text-black border-[var(--color-accent)] font-semibold"
+                    : "text-slate-400 border-transparent hover:text-slate-600"
                 }`}
               >
                 Activity
               </button>
               <button
                 onClick={() => setActiveTab("about")}
-                className={`flex-1 text-center pb-2 border-b-2 transition ${
+                className={`flex-1 text-center py-4 border-b-2 transition-colors ${
                   activeTab === "about"
-                    ? "text-black border-[var(--color-accent)]"
-                    : "text-slate-400 border-transparent"
+                    ? "text-black border-[var(--color-accent)] font-semibold"
+                    : "text-slate-400 border-transparent hover:text-slate-600"
                 }`}
               >
                 About
@@ -335,16 +370,21 @@ export default function MyProfilePage() {
           </div>
 
           {/* Tab Content */}
-          <div className="mt-4 -mx-5 px-5 pb-4">
+          <div className="p-6">
             {activeTab === "posts" && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {loadingPosts ? (
-                  <div className="text-center py-8 text-sm text-slate-500">
-                    Loading posts...
+                  <div className="text-center py-12">
+                    <div className="text-sm text-slate-500">Loading posts...</div>
                   </div>
                 ) : userPosts.length === 0 ? (
-                  <div className="text-center py-8 text-sm text-slate-500">
-                    No posts yet. Start sharing your campus experience!
+                  <div className="text-center py-12">
+                    <div className="text-sm text-slate-500 mb-2">
+                      No posts yet.
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Start sharing your campus experience!
+                    </div>
                   </div>
                 ) : (
                   userPosts.map((post) => (
@@ -369,27 +409,33 @@ export default function MyProfilePage() {
             )}
 
             {activeTab === "activity" && (
-              <div className="text-center py-8 text-sm text-slate-500">
-                Activity coming soon
+              <div className="text-center py-12">
+                <div className="text-sm text-slate-500">Activity coming soon</div>
               </div>
             )}
 
             {activeTab === "about" && (
-              <div className="space-y-3 text-sm">
+              <div className="space-y-4">
                 {profile.program_of_study && (
-                  <div>
-                    <span className="font-medium text-slate-700">Program:</span>{" "}
-                    <span className="text-slate-600">{profile.program_of_study}</span>
+                  <div className="pb-3 border-b border-neutral-100">
+                    <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+                      Program of Study
+                    </div>
+                    <div className="text-sm text-slate-900">{profile.program_of_study}</div>
                   </div>
                 )}
                 {profile.graduation_year && (
-                  <div>
-                    <span className="font-medium text-slate-700">Graduation Year:</span>{" "}
-                    <span className="text-slate-600">{profile.graduation_year}</span>
+                  <div className="pb-3 border-b border-neutral-100">
+                    <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+                      Graduation Year
+                    </div>
+                    <div className="text-sm text-slate-900">{profile.graduation_year}</div>
                   </div>
                 )}
                 {!profile.program_of_study && !profile.graduation_year && (
-                  <div className="text-slate-500">No additional information available</div>
+                  <div className="text-center py-8 text-sm text-slate-500">
+                    No additional information available
+                  </div>
                 )}
               </div>
             )}
