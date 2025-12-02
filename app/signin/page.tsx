@@ -1,12 +1,13 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type Mode = "signin" | "signup";
 
 export default function AuthPageSupabase() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,6 +18,16 @@ export default function AuthPageSupabase() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  
+  const rawNext = searchParams.get("next") || "/";
+  const nextPath = (() => {
+    try {
+      return decodeURIComponent(rawNext);
+    } catch {
+      return "/";
+    }
+  })();
 
   const pwScore = (p: string) => {
     let s = 0;
@@ -57,27 +68,59 @@ export default function AuthPageSupabase() {
               full_name: fullName,
               username: username,
             },
-            emailRedirectTo: `${window.location.origin}/profileEditor`, // redirect after verification
+            emailRedirectTo: `${window.location.origin}/`, 
           },
         });
 
         if (error) throw error;
 
-        setStatusMsg(
-          "Account created! Check your email for confirmation"
-        );
-
-        
+        setStatusMsg("Account created! Check your email for confirmation");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        // SIGN IN path — changed to capture tokens and set cookies server-side
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+
         if (error) throw error;
 
-        setStatusMsg("Signed in successfully!");
+        // tokens from Supabase session (if present)
+        const access = (data as any)?.session?.access_token;
+        const refresh = (data as any)?.session?.refresh_token;
 
-        // Route to profile after signin
+        if (access && refresh) {
+          // POST tokens to server route which sets httpOnly cookies
+          try {
+            const resp = await fetch("/api/auth/setCookie", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ access, refresh }),
+            });
+
+            if (!resp.ok) {
+              // if server failed to set cookies, surface message but still fallback to push
+              const txt = await resp.text();
+              console.error("Failed to set auth cookies:", txt);
+              setStatusMsg("Signed in, but failed to persist session on server.");
+              // fallback: still navigate to requested page
+              router.push(nextPath || "/");
+              return;
+            }
+
+            setStatusMsg("Signed in successfully!");
+            // navigate to requested page (middleware will now see cookies)
+            router.push(nextPath || "/");
+            return;
+          } catch (err) {
+            console.error("Error posting tokens to server:", err);
+            setStatusMsg("Signed in, but server cookie step failed.");
+            router.push(nextPath || "/");
+            return;
+          }
+        }
+
+        // If tokens absent (unexpected), just proceed to home as a fallback
+        setStatusMsg("Signed in successfully!");
         router.push("/");
       }
     } catch (err: any) {
@@ -169,9 +212,7 @@ export default function AuthPageSupabase() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.fullName
-                            ? "border-red-400"
-                            : "border-slate-200"
+                          errors.fullName ? "border-red-400" : "border-slate-200"
                         }`}
                         placeholder="Jane Doe"
                       />
@@ -190,9 +231,7 @@ export default function AuthPageSupabase() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.username
-                            ? "border-red-400"
-                            : "border-slate-200"
+                          errors.username ? "border-red-400" : "border-slate-200"
                         }`}
                         placeholder="janedoe"
                       />
@@ -286,9 +325,7 @@ export default function AuthPageSupabase() {
 
               <div className="mt-4 text-center text-sm text-slate-500">
                 By continuing you agree to our{" "}
-                <button className="text-[#FF4136] hover:underline">
-                  Terms
-                </button>{" "}
+                <button className="text-[#FF4136] hover:underline">Terms</button>{" "}
                 and{" "}
                 <button className="text-[#FF4136] hover:underline">
                   Privacy Policy
