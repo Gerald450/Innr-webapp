@@ -38,7 +38,10 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
   // Close when clicking outside or pressing Escape
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -86,7 +89,10 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
         }
 
         if (mounted && data) {
-          setProfile({ full_name: data.full_name ?? null, username: data.username ?? null });
+          setProfile({
+            full_name: data.full_name ?? null,
+            username: data.username ?? null,
+          });
         }
       } catch (err) {
         console.error("Unexpected error:", err);
@@ -107,14 +113,22 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
     if (item.label === "Logout") {
       setTimeout(async () => {
         try {
+          // 1. Clear server-side cookies
+          await fetch("/api/auth/clearCookie", { method: "POST" });
+
+          // 2. Clear client-side Supabase session as well
           await supabase.auth.signOut();
         } catch (err) {
           console.error("Error signing out:", err);
         } finally {
+          // 3. Close dropdown
           setIsOpen(false);
-          router.push(item.path);
+
+          // 4. Redirect to signin page
+          router.push("/signin");
         }
       }, 150);
+
       return;
     }
 
@@ -180,7 +194,11 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
               type="button"
               aria-pressed={clickedIndex === i}
             >
-              <img src={item.icon} className="text-gray-400 h-6 w-6" alt={`${item.label} icon`} />
+              <img
+                src={item.icon}
+                className="text-gray-400 h-6 w-6"
+                alt={`${item.label} icon`}
+              />
               <span className="text-gray-800">{item.label}</span>
             </button>
           ))}

@@ -1,12 +1,13 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type Mode = "signin" | "signup";
 
 export default function AuthPageSupabase() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,6 +18,16 @@ export default function AuthPageSupabase() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  
+  const rawNext = searchParams.get("next") || "/";
+  const nextPath = (() => {
+    try {
+      return decodeURIComponent(rawNext);
+    } catch {
+      return "/";
+    }
+  })();
 
   const pwScore = (p: string) => {
     let s = 0;
@@ -52,27 +63,64 @@ export default function AuthPageSupabase() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName } },
+          options: {
+            data: {
+              full_name: fullName,
+              username: username,
+            },
+            emailRedirectTo: `${window.location.origin}/`, 
+          },
         });
 
         if (error) throw error;
 
-        setStatusMsg(
-          "Account created! Check your email for confirmation if required."
-        );
-
-        // Route to profile editor after signup
-        router.push("/profileEditor");
+        setStatusMsg("Account created! Check your email for confirmation");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        // SIGN IN path — changed to capture tokens and set cookies server-side
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+
         if (error) throw error;
 
-        setStatusMsg("Signed in successfully!");
+        // tokens from Supabase session (if present)
+        const access = (data as any)?.session?.access_token;
+        const refresh = (data as any)?.session?.refresh_token;
 
-        // Route to profile editor after signin
+        if (access && refresh) {
+          // POST tokens to server route which sets httpOnly cookies
+          try {
+            const resp = await fetch("/api/auth/setCookie", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ access, refresh }),
+            });
+
+            if (!resp.ok) {
+              // if server failed to set cookies, surface message but still fallback to push
+              const txt = await resp.text();
+              console.error("Failed to set auth cookies:", txt);
+              setStatusMsg("Signed in, but failed to persist session on server.");
+              // fallback: still navigate to requested page
+              router.push(nextPath || "/");
+              return;
+            }
+
+            setStatusMsg("Signed in successfully!");
+            // navigate to requested page (middleware will now see cookies)
+            router.push(nextPath || "/");
+            return;
+          } catch (err) {
+            console.error("Error posting tokens to server:", err);
+            setStatusMsg("Signed in, but server cookie step failed.");
+            router.push(nextPath || "/");
+            return;
+          }
+        }
+
+        // If tokens absent (unexpected), just proceed to home as a fallback
+        setStatusMsg("Signed in successfully!");
         router.push("/");
       }
     } catch (err: any) {
@@ -142,7 +190,8 @@ export default function AuthPageSupabase() {
               </div>
 
               <p className="mt-2 text-sm text-slate-500">
-                Use your email to {mode === "signin" ? "sign in" : "create an account"}
+                Use your email to{" "}
+                {mode === "signin" ? "sign in" : "create an account"}
               </p>
 
               <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
@@ -168,7 +217,9 @@ export default function AuthPageSupabase() {
                         placeholder="Jane Doe"
                       />
                       {errors.fullName && (
-                        <div className="mt-1 text-xs text-red-600">{errors.fullName}</div>
+                        <div className="mt-1 text-xs text-red-600">
+                          {errors.fullName}
+                        </div>
                       )}
                     </label>
 
@@ -185,7 +236,9 @@ export default function AuthPageSupabase() {
                         placeholder="janedoe"
                       />
                       {errors.username && (
-                        <div className="mt-1 text-xs text-red-600">{errors.username}</div>
+                        <div className="mt-1 text-xs text-red-600">
+                          {errors.username}
+                        </div>
                       )}
                     </label>
                   </>
@@ -205,12 +258,16 @@ export default function AuthPageSupabase() {
                     placeholder="you@university.edu"
                   />
                   {errors.email && (
-                    <div className="mt-1 text-xs text-red-600">{errors.email}</div>
+                    <div className="mt-1 text-xs text-red-600">
+                      {errors.email}
+                    </div>
                   )}
                 </label>
 
                 <label className="block relative">
-                  <span className="text-sm font-medium text-slate-700">Password</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    Password
+                  </span>
                   <div className="mt-1 flex items-center">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -257,7 +314,11 @@ export default function AuthPageSupabase() {
                     disabled={loading}
                     className="w-full inline-flex items-center justify-center rounded-md bg-[#FF4136] text-white px-4 py-2 font-medium shadow hover:bg-[#e23a30] disabled:opacity-60"
                   >
-                    {loading ? "Working..." : mode === "signin" ? "Sign in" : "Create account"}
+                    {loading
+                      ? "Working..."
+                      : mode === "signin"
+                      ? "Sign in"
+                      : "Create account"}
                   </button>
                 </div>
               </form>
@@ -266,7 +327,10 @@ export default function AuthPageSupabase() {
                 By continuing you agree to our{" "}
                 <button className="text-[#FF4136] hover:underline">Terms</button>{" "}
                 and{" "}
-                <button className="text-[#FF4136] hover:underline">Privacy Policy</button>.
+                <button className="text-[#FF4136] hover:underline">
+                  Privacy Policy
+                </button>
+                .
               </div>
             </main>
           </div>
