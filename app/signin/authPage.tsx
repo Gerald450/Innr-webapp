@@ -52,7 +52,7 @@ export default function AuthPageSupabase() {
   };
 
   
- const redirectUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+ const redirectUrl = process.env.NEXT_PUBLIC_BASE_URL
 
   const onSubmit = async (ev?: React.FormEvent) => {
     ev?.preventDefault();
