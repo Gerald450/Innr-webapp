@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -18,7 +18,6 @@ export default function AuthPageSupabase() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
 
   const rawNext = searchParams.get("next") || "/";
   const nextPath = (() => {
@@ -51,8 +50,6 @@ export default function AuthPageSupabase() {
     return Object.keys(e).length === 0;
   };
 
-
-
   const onSubmit = async (ev?: React.FormEvent) => {
     ev?.preventDefault();
     setStatusMsg(null);
@@ -62,15 +59,15 @@ export default function AuthPageSupabase() {
     setErrors({});
     try {
       if (mode === "signup") {
+        const redirectUrl =
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: {
-              full_name: fullName,
-              username: username,
-            },
-            emailRedirectTo: `localhost:3000/signin`, 
+            data: { full_name: fullName, username },
+            emailRedirectTo: `${redirectUrl}/`,
           },
         });
 
@@ -103,7 +100,9 @@ export default function AuthPageSupabase() {
               // if server failed to set cookies, surface message but still fallback to push
               const txt = await resp.text();
               console.error("Failed to set auth cookies:", txt);
-              setStatusMsg("Signed in, but failed to persist session on server.");
+              setStatusMsg(
+                "Signed in, but failed to persist session on server."
+              );
               // fallback: still navigate to requested page
               router.push(nextPath || "/");
               return;
@@ -214,7 +213,9 @@ export default function AuthPageSupabase() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.fullName ? "border-red-400" : "border-slate-200"
+                          errors.fullName
+                            ? "border-red-400"
+                            : "border-slate-200"
                         }`}
                         placeholder="Jane Doe"
                       />
@@ -233,7 +234,9 @@ export default function AuthPageSupabase() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
-                          errors.username ? "border-red-400" : "border-slate-200"
+                          errors.username
+                            ? "border-red-400"
+                            : "border-slate-200"
                         }`}
                         placeholder="janedoe"
                       />
@@ -327,7 +330,9 @@ export default function AuthPageSupabase() {
 
               <div className="mt-4 text-center text-sm text-slate-500">
                 By continuing you agree to our{" "}
-                <button className="text-[#FF4136] hover:underline">Terms</button>{" "}
+                <button className="text-[#FF4136] hover:underline">
+                  Terms
+                </button>{" "}
                 and{" "}
                 <button className="text-[#FF4136] hover:underline">
                   Privacy Policy
