@@ -181,9 +181,9 @@ export default function MyProfilePage() {
   // quick debug UI to inspect state if something's failing
   if (loading) {
     return (
-      <div className="bg-[#F2F4F7] min-h-screen flex items-center justify-center">
+      <div className="bg-[var(--bg-primary)] min-h-screen flex items-center justify-center transition-colors">
         <div className="text-center">
-          <div className="text-lg text-slate-600">Loading profile…</div>
+          <div className="text-lg text-[var(--text-secondary)]">Loading profile…</div>
         </div>
       </div>
     );
@@ -193,8 +193,8 @@ export default function MyProfilePage() {
   if (!authChecked || !profile) {
     // if authChecked true but profile null => show "profile not found" variant
     return (
-      <div className="bg-[#F2F4F7] min-h-screen flex justify-center items-start px-4 py-10">
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden p-8">
+      <div className="bg-[var(--bg-primary)] min-h-screen flex justify-center items-start px-4 py-10 transition-colors">
+        <div className="w-full max-w-2xl bg-[var(--card-bg)] rounded-2xl shadow-sm border border-[var(--card-border)] overflow-hidden p-8 transition-colors">
           <h2 className="text-2xl font-semibold mb-4 text-black">My Profile</h2>
 
           {errorMsg && (
@@ -241,13 +241,13 @@ export default function MyProfilePage() {
 
   // Normal authenticated + profile present render
   return (
-    <div className="bg-[#F2F4F7] min-h-screen py-10 flex justify-center px-4">
+    <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex justify-center px-4 transition-colors">
       <div className="w-full max-w-2xl">
         {/* Profile Header Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 mb-6 overflow-hidden">
+        <div className="bg-[var(--card-bg)] rounded-2xl shadow-sm border border-[var(--card-border)] mb-6 overflow-hidden transition-colors">
           {/* Header Section */}
-          <div className="px-6 py-5 border-b border-neutral-200">
-            <h1 className="text-2xl font-semibold text-black">My Profile</h1>
+          <div className="px-6 py-5 border-b border-[var(--card-border)]">
+            <h1 className="text-2xl font-semibold text-[var(--text-primary)]">My Profile</h1>
           </div>
 
           {/* Profile Info Section */}
@@ -270,11 +270,11 @@ export default function MyProfilePage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-semibold text-xl text-black">
+                  <h2 className="font-semibold text-xl text-[var(--text-primary)]">
                     {profile.full_name || "Unknown User"}
                   </h2>
                   {profile.graduation_year && (
-                    <span className="flex items-center gap-1 text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                       <img
                         src="/svgs/graduate.svg"
                         alt="Graduate"
@@ -286,12 +286,12 @@ export default function MyProfilePage() {
                 </div>
 
                 {profile.program_of_study && (
-                  <div className="text-sm text-slate-600 mt-1">
+                  <div className="text-sm text-[var(--text-secondary)] mt-1">
                     {profile.program_of_study}
                   </div>
                 )}
 
-                <div className="text-sm font-medium text-slate-700 mt-2">
+                <div className="text-sm font-medium text-[var(--text-secondary)] mt-2">
                   {connectionsCount} campus connections
                 </div>
               </div>
@@ -299,7 +299,7 @@ export default function MyProfilePage() {
 
             {/* Bio */}
             {profile.bio && (
-              <div className="mt-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+              <div className="mt-4 text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-line">
                 {profile.bio}
               </div>
             )}
@@ -332,16 +332,16 @@ export default function MyProfilePage() {
         </div>
 
         {/* Tabs Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
+        <div className="bg-[var(--card-bg)] rounded-2xl shadow-sm border border-[var(--card-border)] overflow-hidden transition-colors">
           {/* Tabs */}
-          <div className="border-b border-neutral-200">
+          <div className="border-b border-[var(--card-border)]">
             <div className="flex text-sm font-medium">
               <button
                 onClick={() => setActiveTab("posts")}
                 className={`flex-1 text-center py-4 border-b-2 transition-colors ${
                   activeTab === "posts"
-                    ? "text-black border-[var(--color-accent)] font-semibold"
-                    : "text-slate-400 border-transparent hover:text-slate-600"
+                    ? "text-[var(--text-primary)] border-[var(--color-accent)] font-semibold"
+                    : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
                 }`}
               >
                 Posts
@@ -350,8 +350,8 @@ export default function MyProfilePage() {
                 onClick={() => setActiveTab("activity")}
                 className={`flex-1 text-center py-4 border-b-2 transition-colors ${
                   activeTab === "activity"
-                    ? "text-black border-[var(--color-accent)] font-semibold"
-                    : "text-slate-400 border-transparent hover:text-slate-600"
+                    ? "text-[var(--text-primary)] border-[var(--color-accent)] font-semibold"
+                    : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
                 }`}
               >
                 Activity
@@ -360,8 +360,8 @@ export default function MyProfilePage() {
                 onClick={() => setActiveTab("about")}
                 className={`flex-1 text-center py-4 border-b-2 transition-colors ${
                   activeTab === "about"
-                    ? "text-black border-[var(--color-accent)] font-semibold"
-                    : "text-slate-400 border-transparent hover:text-slate-600"
+                    ? "text-[var(--text-primary)] border-[var(--color-accent)] font-semibold"
+                    : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
                 }`}
               >
                 About

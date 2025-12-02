@@ -4,7 +4,6 @@
 import Image from "next/image";
 
 type MakePostProps = {
-  avatarUrl: string;
   placeholder?: string;
   onStartPost?: () => void;
   onVideoClick?: () => void;
@@ -13,7 +12,6 @@ type MakePostProps = {
 };
 
 export function MakePost({
-  avatarUrl,
   placeholder = "Start a post",
   onStartPost,
   onVideoClick,
@@ -24,14 +22,6 @@ export function MakePost({
     <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
       {/* Top row: avatar + input */}
       <div className="flex items-center gap-3">
-        <div className="relative h-11 w-11 overflow-hidden rounded-full">
-          <Image
-            src={avatarUrl}
-            alt="Profile picture"
-            fill
-            className="object-cover"
-          />
-        </div>
 
         <button
           type="button"

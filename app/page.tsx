@@ -193,11 +193,10 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-[#F2F4F7] min-h-screen py-10 flex flex-col items-center gap-6">
+    <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex flex-col items-center gap-6 transition-colors">
       {/* MakePost with ref observed by IntersectionObserver */}
       <div ref={postRef} className="w-full flex justify-center">
         <MakePost
-          avatarUrl="/images/avatar_placeholder.png"
           onStartPost={openCreatePost}
           onVideoClick={() => console.log("open video upload")}
           onPhotoClick={() => console.log("open photo upload")}
