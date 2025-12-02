@@ -158,7 +158,7 @@ export default function AuthPageSupabase() {
     <div className="min-h-screen bg-[#F0F2F5] flex items-center text-black justify-center px-4">
       <div className="w-full max-w-6xl flex flex-col md:flex-row md:items-center md:justify-between gap-10">
         <div className="flex-1">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[#FF4136]">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--color-accent)]">
             Innr
           </h1>
           <p className="mt-4 text-xl text-slate-800 max-w-md">
@@ -182,7 +182,7 @@ export default function AuthPageSupabase() {
                       setErrors({});
                       setStatusMsg(null);
                     }}
-                    className="text-[#FF4136] hover:underline font-medium"
+                    className="text-[var(--color-accent)] hover:underline font-medium"
                   >
                     {mode === "signin" ? "Create account" : "Sign in"}
                   </button>
@@ -211,7 +211,7 @@ export default function AuthPageSupabase() {
                       <input
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
+                        className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] ${
                           errors.fullName
                             ? "border-red-400"
                             : "border-slate-200"
@@ -232,7 +232,7 @@ export default function AuthPageSupabase() {
                       <input
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
+                        className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] ${
                           errors.username
                             ? "border-red-400"
                             : "border-slate-200"
@@ -256,7 +256,7 @@ export default function AuthPageSupabase() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
+                    className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] ${
                       errors.email ? "border-red-400" : "border-slate-200"
                     }`}
                     placeholder="you@university.edu"
@@ -277,7 +277,7 @@ export default function AuthPageSupabase() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={`flex-1 rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF4136]/40 ${
+                      className={`flex-1 rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] ${
                         errors.password ? "border-red-400" : "border-slate-200"
                       }`}
                       placeholder="At least 8 characters"
@@ -307,7 +307,7 @@ export default function AuthPageSupabase() {
                     <button
                       type="button"
                       onClick={sendPasswordReset}
-                      className="text-sm text-[#FF4136] hover:underline"
+                      className="text-sm text-[var(--color-accent)] hover:underline"
                     >
                       Forgot password?
                     </button>
@@ -318,7 +318,7 @@ export default function AuthPageSupabase() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full inline-flex items-center justify-center rounded-md bg-[#FF4136] text-white px-4 py-2 font-medium shadow hover:bg-[#e23a30] disabled:opacity-60"
+                    className="w-full inline-flex items-center justify-center rounded-md bg-[var(--color-accent)] text-white px-4 py-2 font-medium shadow hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] disabled:opacity-60"
                   >
                     {loading
                       ? "Working..."
@@ -331,11 +331,11 @@ export default function AuthPageSupabase() {
 
               <div className="mt-4 text-center text-sm text-slate-500">
                 By continuing you agree to our{" "}
-                <button className="text-[#FF4136] hover:underline">
+                <button className="text-[var(--color-accent)] hover:underline">
                   Terms
                 </button>{" "}
                 and{" "}
-                <button className="text-[#FF4136] hover:underline">
+                <button className="text-[var(--color-accent)] hover:underline">
                   Privacy Policy
                 </button>
                 .

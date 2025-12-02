@@ -364,7 +364,7 @@ export default function ProfileEditor() {
                 onChange={handleAvatarChange}
                 className="hidden"
               />
-              <span className="px-3 py-2 bg-[#FF4136] text-white rounded text-sm">
+              <span className="px-3 py-2 bg-[var(--color-accent)] text-white rounded text-sm">
                 Change avatar
               </span>
             </label>
@@ -462,7 +462,7 @@ export default function ProfileEditor() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center px-4 py-2 bg-[#FF4136] text-white rounded shadow disabled:opacity-60"
+            className="inline-flex items-center px-4 py-2 bg-[var(--color-accent)] text-white rounded shadow disabled:opacity-60"
             onClick={() => router.push('/profile')}
           >
             {loading ? "Saving..." : "Save changes"}

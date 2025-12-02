@@ -3,6 +3,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import { Post } from "@/components/Posts";
+
+type PostItem = {
+  id: string;
+  name: string;
+  text: string;
+  time: string;
+  gradYear: string;
+  image: string;
+  avatar?: string;
+};
 
 export default function MyProfilePage() {
   const router = useRouter();
@@ -11,6 +22,9 @@ export default function MyProfilePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"posts" | "activity" | "about">("posts");
+  const [userPosts, setUserPosts] = useState<PostItem[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -83,6 +97,85 @@ export default function MyProfilePage() {
     };
   }, [router]);
 
+  // Load user's posts when Posts tab is active
+  useEffect(() => {
+    if (activeTab !== "posts" || !profile?.id) return;
+
+    let mounted = true;
+
+    const loadUserPosts = async () => {
+      setLoadingPosts(true);
+
+      try {
+        const { data: postsData, error: postsErr } = await supabase
+          .from("posts")
+          .select(
+            `
+            id,
+            body,
+            created_at,
+            profiles (
+              full_name,
+              graduation_year,
+              avatar_url
+            ),
+            post_media (
+              url,
+              order_index
+            )
+          `
+          )
+          .eq("author_id", profile.id)
+          .eq("is_deleted", false)
+          .order("created_at", { ascending: false });
+
+        if (postsErr) {
+          console.error("Error loading user posts:", postsErr);
+          if (!mounted) return;
+          return;
+        }
+
+        if (!mounted) return;
+
+        const mapped: PostItem[] =
+          (postsData ?? []).map((row: any) => {
+            const author = row.profiles as any | null;
+            const media = (row.post_media as any[]) ?? [];
+            const firstMedia =
+              media
+                .slice()
+                .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ??
+              null;
+
+            return {
+              id: row.id,
+              name: author?.full_name ?? "Unknown",
+              text: row.body ?? "",
+              time: new Date(row.created_at).toLocaleString(),
+              gradYear:
+                author?.graduation_year != null
+                  ? String(author.graduation_year).slice(-2)
+                  : "",
+              image: firstMedia?.url ?? "",
+              avatar: author?.avatar_url ?? undefined,
+            };
+          }) as PostItem[];
+
+        setUserPosts(mapped);
+      } catch (err) {
+        console.error("Unexpected error loading user posts:", err);
+      } finally {
+        if (mounted) setLoadingPosts(false);
+      }
+    };
+
+    loadUserPosts();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab, profile?.id]);
+
   // quick debug UI to inspect state if something's failing
   if (loading) return <div className="p-10">Loading…</div>;
 
@@ -104,7 +197,7 @@ export default function MyProfilePage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => router.push("/signin")}
-                  className="px-4 py-2 bg-[#FF4136] text-white rounded"
+                  className="px-4 py-2 bg-[var(--color-accent)] text-white rounded"
                 >
                   Sign in
                 </button>
@@ -153,15 +246,17 @@ export default function MyProfilePage() {
             </div>
 
             <div className="flex-1">
-              <span className="font-semibold text-[16px]">
-                {profile.full_name}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-[16px]">
+                  {profile.full_name}
+                </span>
 
-              {profile.graduation_year && (
-                <div className="text-xs text-slate-600">
-                  🎓 {String(profile.graduation_year).slice(-2)}
-                </div>
-              )}
+                {profile.graduation_year && (
+                  <div className="text-xs text-slate-600">
+                    🎓 {String(profile.graduation_year).slice(-2)}
+                  </div>
+                )}
+              </div>
 
               <div className="text-xs text-slate-700 mt-1">
                 {profile.program_of_study}
@@ -189,7 +284,7 @@ export default function MyProfilePage() {
           <div className="mt-4 flex gap-3">
             <button
               onClick={() => router.push("/profileEditor")}
-              className="flex-1 h-10 rounded-full bg-[#FF4136] text-white font-semibold"
+              className="flex-1 h-10 rounded-full bg-[var(--color-accent)] text-white font-semibold"
             >
               Edit Profile
             </button>
@@ -204,16 +299,97 @@ export default function MyProfilePage() {
           {/* Tabs */}
           <div className="mt-5 border-t border-slate-200 -mx-5 px-5">
             <div className="flex justify-between text-sm font-medium pt-1">
-              <button className="flex-1 text-center text-black pb-2 border-b-2 border-[#FF4136]">
+              <button
+                onClick={() => setActiveTab("posts")}
+                className={`flex-1 text-center pb-2 border-b-2 transition ${
+                  activeTab === "posts"
+                    ? "text-black border-[var(--color-accent)]"
+                    : "text-slate-400 border-transparent"
+                }`}
+              >
                 Posts
               </button>
-              <button className="flex-1 text-center text-slate-400 pb-2">
+              <button
+                onClick={() => setActiveTab("activity")}
+                className={`flex-1 text-center pb-2 border-b-2 transition ${
+                  activeTab === "activity"
+                    ? "text-black border-[var(--color-accent)]"
+                    : "text-slate-400 border-transparent"
+                }`}
+              >
                 Activity
               </button>
-              <button className="flex-1 text-center text-slate-400 pb-2">
+              <button
+                onClick={() => setActiveTab("about")}
+                className={`flex-1 text-center pb-2 border-b-2 transition ${
+                  activeTab === "about"
+                    ? "text-black border-[var(--color-accent)]"
+                    : "text-slate-400 border-transparent"
+                }`}
+              >
                 About
               </button>
             </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="mt-4 -mx-5 px-5 pb-4">
+            {activeTab === "posts" && (
+              <div className="space-y-4">
+                {loadingPosts ? (
+                  <div className="text-center py-8 text-sm text-slate-500">
+                    Loading posts...
+                  </div>
+                ) : userPosts.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-slate-500">
+                    No posts yet. Start sharing your campus experience!
+                  </div>
+                ) : (
+                  userPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      onClick={() => router.push(`/posts/${post.id}`)}
+                      className="cursor-pointer"
+                    >
+                      <Post
+                        name={post.name}
+                        gradYear={post.gradYear}
+                        avatar={post.avatar}
+                        text={post.text}
+                        time={post.time}
+                        image={post.image}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {activeTab === "activity" && (
+              <div className="text-center py-8 text-sm text-slate-500">
+                Activity coming soon
+              </div>
+            )}
+
+            {activeTab === "about" && (
+              <div className="space-y-3 text-sm">
+                {profile.program_of_study && (
+                  <div>
+                    <span className="font-medium text-slate-700">Program:</span>{" "}
+                    <span className="text-slate-600">{profile.program_of_study}</span>
+                  </div>
+                )}
+                {profile.graduation_year && (
+                  <div>
+                    <span className="font-medium text-slate-700">Graduation Year:</span>{" "}
+                    <span className="text-slate-600">{profile.graduation_year}</span>
+                  </div>
+                )}
+                {!profile.program_of_study && !profile.graduation_year && (
+                  <div className="text-slate-500">No additional information available</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

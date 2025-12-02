@@ -172,7 +172,7 @@ export const Navbar: React.FC = () => {
 
                     {/* underline if active */}
                     {isActive && (
-                      <span className="mt-1 h-0.5 w-full bg-[#0866ff] rounded-full" />
+                      <span className="mt-1 h-0.5 w-full bg-[var(--color-accent)] rounded-full" />
                     )}
                   </div>
                 </TooltipButton>

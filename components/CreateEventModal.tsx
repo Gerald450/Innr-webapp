@@ -1,0 +1,381 @@
+"use client";
+import React, { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+// Upload media to Supabase Storage and create post_media records.
+async function uploadPostMedia(
+  postId: string,
+  authorId: string,
+  files: File[]
+): Promise<{ url: string }[]> {
+  const uploads = await Promise.all(
+    files.map(async (file, index) => {
+      const ext = file.name.split(".").pop() || "bin";
+      const filePath = `${authorId}/${postId}/${Date.now()}-${index}.${ext}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("post-media")
+        .upload(filePath, file);
+
+      if (uploadError || !uploadData) {
+        throw uploadError || new Error("Upload failed without error details");
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("post-media").getPublicUrl(uploadData.path);
+
+      const { data: mediaRow, error: mediaError } = await supabase
+        .from("post_media")
+        .insert({
+          post_id: postId,
+          media_type: "image",
+          storage_path: uploadData.path,
+          url: publicUrl,
+          order_index: index,
+        })
+        .select()
+        .single();
+
+      if (mediaError || !mediaRow) {
+        throw mediaError || new Error("post_media insert failed");
+      }
+
+      return mediaRow as { url: string };
+    })
+  );
+
+  return uploads;
+}
+
+type CreateEventModalProps = {
+  onClose: () => void;
+  onSuccess?: () => void;
+};
+
+export default function CreateEventModal({
+  onClose,
+  onSuccess,
+}: CreateEventModalProps) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
+  const [locationName, setLocationName] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
+  const [externalUrl, setExternalUrl] = useState("");
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!mediaFiles.length) {
+      setMediaPreviews([]);
+      return;
+    }
+    const urls = mediaFiles.map((file) => URL.createObjectURL(file));
+    setMediaPreviews(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [mediaFiles]);
+
+  function handleOverlayClick(e: React.MouseEvent) {
+    if (e.target === overlayRef.current) onClose();
+  }
+
+  function handleMediaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    setMediaFiles(files);
+  }
+
+  async function handleSubmit() {
+    if (!title.trim()) {
+      alert("Please enter an event title");
+      return;
+    }
+    if (!startsAt) {
+      alert("Please select a start date and time");
+      return;
+    }
+
+    try {
+      // 0. Get authenticated user and profile
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error("Auth error:", authError);
+        alert("You must be signed in to create an event");
+        return;
+      }
+
+      const authorId = user.id;
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("full_name, graduation_year, university_id")
+        .eq("id", authorId)
+        .single();
+
+      if (profileError || !profile) {
+        console.error("Failed to load profile:", profileError);
+        alert("Failed to load your profile");
+        return;
+      }
+
+      const universityId = (profile as any)?.university_id;
+      if (!universityId) {
+        alert("Your profile is missing a university");
+        return;
+      }
+
+      // 1. Create the post (with post_type = 'event')
+      const { data: post, error: postError } = await supabase
+        .from("posts")
+        .insert({
+          author_id: authorId,
+          university_id: universityId,
+          post_type: "event",
+          title: title.trim(),
+          body: description.trim(),
+          visibility: "public",
+        })
+        .select()
+        .single();
+
+      if (postError || !post) {
+        throw postError || new Error("Post insert failed");
+      }
+
+      // 2. Upload media (if any) and create post_media rows
+      let uploadedMedia: { url: string }[] = [];
+      if (mediaFiles.length) {
+        uploadedMedia = await uploadPostMedia(post.id, authorId, mediaFiles);
+      }
+
+      // 3. Create the event record linked to the post
+      const { data: event, error: eventError } = await supabase
+        .from("events")
+        .insert({
+          post_id: post.id,
+          starts_at: startsAt,
+          ends_at: endsAt || null,
+          location_name: locationName.trim() || null,
+          location_address: locationAddress.trim() || null,
+          external_url: externalUrl.trim() || null,
+        })
+        .select()
+        .single();
+
+      if (eventError || !event) {
+        // If event creation fails, we should ideally rollback the post
+        // For now, just log the error
+        console.error("Event creation failed:", eventError);
+        throw eventError || new Error("Event insert failed");
+      }
+
+      // 4. Reset and close
+      setTitle("");
+      setDescription("");
+      setStartsAt("");
+      setEndsAt("");
+      setLocationName("");
+      setLocationAddress("");
+      setExternalUrl("");
+      setMediaFiles([]);
+      setMediaPreviews([]);
+      onClose();
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      console.error("Failed to create event:", err);
+      alert("Failed to create event. Please try again.");
+    }
+  }
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={handleOverlayClick}
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-6 md:pt-8 lg:pt-10 overflow-y-auto"
+      aria-modal="true"
+      role="dialog"
+    >
+      <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl my-8">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold text-black">Create Event</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-full px-2 py-1 text-gray-600 hover:bg-gray-100 text-black"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Event Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+              placeholder="Enter event title"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              placeholder="Describe your event..."
+              className="w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+            />
+          </div>
+
+          {/* Date/Time */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Start Date & Time <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                End Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+              />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Location Name
+              </label>
+              <input
+                type="text"
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
+                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+                placeholder="e.g., Student Center"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Location Address
+              </label>
+              <input
+                type="text"
+                value={locationAddress}
+                onChange={(e) => setLocationAddress(e.target.value)}
+                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+                placeholder="Full address"
+              />
+            </div>
+          </div>
+
+          {/* External URL */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              External URL (optional)
+            </label>
+            <input
+              type="url"
+              value={externalUrl}
+              onChange={(e) => setExternalUrl(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+              placeholder="https://..."
+            />
+          </div>
+
+          {/* Media Upload */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Event Image/Media
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm border hover:bg-gray-50">
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleMediaChange}
+                className="hidden"
+                multiple
+              />
+              <span className="text-sm text-gray-600">Attach media</span>
+            </label>
+            {mediaPreviews.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-3">
+                {mediaPreviews.map((url, i) => (
+                  <div key={i} className="relative">
+                    <img
+                      src={url}
+                      alt="preview"
+                      className="max-h-32 rounded-md"
+                    />
+                    <button
+                      onClick={() => {
+                        const newFiles = [...mediaFiles];
+                        newFiles.splice(i, 1);
+                        setMediaFiles(newFiles);
+                      }}
+                      className="absolute top-0 right-0 text-sm text-red-600 bg-white rounded-full p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 justify-end pt-4 border-t">
+            <button
+              onClick={onClose}
+              className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50 text-black"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)]"
+            >
+              Create Event
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

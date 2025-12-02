@@ -100,10 +100,10 @@ function ActionButton({ label, onClick, iconType }: ActionButtonProps) {
 
   const baseColor =
     iconType === "video"
-      ? "text-green-600"
+      ? "text-[var(--color-accent)]"
       : iconType === "photo"
-      ? "text-blue-600"
-      : "text-orange-600";
+      ? "text-[var(--color-accent)]"
+      : "text-[var(--color-accent)]";
 
   return (
     <button
