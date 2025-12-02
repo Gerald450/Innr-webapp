@@ -45,7 +45,6 @@ export default function ProfileEditor() {
 
     async function load() {
       const { data } = await supabase.auth.getSession();
-      console.log(`Token ${data.session?.access_token} end`);
 
       setFetching(true);
       try {
