@@ -12,6 +12,7 @@ type PostItem = {
   time: string;
   gradYear: string;
   image: string;
+  images?: string[];
   avatar?: string;
 };
 
@@ -141,11 +142,11 @@ export default function MyProfilePage() {
           (postsData ?? []).map((row: any) => {
             const author = row.profiles as any | null;
             const media = (row.post_media as any[]) ?? [];
-            const firstMedia =
-              media
-                .slice()
-                .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ??
-              null;
+            const sortedMedia = media
+              .slice()
+              .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+            const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
+            const firstMedia = sortedMedia[0] ?? null;
 
             return {
               id: row.id,
@@ -157,6 +158,7 @@ export default function MyProfilePage() {
                   ? String(author.graduation_year).slice(-2)
                   : "",
               image: firstMedia?.url ?? "",
+              images: allImages.length > 0 ? allImages : undefined,
               avatar: author?.avatar_url ?? undefined,
             };
           }) as PostItem[];
@@ -358,6 +360,7 @@ export default function MyProfilePage() {
                         text={post.text}
                         time={post.time}
                         image={post.image}
+                        images={post.images}
                       />
                     </div>
                   ))

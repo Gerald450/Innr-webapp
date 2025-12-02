@@ -308,6 +308,11 @@ export default function ProfileEditor() {
       if (error) throw error;
       setProfile((p) => ({ ...p, ...data }));
       setMessage({ type: "success", text: "Profile saved successfully." });
+      
+      // Navigate to profile page after successful save
+      setTimeout(() => {
+        router.push("/profile");
+      }, 1000);
     } catch (err: any) {
       console.error("Save error:", err);
       setMessage({
@@ -458,61 +463,70 @@ export default function ProfileEditor() {
         </label>
 
         {/* Actions */}
-        <div className="flex gap-3 items-center">
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center px-4 py-2 bg-[var(--color-accent)] text-white rounded shadow disabled:opacity-60"
-            onClick={() => router.push('/profile')}
-          >
-            {loading ? "Saving..." : "Save changes"}
-          </button>
-
+        <div className="flex gap-3 items-center justify-between">
           <button
             type="button"
-            onClick={() => {
-              (async () => {
-                setMessage(null);
-                setFetching(true);
-                try {
-                  if (!user) return;
-                  const { data: profileData } = await supabase
-                    .from("profiles")
-                    .select(
-                      "full_name, username, bio, program_of_study, graduation_year, avatar_url"
-                    )
-                    .eq("id", user.id)
-                    .single();
-
-                  setProfile({
-                    full_name: profileData?.full_name ?? "",
-                    username: profileData?.username ?? "",
-                    bio: profileData?.bio ?? "",
-                    program_of_study: profileData?.program_of_study ?? "",
-                    graduation_year: profileData?.graduation_year ?? null,
-                    avatar_url:
-                      profileData?.avatar_url ??
-                      "/images/avatar_placeholder.png",
-                  });
-
-                  setAvatarPreview(
-                    profileData?.avatar_url ?? "/images/avatar_placeholder.png"
-                  );
-                } catch (err) {
-                  console.error("Reset fetch error:", err);
-                  setMessage({
-                    type: "error",
-                    text: "Failed to reload profile.",
-                  });
-                } finally {
-                  setFetching(false);
-                }
-              })();
-            }}
-            className="text-sm text-slate-600"
+            onClick={() => router.push("/profile")}
+            className="px-4 py-2 border border-slate-300 rounded text-sm hover:bg-gray-50 text-black"
           >
-            Reset
+            Cancel
           </button>
+
+          <div className="flex gap-3 items-center">
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center px-4 py-2 bg-[var(--color-accent)] text-white rounded shadow disabled:opacity-60"
+            >
+              {loading ? "Saving..." : "Save changes"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                (async () => {
+                  setMessage(null);
+                  setFetching(true);
+                  try {
+                    if (!user) return;
+                    const { data: profileData } = await supabase
+                      .from("profiles")
+                      .select(
+                        "full_name, username, bio, program_of_study, graduation_year, avatar_url"
+                      )
+                      .eq("id", user.id)
+                      .single();
+
+                    setProfile({
+                      full_name: profileData?.full_name ?? "",
+                      username: profileData?.username ?? "",
+                      bio: profileData?.bio ?? "",
+                      program_of_study: profileData?.program_of_study ?? "",
+                      graduation_year: profileData?.graduation_year ?? null,
+                      avatar_url:
+                        profileData?.avatar_url ??
+                        "/images/avatar_placeholder.png",
+                    });
+
+                    setAvatarPreview(
+                      profileData?.avatar_url ?? "/images/avatar_placeholder.png"
+                    );
+                  } catch (err) {
+                    console.error("Reset fetch error:", err);
+                    setMessage({
+                      type: "error",
+                      text: "Failed to reload profile.",
+                    });
+                  } finally {
+                    setFetching(false);
+                  }
+                })();
+              }}
+              className="text-sm text-slate-600"
+            >
+              Reset
+            </button>
+          </div>
         </div>
       </form>
     </div>

@@ -12,6 +12,7 @@ type PostDetail = {
   time: string;
   gradYear: string;
   image: string;
+  images?: string[];
   avatar?: string;
   likes?: number;
   comments?: number;
@@ -68,11 +69,11 @@ export default function PostDetailPage() {
 
         const author = (postData as any).profiles as any | null;
         const media = ((postData as any).post_media as any[]) ?? [];
-        const firstMedia =
-          media
-            .slice()
-            .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ??
-          null;
+        const sortedMedia = media
+          .slice()
+          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+        const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
+        const firstMedia = sortedMedia[0] ?? null;
 
         // TODO: Load actual likes and comments count from database
         const postDetail: PostDetail = {
@@ -85,6 +86,7 @@ export default function PostDetailPage() {
               ? String(author.graduation_year).slice(-2)
               : "",
           image: firstMedia?.url ?? "",
+          images: allImages.length > 0 ? allImages : undefined,
           avatar: author?.avatar_url ?? undefined,
           likes: 0, // TODO: Get from likes table
           comments: 0, // TODO: Get from comments table
@@ -170,6 +172,7 @@ export default function PostDetailPage() {
             text={post.text}
             time={post.time}
             image={post.image}
+            images={post.images}
           />
         </div>
 
