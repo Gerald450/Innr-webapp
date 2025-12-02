@@ -51,6 +51,9 @@ export default function AuthPageSupabase() {
     return Object.keys(e).length === 0;
   };
 
+  
+ const redirectUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
   const onSubmit = async (ev?: React.FormEvent) => {
     ev?.preventDefault();
     setStatusMsg(null);
@@ -68,7 +71,7 @@ export default function AuthPageSupabase() {
               full_name: fullName,
               username: username,
             },
-            emailRedirectTo: `${window.location.origin}/`, 
+            emailRedirectTo: `${redirectUrl}/`, 
           },
         });
 
