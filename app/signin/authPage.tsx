@@ -18,6 +18,8 @@ export default function AuthPageSupabase() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const redirectUrl =
+    process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
   const rawNext = searchParams.get("next") || "/";
   const nextPath = (() => {
@@ -59,9 +61,6 @@ export default function AuthPageSupabase() {
     setErrors({});
     try {
       if (mode === "signup") {
-        const redirectUrl =
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -143,7 +142,7 @@ export default function AuthPageSupabase() {
     }
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${redirectUrl}/updatePassword/`,
       });
       if (error) throw error;
       setStatusMsg("If an account exists, a reset email has been sent.");
@@ -293,25 +292,27 @@ export default function AuthPageSupabase() {
                   </div>
                 </label>
 
-                <div className="flex items-center justify-between">
-                  <label className="inline-flex items-center text-sm gap-2">
-                    <input
-                      type="checkbox"
-                      checked={remember}
-                      onChange={() => setRemember((r) => !r)}
-                      className="rounded border-slate-300"
-                    />
-                    <span className="text-slate-600">Remember me</span>
-                  </label>
+                {mode !== "signin" && (
+                  <div className="flex items-center justify-between">
+                    <label className="inline-flex items-center text-sm gap-2">
+                      <input
+                        type="checkbox"
+                        checked={remember}
+                        onChange={() => setRemember((r) => !r)}
+                        className="rounded border-slate-300"
+                      />
+                      <span className="text-slate-600">Remember me</span>
+                    </label>
 
-                  <button
-                    type="button"
-                    onClick={sendPasswordReset}
-                    className="text-sm text-[#FF4136] hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={sendPasswordReset}
+                      className="text-sm text-[#FF4136] hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
 
                 <div>
                   <button
