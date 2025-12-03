@@ -31,6 +31,9 @@ export default function MyProfilePage() {
   const [activeTab, setActiveTab] = useState<"posts" | "activity" | "about">("posts");
   const [userPosts, setUserPosts] = useState<PostItem[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
+  const [activityType, setActivityType] = useState<"liked" | "commented" | "reposted">("liked");
+  const [activityPosts, setActivityPosts] = useState<PostItem[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -102,6 +105,186 @@ export default function MyProfilePage() {
       mounted = false;
     };
   }, [router]);
+
+  // Load activity posts when Activity tab is active
+  useEffect(() => {
+    if (activeTab !== "activity" || !profile?.id) return;
+
+    let mounted = true;
+
+    const loadActivityPosts = async () => {
+      setLoadingActivity(true);
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        let postIds: string[] = [];
+
+        if (activityType === "liked") {
+          // Get posts the user liked
+          const { data: likesData } = await supabase
+            .from("post_likes")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(50);
+          postIds = (likesData ?? []).map((like: any) => like.post_id);
+        } else if (activityType === "commented") {
+          // Get posts the user commented on
+          const { data: commentsData } = await supabase
+            .from("comments")
+            .select("post_id")
+            .eq("author_id", user.id)
+            .eq("is_deleted", false)
+            .order("created_at", { ascending: false });
+          
+          // Get unique post IDs
+          const uniquePostIds = new Set((commentsData ?? []).map((c: any) => c.post_id));
+          postIds = Array.from(uniquePostIds).slice(0, 50);
+        } else if (activityType === "reposted") {
+          // Get posts the user reposted
+          const { data: repostsData } = await supabase
+            .from("reposts")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(50);
+          postIds = (repostsData ?? []).map((repost: any) => repost.post_id);
+        }
+
+        if (postIds.length === 0) {
+          if (!mounted) return;
+          setActivityPosts([]);
+          setLoadingActivity(false);
+          return;
+        }
+
+        // Fetch the actual posts
+        const { data: postsData, error: postsErr } = await supabase
+          .from("posts")
+          .select(
+            `
+            id,
+            body,
+            created_at,
+            profiles (
+              full_name,
+              graduation_year,
+              avatar_url
+            ),
+            post_media (
+              url,
+              order_index
+            )
+          `
+          )
+          .in("id", postIds)
+          .eq("is_deleted", false);
+
+        if (postsErr) {
+          console.error("Error loading activity posts:", postsErr);
+          if (!mounted) return;
+          setLoadingActivity(false);
+          return;
+        }
+
+        if (!mounted) return;
+
+        // Get like counts, comment counts, repost counts, and user's interaction status
+        const fetchedPostIds = (postsData ?? []).map((p: any) => p.id);
+
+        const { data: likesData } = await supabase
+          .from("post_likes")
+          .select("post_id, user_id")
+          .in("post_id", fetchedPostIds);
+
+        const { data: commentsData } = await supabase
+          .from("comments")
+          .select("post_id")
+          .in("post_id", fetchedPostIds)
+          .eq("is_deleted", false);
+
+        const { data: repostsData } = await supabase
+          .from("reposts")
+          .select("post_id, user_id")
+          .in("post_id", fetchedPostIds);
+
+        // Create maps for quick lookup
+        const likeCountMap: Record<string, number> = {};
+        const commentCountMap: Record<string, number> = {};
+        const repostCountMap: Record<string, number> = {};
+        const userLikedSet = new Set<string>();
+        const userRepostedSet = new Set<string>();
+
+        (likesData ?? []).forEach((like: any) => {
+          likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
+          if (like.user_id === user.id) {
+            userLikedSet.add(like.post_id);
+          }
+        });
+
+        (commentsData ?? []).forEach((comment: any) => {
+          commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
+        });
+
+        (repostsData ?? []).forEach((repost: any) => {
+          repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
+          if (repost.user_id === user.id) {
+            userRepostedSet.add(repost.post_id);
+          }
+        });
+
+        // Maintain original order from postIds
+        const postMap = new Map();
+        (postsData ?? []).forEach((row: any) => {
+          const author = row.profiles as any | null;
+          const media = (row.post_media as any[]) ?? [];
+          const sortedMedia = media
+            .slice()
+            .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+          const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
+          const firstMedia = sortedMedia[0] ?? null;
+
+          postMap.set(row.id, {
+            id: row.id,
+            name: author?.full_name ?? "Unknown",
+            text: row.body ?? "",
+            created_at: row.created_at,
+            gradYear:
+              author?.graduation_year != null
+                ? String(author.graduation_year).slice(-2)
+                : "",
+            image: firstMedia?.url ?? "",
+            images: allImages.length > 0 ? allImages : undefined,
+            avatar: author?.avatar_url ?? undefined,
+            likeCount: likeCountMap[row.id] || 0,
+            isLiked: userLikedSet.has(row.id),
+            commentCount: commentCountMap[row.id] || 0,
+            repostCount: repostCountMap[row.id] || 0,
+            isReposted: userRepostedSet.has(row.id),
+          });
+        });
+
+        // Sort by original order
+        const mapped = postIds
+          .map((id) => postMap.get(id))
+          .filter(Boolean) as PostItem[];
+
+        setActivityPosts(mapped);
+      } catch (err) {
+        console.error("Unexpected error loading activity posts:", err);
+      } finally {
+        if (mounted) setLoadingActivity(false);
+      }
+    };
+
+    loadActivityPosts();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab, activityType, profile?.id]);
 
   // Load user's posts when Posts tab is active
   useEffect(() => {
@@ -494,8 +677,170 @@ export default function MyProfilePage() {
             )}
 
             {activeTab === "activity" && (
-              <div className="text-center py-12">
-                <div className="text-sm text-slate-500">Activity coming soon</div>
+              <div className="space-y-6">
+                {/* Activity Type Selector */}
+                <div className="flex gap-2 border-b border-[var(--card-border)] -mx-6 px-6 pb-4">
+                  <button
+                    onClick={() => setActivityType("liked")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activityType === "liked"
+                        ? "bg-[var(--color-accent)] text-white"
+                        : "text-[var(--text-secondary)] hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill={activityType === "liked" ? "currentColor" : "none"}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                    Liked
+                  </button>
+                  <button
+                    onClick={() => setActivityType("commented")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activityType === "commented"
+                        ? "bg-[var(--color-accent)] text-white"
+                        : "text-[var(--text-secondary)] hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                    Commented
+                  </button>
+                  <button
+                    onClick={() => setActivityType("reposted")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activityType === "reposted"
+                        ? "bg-[var(--color-accent)] text-white"
+                        : "text-[var(--text-secondary)] hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Reposted
+                  </button>
+                </div>
+
+                {/* Activity Indicator */}
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)] mb-4">
+                  <div className={`h-2 w-2 rounded-full ${
+                    activityType === "liked" ? "bg-red-500" :
+                    activityType === "commented" ? "bg-blue-500" :
+                    "bg-green-500"
+                  }`} />
+                  <span>
+                    {activityType === "liked" && "Posts you've liked"}
+                    {activityType === "commented" && "Posts you've commented on"}
+                    {activityType === "reposted" && "Posts you've reposted"}
+                  </span>
+                </div>
+
+                {/* Activity Posts */}
+                {loadingActivity ? (
+                  <div className="text-center py-12">
+                    <div className="text-sm text-slate-500">Loading activity...</div>
+                  </div>
+                ) : activityPosts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-sm text-slate-500 mb-2">
+                      {activityType === "liked" && "No liked posts yet"}
+                      {activityType === "commented" && "No comments yet"}
+                      {activityType === "reposted" && "No reposts yet"}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {activityType === "liked" && "Start liking posts to see them here"}
+                      {activityType === "commented" && "Start commenting on posts to see them here"}
+                      {activityType === "reposted" && "Start reposting to see them here"}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {activityPosts.map((post) => (
+                      <div
+                        key={post.id}
+                        onClick={() => router.push(`/posts/${post.id}`)}
+                        className="cursor-pointer"
+                      >
+                        {/* Activity Badge */}
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium mb-3 ${
+                          activityType === "liked" ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400" :
+                          activityType === "commented" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400" :
+                          "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                        }`}>
+                          {activityType === "liked" && (
+                            <>
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                              You liked this
+                            </>
+                          )}
+                          {activityType === "commented" && (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              You commented on this
+                            </>
+                          )}
+                          {activityType === "reposted" && (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              You reposted this
+                            </>
+                          )}
+                        </div>
+                        <Post
+                          id={post.id}
+                          name={post.name}
+                          gradYear={post.gradYear}
+                          avatar={post.avatar}
+                          text={post.text}
+                          created_at={post.created_at}
+                          image={post.image}
+                          images={post.images}
+                          likeCount={post.likeCount}
+                          isLiked={post.isLiked}
+                          commentCount={post.commentCount}
+                          repostCount={post.repostCount}
+                          isReposted={post.isReposted}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
