@@ -17,6 +17,8 @@ type PostItem = {
   likeCount?: number;
   isLiked?: boolean;
   commentCount?: number;
+  repostCount?: number;
+  isReposted?: boolean;
 };
 
 export default function MyProfilePage() {
@@ -169,11 +171,30 @@ export default function MyProfilePage() {
           .in("post_id", postIds)
           .eq("is_deleted", false);
 
+        // Get repost counts for all posts
+        const { data: repostsData } = await supabase
+          .from("reposts")
+          .select("post_id")
+          .in("post_id", postIds);
+
+        // Get user's reposts
+        const { data: userRepostsData } = userId
+          ? await supabase
+              .from("reposts")
+              .select("post_id")
+              .eq("user_id", userId)
+              .in("post_id", postIds)
+          : { data: null };
+
         // Create maps for quick lookup
         const likeCountMap: Record<string, number> = {};
         const commentCountMap: Record<string, number> = {};
+        const repostCountMap: Record<string, number> = {};
         const userLikedSet = new Set(
           (userLikesData ?? []).map((like: any) => like.post_id)
+        );
+        const userRepostedSet = new Set(
+          (userRepostsData ?? []).map((repost: any) => repost.post_id)
         );
 
         // Count likes per post
@@ -184,6 +205,11 @@ export default function MyProfilePage() {
         // Count comments per post
         (commentsData ?? []).forEach((comment: any) => {
           commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
+        });
+
+        // Count reposts per post
+        (repostsData ?? []).forEach((repost: any) => {
+          repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
         });
 
         const mapped: PostItem[] =
@@ -211,6 +237,8 @@ export default function MyProfilePage() {
               likeCount: likeCountMap[row.id] || 0,
               isLiked: userLikedSet.has(row.id),
               commentCount: commentCountMap[row.id] || 0,
+              repostCount: repostCountMap[row.id] || 0,
+              isReposted: userRepostedSet.has(row.id),
             };
           }) as PostItem[];
 
@@ -456,6 +484,8 @@ export default function MyProfilePage() {
                         likeCount={post.likeCount}
                         isLiked={post.isLiked}
                         commentCount={post.commentCount}
+                        repostCount={post.repostCount}
+                        isReposted={post.isReposted}
                       />
                     </div>
                   ))

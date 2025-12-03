@@ -17,7 +17,10 @@ interface PostProps {
   likeCount?: number;
   isLiked?: boolean;
   commentCount?: number;
+  repostCount?: number;
+  isReposted?: boolean;
   onLikeChange?: (postId: string | number, newLikeCount: number, isLiked: boolean) => void;
+  onRepostChange?: (postId: string | number, newRepostCount: number, isReposted: boolean) => void;
 }
 
 export const Post: React.FC<PostProps> = ({
@@ -32,21 +35,28 @@ export const Post: React.FC<PostProps> = ({
   likeCount: initialLikeCount = 0,
   isLiked: initialIsLiked = false,
   commentCount = 0,
+  repostCount: initialRepostCount = 0,
+  isReposted: initialIsReposted = false,
   onLikeChange,
+  onRepostChange,
 }) => {
   const router = useRouter();
   const [liked, setLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isLiking, setIsLiking] = useState(false);
   const [commented, setCommented] = useState(false);
-  const [reposted, setReposted] = useState(false);
+  const [reposted, setReposted] = useState(initialIsReposted);
+  const [repostCount, setRepostCount] = useState(initialRepostCount);
+  const [isReposting, setIsReposting] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
   // Update state when props change
   useEffect(() => {
     setLiked(initialIsLiked);
     setLikeCount(initialLikeCount);
-  }, [initialIsLiked, initialLikeCount]);
+    setReposted(initialIsReposted);
+    setRepostCount(initialRepostCount);
+  }, [initialIsLiked, initialLikeCount, initialIsReposted, initialRepostCount]);
   
   // Carousel state
   const imageList = images && images.length > 0 ? images : image ? [image] : [];
@@ -123,6 +133,66 @@ export const Post: React.FC<PostProps> = ({
       console.error("Unexpected error toggling like:", err);
     } finally {
       setIsLiking(false);
+    }
+  };
+
+  const handleRepost = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent post click
+    if (isReposting) return;
+
+    setIsReposting(true);
+    const newRepostedState = !reposted;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("User not authenticated");
+        setIsReposting(false);
+        return;
+      }
+
+      if (newRepostedState) {
+        // Repost the post
+        const { error } = await supabase
+          .from("reposts")
+          .insert({
+            post_id: id,
+            user_id: user.id,
+            comment: null, // Can add comment modal later if needed
+          });
+
+        if (error) {
+          // If it's a unique constraint error, the repost already exists
+          if (error.code !== "23505") {
+            console.error("Error reposting:", error);
+            setIsReposting(false);
+            return;
+          }
+        }
+        setReposted(true);
+        setRepostCount((prev) => prev + 1);
+        onRepostChange?.(id, repostCount + 1, true);
+      } else {
+        // Unrepost the post
+        const { error } = await supabase
+          .from("reposts")
+          .delete()
+          .eq("post_id", id)
+          .eq("user_id", user.id);
+
+        if (error) {
+          console.error("Error unreposting:", error);
+          setIsReposting(false);
+          return;
+        }
+        setReposted(false);
+        setRepostCount((prev) => Math.max(0, prev - 1));
+        onRepostChange?.(id, Math.max(0, repostCount - 1), false);
+      }
+    } catch (err) {
+      console.error("Unexpected error toggling repost:", err);
+    } finally {
+      setIsReposting(false);
     }
   };
   return (
@@ -321,15 +391,13 @@ export const Post: React.FC<PostProps> = ({
           <TooltipButton
             label="Repost"
             as="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setReposted(!reposted);
-            }}
-            className={`flex items-center justify-center flex-1 p-2 rounded-md transition-all duration-300 ${
+            onClick={handleRepost}
+            disabled={isReposting}
+            className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
               reposted
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-neutral-800 hover:scale-105"
-            } active:scale-95`}
+            } active:scale-95 disabled:opacity-50`}
           >
             <img
               src="/svgs/repost.svg"
@@ -338,6 +406,9 @@ export const Post: React.FC<PostProps> = ({
                 reposted ? "scale-125 rotate-180" : ""
               }`}
             />
+            {repostCount > 0 && (
+              <span className="text-xs font-medium">{repostCount}</span>
+            )}
           </TooltipButton>
 
           <TooltipButton

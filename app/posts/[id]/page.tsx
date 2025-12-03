@@ -18,6 +18,8 @@ type PostDetail = {
   likeCount?: number;
   isLiked?: boolean;
   comments?: number;
+  repostCount?: number;
+  isReposted?: boolean;
 };
 
 export default function PostDetailPage() {
@@ -103,6 +105,17 @@ export default function PostDetailPage() {
 
         const commentCount = commentsData?.length || 0;
 
+        // Get repost count and check if current user has reposted
+        const { data: repostsData } = await supabase
+          .from("reposts")
+          .select("user_id")
+          .eq("post_id", postIdFromData);
+
+        const repostCount = repostsData?.length || 0;
+        const isReposted = user
+          ? (repostsData ?? []).some((repost: any) => repost.user_id === user.id)
+          : false;
+
         const postDetail: PostDetail = {
           id: postIdFromData,
           name: author?.full_name ?? "Unknown",
@@ -118,6 +131,8 @@ export default function PostDetailPage() {
           likeCount,
           isLiked,
           comments: commentCount,
+          repostCount,
+          isReposted,
         };
 
         setPost(postDetail);
@@ -205,6 +220,8 @@ export default function PostDetailPage() {
             likeCount={post.likeCount}
             isLiked={post.isLiked}
             commentCount={post.comments}
+            repostCount={post.repostCount}
+            isReposted={post.isReposted}
           />
         </div>
 

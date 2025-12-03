@@ -18,6 +18,8 @@ type PostItem = {
   likeCount?: number;
   isLiked?: boolean;
   commentCount?: number;
+  repostCount?: number;
+  isReposted?: boolean;
 };
 
 type NewPostPayload = {
@@ -186,11 +188,28 @@ export default function Home() {
           .in("post_id", postIds)
           .eq("is_deleted", false);
 
+        // Get repost counts for all posts
+        const { data: repostsData } = await supabase
+          .from("reposts")
+          .select("post_id")
+          .in("post_id", postIds);
+
+        // Get user's reposts
+        const { data: userRepostsData } = await supabase
+          .from("reposts")
+          .select("post_id")
+          .eq("user_id", user.id)
+          .in("post_id", postIds);
+
         // Create maps for quick lookup
         const likeCountMap: Record<string, number> = {};
         const commentCountMap: Record<string, number> = {};
+        const repostCountMap: Record<string, number> = {};
         const userLikedSet = new Set(
           (userLikesData ?? []).map((like: any) => like.post_id)
+        );
+        const userRepostedSet = new Set(
+          (userRepostsData ?? []).map((repost: any) => repost.post_id)
         );
 
         // Count likes per post
@@ -201,6 +220,11 @@ export default function Home() {
         // Count comments per post
         (commentsData ?? []).forEach((comment: any) => {
           commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
+        });
+
+        // Count reposts per post
+        (repostsData ?? []).forEach((repost: any) => {
+          repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
         });
 
         if (postsErr) {
@@ -237,6 +261,8 @@ export default function Home() {
               likeCount: likeCountMap[row.id] || 0,
               isLiked: userLikedSet.has(row.id),
               commentCount: commentCountMap[row.id] || 0,
+              repostCount: repostCountMap[row.id] || 0,
+              isReposted: userRepostedSet.has(row.id),
             };
           }) as PostItem[];
 
@@ -274,6 +300,8 @@ export default function Home() {
       avatar: undefined,
       likeCount: 0,
       isLiked: false,
+      repostCount: 0,
+      isReposted: false,
     };
 
     setPosts((prev) => [postWithId, ...prev]);
@@ -284,6 +312,16 @@ export default function Home() {
       prev.map((post) =>
         post.id === postId
           ? { ...post, likeCount: newLikeCount, isLiked }
+          : post
+      )
+    );
+  };
+
+  const handleRepostChange = (postId: string | number, newRepostCount: number, isReposted: boolean) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? { ...post, repostCount: newRepostCount, isReposted }
           : post
       )
     );
@@ -323,7 +361,10 @@ export default function Home() {
               likeCount={p.likeCount}
               isLiked={p.isLiked}
               commentCount={p.commentCount}
+              repostCount={p.repostCount}
+              isReposted={p.isReposted}
               onLikeChange={handleLikeChange}
+              onRepostChange={handleRepostChange}
             />
           </div>
         ))}
