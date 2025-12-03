@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import TooltipButton from "./TooltipButton";
 
 interface PostProps {
   id: string | number;
@@ -268,8 +269,9 @@ export const Post: React.FC<PostProps> = ({
       <div className="flex justify-between items-center py-2 text-neutral-600 border-t border-[#E5E7EB] px-3 sm:px-4">
         <div className="flex w-full justify-between">
 
-          <button
-            aria-label="Like"
+          <TooltipButton
+            label="Like"
+            as="button"
             onClick={handleLike}
             disabled={isLiking}
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
@@ -288,10 +290,11 @@ export const Post: React.FC<PostProps> = ({
             {likeCount > 0 && (
               <span className="text-xs font-medium">{likeCount}</span>
             )}
-          </button>
+          </TooltipButton>
 
-          <button
-            aria-label="Comment"
+          <TooltipButton
+            label="Comments"
+            as="button"
             onClick={(e) => {
               e.stopPropagation();
               router.push(`/posts/${id}#comments`);
@@ -312,10 +315,11 @@ export const Post: React.FC<PostProps> = ({
             {commentCount > 0 && (
               <span className="text-xs font-medium">{commentCount}</span>
             )}
-          </button>
+          </TooltipButton>
 
-          <button
-            aria-label="Repost"
+          <TooltipButton
+            label="Repost"
+            as="button"
             onClick={(e) => {
               e.stopPropagation();
               setReposted(!reposted);
@@ -333,10 +337,11 @@ export const Post: React.FC<PostProps> = ({
                 reposted ? "scale-125 rotate-180" : ""
               }`}
             />
-          </button>
+          </TooltipButton>
 
-          <button
-            aria-label="Download"
+          <TooltipButton
+            label="Save"
+            as="button"
             onClick={(e) => {
               e.stopPropagation();
               setDownloaded(true);
@@ -350,12 +355,12 @@ export const Post: React.FC<PostProps> = ({
           >
             <img
               src="/svgs/download.svg"
-              alt="Download"
+              alt="Save"
               className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
                 downloaded ? "scale-125 translate-y-1" : ""
               }`}
             />
-          </button>
+          </TooltipButton>
 
         </div>
       </div>

@@ -10,6 +10,7 @@ interface TooltipButtonProps extends React.HTMLAttributes<HTMLElement> {
   children?: ReactNode;
   fullWidth?: boolean;
   as?: "div" | "button"; // allow rendering as button
+  disabled?: boolean;
   // onClick is provided by React.HTMLAttributes, but you can still declare it explicitly if you prefer:
   onClick?: React.MouseEventHandler<HTMLElement>;
 }
@@ -23,6 +24,7 @@ const TooltipButton: FC<TooltipButtonProps> = ({
   fullWidth = false,
   as = "div",
   onClick,
+  disabled,
   ...rest
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -50,7 +52,8 @@ const TooltipButton: FC<TooltipButtonProps> = ({
       } items-center justify-center`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       {...rest}
     >
       {children ? (

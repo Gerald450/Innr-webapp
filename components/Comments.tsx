@@ -14,6 +14,8 @@ type Comment = {
     avatar_url: string | null;
     graduation_year: number | null;
   };
+  likeCount?: number;
+  isLiked?: boolean;
   replies?: Comment[];
 };
 
