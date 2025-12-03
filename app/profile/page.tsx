@@ -14,6 +14,7 @@ type PostItem = {
   image: string;
   images?: string[];
   avatar?: string;
+  authorId?: string;
   likeCount?: number;
   isLiked?: boolean;
   commentCount?: number;
@@ -168,6 +169,7 @@ export default function MyProfilePage() {
             id,
             body,
             created_at,
+            author_id,
             profiles (
               full_name,
               graduation_year,
@@ -258,6 +260,7 @@ export default function MyProfilePage() {
             image: firstMedia?.url ?? "",
             images: allImages.length > 0 ? allImages : undefined,
             avatar: author?.avatar_url ?? undefined,
+            authorId: row.author_id,
             likeCount: likeCountMap[row.id] || 0,
             isLiked: userLikedSet.has(row.id),
             commentCount: commentCountMap[row.id] || 0,
@@ -417,6 +420,7 @@ export default function MyProfilePage() {
               image: firstMedia?.url ?? "",
               images: allImages.length > 0 ? allImages : undefined,
               avatar: author?.avatar_url ?? undefined,
+              authorId: row.author_id,
               likeCount: likeCountMap[row.id] || 0,
               isLiked: userLikedSet.has(row.id),
               commentCount: commentCountMap[row.id] || 0,

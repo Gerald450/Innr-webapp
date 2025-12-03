@@ -15,6 +15,7 @@ type PostDetail = {
   image: string;
   images?: string[];
   avatar?: string;
+  authorId?: string;
   likeCount?: number;
   isLiked?: boolean;
   comments?: number;
@@ -47,6 +48,7 @@ export default function PostDetailPage() {
             id,
             body,
             created_at,
+            author_id,
             profiles (
               full_name,
               graduation_year,
@@ -128,6 +130,7 @@ export default function PostDetailPage() {
           image: firstMedia?.url ?? "",
           images: allImages.length > 0 ? allImages : undefined,
           avatar: author?.avatar_url ?? undefined,
+          authorId: postDataTyped.author_id,
           likeCount,
           isLiked,
           comments: commentCount,
@@ -217,6 +220,7 @@ export default function PostDetailPage() {
             created_at={post.created_at}
             image={post.image}
             images={post.images}
+            authorId={post.authorId}
             likeCount={post.likeCount}
             isLiked={post.isLiked}
             commentCount={post.comments}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, memo } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getRelativeTime } from "@/utils/relativeTime";
 
@@ -25,6 +26,7 @@ type CommentsProps = {
 };
 
 export default function Comments({ postId }: CommentsProps) {
+  const router = useRouter();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -268,6 +270,7 @@ export default function Comments({ postId }: CommentsProps) {
   };
 
   const CommentItem = memo(({ comment, depth = 0 }: { comment: Comment; depth?: number }) => {
+    const commentRouter = useRouter();
     const [isReplying, setIsReplying] = useState(false);
     const [replyText, setReplyText] = useState("");
     const [isLiking, setIsLiking] = useState(false);
@@ -307,16 +310,44 @@ export default function Comments({ postId }: CommentsProps) {
     return (
       <div className={`${depth > 0 ? "ml-6 mt-3" : ""} border-l-2 border-neutral-200 pl-4`}>
         <div className="flex gap-3">
-          <img
-            src={comment.author.avatar_url || "/images/avatar_placeholder.png"}
-            alt={comment.author.full_name || "User"}
-            className="h-8 w-8 rounded-full object-cover flex-shrink-0"
-          />
+          {comment.author_id ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                commentRouter.push(`/users/${comment.author_id}`);
+              }}
+              className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all"
+            >
+              <img
+                src={comment.author.avatar_url || "/images/avatar_placeholder.png"}
+                alt={comment.author.full_name || "User"}
+                className="h-full w-full object-cover"
+              />
+            </button>
+          ) : (
+            <img
+              src={comment.author.avatar_url || "/images/avatar_placeholder.png"}
+              alt={comment.author.full_name || "User"}
+              className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+            />
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold text-sm text-slate-900">
-                {comment.author.full_name || "Anonymous"}
-              </span>
+              {comment.author_id ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    commentRouter.push(`/users/${comment.author_id}`);
+                  }}
+                  className="font-semibold text-sm text-slate-900 hover:text-[var(--color-accent)] transition-colors"
+                >
+                  {comment.author.full_name || "Anonymous"}
+                </button>
+              ) : (
+                <span className="font-semibold text-sm text-slate-900">
+                  {comment.author.full_name || "Anonymous"}
+                </span>
+              )}
               <span className="text-xs text-slate-500">
                 {getRelativeTime(comment.created_at)}
               </span>

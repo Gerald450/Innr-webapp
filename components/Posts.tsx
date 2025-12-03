@@ -10,6 +10,7 @@ interface PostProps {
   name: string;
   gradYear?: string;
   avatar?: string;
+  authorId?: string; // User ID of the post author
   text: string;
   created_at?: string; // ISO timestamp string
   image?: string;
@@ -28,6 +29,7 @@ export const Post: React.FC<PostProps> = ({
   name,
   gradYear,
   avatar,
+  authorId,
   text,
   created_at,
   image,
@@ -200,28 +202,66 @@ export const Post: React.FC<PostProps> = ({
 
       {/* TOP ROW */}
       <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
-        <img
-          src={avatar || "/images/avatar_placeholder.png"}
-          className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-gray-300 flex-shrink-0"
-          alt={`${name} avatar`}
-        />
+        {authorId ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/users/${authorId}`);
+            }}
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all"
+          >
+            <img
+              src={avatar || "/images/avatar_placeholder.png"}
+              className="h-full w-full object-cover"
+              alt={`${name} avatar`}
+            />
+          </button>
+        ) : (
+          <img
+            src={avatar || "/images/avatar_placeholder.png"}
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-gray-300 flex-shrink-0"
+            alt={`${name} avatar`}
+          />
+        )}
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1 min-w-0">
-              <p className="font-semibold text-neutral-900 text-sm leading-none truncate flex items-center gap-1">
-                <span className="truncate">{name}</span>
-                {gradYear && (
-                  <span className="flex items-center gap-1 text-neutral-500 text-xs shrink-0">
-                    <img
-                      src="/svgs/graduate.svg"
-                      alt="Graduate cap"
-                      className="h-3 w-3 object-contain"
-                    />
-                    <span className="leading-none">{gradYear}</span>
-                  </span>
-                )}
-              </p>
+              {authorId ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/users/${authorId}`);
+                  }}
+                  className="font-semibold text-neutral-900 text-sm leading-none truncate flex items-center gap-1 hover:text-[var(--color-accent)] transition-colors"
+                >
+                  <span className="truncate">{name}</span>
+                  {gradYear && (
+                    <span className="flex items-center gap-1 text-neutral-500 text-xs shrink-0">
+                      <img
+                        src="/svgs/graduate.svg"
+                        alt="Graduate cap"
+                        className="h-3 w-3 object-contain"
+                      />
+                      <span className="leading-none">{gradYear}</span>
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <p className="font-semibold text-neutral-900 text-sm leading-none truncate flex items-center gap-1">
+                  <span className="truncate">{name}</span>
+                  {gradYear && (
+                    <span className="flex items-center gap-1 text-neutral-500 text-xs shrink-0">
+                      <img
+                        src="/svgs/graduate.svg"
+                        alt="Graduate cap"
+                        className="h-3 w-3 object-contain"
+                      />
+                      <span className="leading-none">{gradYear}</span>
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
 
             <span className="text-xs text-neutral-500 ml-1 shrink-0">
