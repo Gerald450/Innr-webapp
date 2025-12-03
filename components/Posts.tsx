@@ -20,8 +20,11 @@ interface PostProps {
   commentCount?: number;
   repostCount?: number;
   isReposted?: boolean;
+  bookmarkCount?: number;
+  isBookmarked?: boolean;
   onLikeChange?: (postId: string | number, newLikeCount: number, isLiked: boolean) => void;
   onRepostChange?: (postId: string | number, newRepostCount: number, isReposted: boolean) => void;
+  onBookmarkChange?: (postId: string | number, newBookmarkCount: number, isBookmarked: boolean) => void;
 }
 
 export const Post: React.FC<PostProps> = ({
@@ -39,8 +42,11 @@ export const Post: React.FC<PostProps> = ({
   commentCount = 0,
   repostCount: initialRepostCount = 0,
   isReposted: initialIsReposted = false,
+  bookmarkCount: initialBookmarkCount = 0,
+  isBookmarked: initialIsBookmarked = false,
   onLikeChange,
   onRepostChange,
+  onBookmarkChange,
 }) => {
   const router = useRouter();
   const [liked, setLiked] = useState(initialIsLiked);
@@ -50,7 +56,9 @@ export const Post: React.FC<PostProps> = ({
   const [reposted, setReposted] = useState(initialIsReposted);
   const [repostCount, setRepostCount] = useState(initialRepostCount);
   const [isReposting, setIsReposting] = useState(false);
-  const [downloaded, setDownloaded] = useState(false);
+  const [bookmarked, setBookmarked] = useState(initialIsBookmarked);
+  const [bookmarkCount, setBookmarkCount] = useState(initialBookmarkCount);
+  const [isBookmarking, setIsBookmarking] = useState(false);
 
   // Update state when props change
   useEffect(() => {
@@ -58,7 +66,9 @@ export const Post: React.FC<PostProps> = ({
     setLikeCount(initialLikeCount);
     setReposted(initialIsReposted);
     setRepostCount(initialRepostCount);
-  }, [initialIsLiked, initialLikeCount, initialIsReposted, initialRepostCount]);
+    setBookmarked(initialIsBookmarked);
+    setBookmarkCount(initialBookmarkCount);
+  }, [initialIsLiked, initialLikeCount, initialIsReposted, initialRepostCount, initialIsBookmarked, initialBookmarkCount]);
   
   // Carousel state
   const imageList = images && images.length > 0 ? images : image ? [image] : [];
@@ -197,6 +207,66 @@ export const Post: React.FC<PostProps> = ({
       setIsReposting(false);
     }
   };
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent post click
+    if (isBookmarking) return;
+
+    setIsBookmarking(true);
+    const newBookmarkedState = !bookmarked;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("User not authenticated");
+        setIsBookmarking(false);
+        return;
+      }
+
+      if (newBookmarkedState) {
+        // Bookmark the post
+        const { error } = await supabase
+          .from("bookmarks")
+          .insert({
+            post_id: id,
+            user_id: user.id,
+          });
+
+        if (error) {
+          // If it's a unique constraint error, the bookmark already exists
+          if (error.code !== "23505") {
+            console.error("Error bookmarking:", error);
+            setIsBookmarking(false);
+            return;
+          }
+        }
+        setBookmarked(true);
+        setBookmarkCount((prev) => prev + 1);
+        onBookmarkChange?.(id, bookmarkCount + 1, true);
+      } else {
+        // Unbookmark the post
+        const { error } = await supabase
+          .from("bookmarks")
+          .delete()
+          .eq("post_id", id)
+          .eq("user_id", user.id);
+
+        if (error) {
+          console.error("Error unbookmarking:", error);
+          setIsBookmarking(false);
+          return;
+        }
+        setBookmarked(false);
+        setBookmarkCount((prev) => Math.max(0, prev - 1));
+        onBookmarkChange?.(id, Math.max(0, bookmarkCount - 1), false);
+      }
+    } catch (err) {
+      console.error("Unexpected error toggling bookmark:", err);
+    } finally {
+      setIsBookmarking(false);
+    }
+  };
+
   return (
     <article className="w-full max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
 
@@ -454,24 +524,32 @@ export const Post: React.FC<PostProps> = ({
           <TooltipButton
             label="Save"
             as="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDownloaded(true);
-              setTimeout(() => setDownloaded(false), 600);
-            }}
-            className={`flex items-center justify-center flex-1 p-2 rounded-md transition-all duration-300 ${
-              downloaded
+            onClick={handleBookmark}
+            disabled={isBookmarking}
+            className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
+              bookmarked
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-neutral-800 hover:scale-105"
-            } active:scale-95`}
+            } active:scale-95 disabled:opacity-50`}
           >
-            <img
-              src="/svgs/download.svg"
-              alt="Save"
+            <svg
               className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
-                downloaded ? "scale-125 translate-y-1" : ""
+                bookmarked ? "fill-current scale-125" : ""
               }`}
-            />
+              fill={bookmarked ? "currentColor" : "none"}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+              />
+            </svg>
+            {bookmarkCount > 0 && (
+              <span className="text-xs font-medium">{bookmarkCount}</span>
+            )}
           </TooltipButton>
 
         </div>

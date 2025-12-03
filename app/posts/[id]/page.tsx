@@ -21,6 +21,8 @@ type PostDetail = {
   comments?: number;
   repostCount?: number;
   isReposted?: boolean;
+  bookmarkCount?: number;
+  isBookmarked?: boolean;
 };
 
 export default function PostDetailPage() {
@@ -118,6 +120,17 @@ export default function PostDetailPage() {
           ? (repostsData ?? []).some((repost: any) => repost.user_id === user.id)
           : false;
 
+        // Get bookmark count and check if current user has bookmarked
+        const { data: bookmarksData } = await supabase
+          .from("bookmarks")
+          .select("user_id")
+          .eq("post_id", postIdFromData);
+
+        const bookmarkCount = bookmarksData?.length || 0;
+        const isBookmarked = user
+          ? (bookmarksData ?? []).some((bookmark: any) => bookmark.user_id === user.id)
+          : false;
+
         const postDetail: PostDetail = {
           id: postIdFromData,
           name: author?.full_name ?? "Unknown",
@@ -136,6 +149,8 @@ export default function PostDetailPage() {
           comments: commentCount,
           repostCount,
           isReposted,
+          bookmarkCount,
+          isBookmarked,
         };
 
         setPost(postDetail);

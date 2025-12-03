@@ -21,6 +21,8 @@ type PostItem = {
   commentCount?: number;
   repostCount?: number;
   isReposted?: boolean;
+  bookmarkCount?: number;
+  isBookmarked?: boolean;
 };
 
 type NewPostPayload = {
@@ -203,15 +205,32 @@ export default function Home() {
           .eq("user_id", user.id)
           .in("post_id", postIds);
 
+        // Get bookmark counts for all posts
+        const { data: bookmarksData } = await supabase
+          .from("bookmarks")
+          .select("post_id")
+          .in("post_id", postIds);
+
+        // Get user's bookmarks
+        const { data: userBookmarksData } = await supabase
+          .from("bookmarks")
+          .select("post_id")
+          .eq("user_id", user.id)
+          .in("post_id", postIds);
+
         // Create maps for quick lookup
         const likeCountMap: Record<string, number> = {};
         const commentCountMap: Record<string, number> = {};
         const repostCountMap: Record<string, number> = {};
+        const bookmarkCountMap: Record<string, number> = {};
         const userLikedSet = new Set(
           (userLikesData ?? []).map((like: any) => like.post_id)
         );
         const userRepostedSet = new Set(
           (userRepostsData ?? []).map((repost: any) => repost.post_id)
+        );
+        const userBookmarkedSet = new Set(
+          (userBookmarksData ?? []).map((bookmark: any) => bookmark.post_id)
         );
 
         // Count likes per post
@@ -227,6 +246,11 @@ export default function Home() {
         // Count reposts per post
         (repostsData ?? []).forEach((repost: any) => {
           repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
+        });
+
+        // Count bookmarks per post
+        (bookmarksData ?? []).forEach((bookmark: any) => {
+          bookmarkCountMap[bookmark.post_id] = (bookmarkCountMap[bookmark.post_id] || 0) + 1;
         });
 
         if (postsErr) {
@@ -266,6 +290,8 @@ export default function Home() {
               commentCount: commentCountMap[row.id] || 0,
               repostCount: repostCountMap[row.id] || 0,
               isReposted: userRepostedSet.has(row.id),
+              bookmarkCount: bookmarkCountMap[row.id] || 0,
+              isBookmarked: userBookmarkedSet.has(row.id),
             };
           }) as PostItem[];
 
@@ -305,6 +331,8 @@ export default function Home() {
       isLiked: false,
       repostCount: 0,
       isReposted: false,
+      bookmarkCount: 0,
+      isBookmarked: false,
     };
 
     setPosts((prev) => [postWithId, ...prev]);
@@ -325,6 +353,16 @@ export default function Home() {
       prev.map((post) =>
         post.id === postId
           ? { ...post, repostCount: newRepostCount, isReposted }
+          : post
+      )
+    );
+  };
+
+  const handleBookmarkChange = (postId: string | number, newBookmarkCount: number, isBookmarked: boolean) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? { ...post, bookmarkCount: newBookmarkCount, isBookmarked }
           : post
       )
     );
@@ -367,8 +405,11 @@ export default function Home() {
               commentCount={p.commentCount}
               repostCount={p.repostCount}
               isReposted={p.isReposted}
+              bookmarkCount={p.bookmarkCount}
+              isBookmarked={p.isBookmarked}
               onLikeChange={handleLikeChange}
               onRepostChange={handleRepostChange}
+              onBookmarkChange={handleBookmarkChange}
             />
           </div>
         ))}
