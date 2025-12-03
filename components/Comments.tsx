@@ -86,6 +86,31 @@ export default function Comments({ postId }: CommentsProps) {
         return;
       }
 
+      // Get all comment IDs
+      const commentIds = (data || []).map((row: any) => row.id);
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      // Get like counts for all comments
+      const { data: likesData } = await supabase
+        .from("comment_likes")
+        .select("comment_id, user_id")
+        .in("comment_id", commentIds);
+
+      // Create maps for quick lookup
+      const likeCountMap: Record<string, number> = {};
+      const userLikedSet = new Set<string>();
+
+      // Count likes per comment and track user's likes
+      (likesData || []).forEach((like: any) => {
+        likeCountMap[like.comment_id] = (likeCountMap[like.comment_id] || 0) + 1;
+        if (userId && like.user_id === userId) {
+          userLikedSet.add(like.comment_id);
+        }
+      });
+
       // Organize comments into a tree structure
       const commentsMap = new Map<string, Comment>();
       const rootComments: Comment[] = [];
@@ -102,6 +127,8 @@ export default function Comments({ postId }: CommentsProps) {
             avatar_url: row.profiles?.avatar_url || null,
             graduation_year: row.profiles?.graduation_year || null,
           },
+          likeCount: likeCountMap[row.id] || 0,
+          isLiked: userLikedSet.has(row.id),
           replies: [],
         };
 
@@ -194,9 +221,55 @@ export default function Comments({ postId }: CommentsProps) {
     }
   };
 
+  const handleCommentLike = async (commentId: string, currentlyLiked: boolean) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("You must be signed in to like comments.");
+        return;
+      }
+
+      if (currentlyLiked) {
+        // Unlike the comment
+        const { error } = await supabase
+          .from("comment_likes")
+          .delete()
+          .eq("comment_id", commentId)
+          .eq("user_id", user.id);
+
+        if (error) {
+          console.error("Error unliking comment:", error);
+          return;
+        }
+      } else {
+        // Like the comment
+        const { error } = await supabase
+          .from("comment_likes")
+          .insert({
+            comment_id: commentId,
+            user_id: user.id,
+          });
+
+        if (error) {
+          // If it's a unique constraint error, the like already exists
+          if (error.code !== "23505") {
+            console.error("Error liking comment:", error);
+            return;
+          }
+        }
+      }
+
+      // Reload comments to update like counts
+      loadComments();
+    } catch (err) {
+      console.error("Unexpected error toggling comment like:", err);
+    }
+  };
+
   const CommentItem = memo(({ comment, depth = 0 }: { comment: Comment; depth?: number }) => {
     const [isReplying, setIsReplying] = useState(false);
     const [replyText, setReplyText] = useState("");
+    const [isLiking, setIsLiking] = useState(false);
     const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
     const maxDepth = 3; // Limit nesting depth
 
@@ -221,6 +294,13 @@ export default function Comments({ postId }: CommentsProps) {
     const handleCancelReply = () => {
       setReplyText("");
       setIsReplying(false);
+    };
+
+    const handleLike = async () => {
+      if (isLiking) return;
+      setIsLiking(true);
+      await handleCommentLike(comment.id, comment.isLiked || false);
+      setIsLiking(false);
     };
 
     return (
@@ -248,14 +328,42 @@ export default function Comments({ postId }: CommentsProps) {
             <p className="text-sm text-slate-700 mb-2 whitespace-pre-line">
               {comment.body}
             </p>
-            {depth < maxDepth && (
+            <div className="flex items-center gap-4 mb-2">
               <button
-                onClick={() => setIsReplying(!isReplying)}
-                className="text-xs text-[var(--color-accent)] hover:underline mb-2"
+                onClick={handleLike}
+                disabled={isLiking}
+                className={`flex items-center gap-1.5 text-xs transition-colors ${
+                  comment.isLiked
+                    ? "text-[var(--color-accent)]"
+                    : "text-slate-500 hover:text-slate-700"
+                } disabled:opacity-50`}
               >
-                {isReplying ? "Cancel" : "Reply"}
+                <svg
+                  className={`w-4 h-4 ${comment.isLiked ? "fill-current" : ""}`}
+                  fill={comment.isLiked ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
+                  />
+                </svg>
+                {comment.likeCount && comment.likeCount > 0 && (
+                  <span>{comment.likeCount}</span>
+                )}
               </button>
-            )}
+              {depth < maxDepth && (
+                <button
+                  onClick={() => setIsReplying(!isReplying)}
+                  className="text-xs text-[var(--color-accent)] hover:underline"
+                >
+                  {isReplying ? "Cancel" : "Reply"}
+                </button>
+              )}
+            </div>
             {isReplying && (
               <div className="mt-2 mb-3">
                 <textarea
