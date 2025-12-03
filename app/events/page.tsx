@@ -59,7 +59,7 @@ export default function EventsClient() {
         // 2. Get user's profile to check role
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("id, user_role, org_role")
+          .select("id, role")
           .eq("id", user.id)
           .single();
 
@@ -90,8 +90,7 @@ export default function EventsClient() {
               profiles!inner (
                 id,
                 full_name,
-                user_role,
-                org_role
+                role
               ),
               post_media (
                 url,
@@ -104,7 +103,7 @@ export default function EventsClient() {
 
         // Filter: Only show events from 'regular' users to other 'regular' users
         // If user is not 'regular', they won't see events from 'regular' users
-        const userRole = (profile as any)?.user_role || (profile as any)?.org_role;
+        const userRole = (profile as any)?.role;
         if (userRole === "regular") {
           // Regular users can only see events from other regular users
           // This filtering happens at the database level via RLS or we filter in the query
@@ -136,7 +135,7 @@ export default function EventsClient() {
               null;
 
             // Filter: Only show events from 'regular' users to other 'regular' users
-            const authorRole = author?.user_role || author?.org_role;
+            const authorRole = author?.role;
             if (userRole === "regular" && authorRole !== "regular") {
               return null; // Skip this event
             }

@@ -14,6 +14,8 @@ type PostItem = {
   image: string;
   images?: string[];
   avatar?: string;
+  likeCount?: number;
+  isLiked?: boolean;
 };
 
 export default function MyProfilePage() {
@@ -138,6 +140,38 @@ export default function MyProfilePage() {
 
         if (!mounted) return;
 
+        // Get like counts and check if current user has liked each post
+        const postIds = (postsData ?? []).map((p: any) => p.id);
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id;
+
+        // Get like counts for all posts
+        const { data: likesData } = await supabase
+          .from("post_likes")
+          .select("post_id")
+          .in("post_id", postIds);
+
+        // Get user's likes
+        const { data: userLikesData } = userId
+          ? await supabase
+              .from("post_likes")
+              .select("post_id")
+              .eq("user_id", userId)
+              .in("post_id", postIds)
+          : { data: null };
+
+        // Create maps for quick lookup
+        const likeCountMap: Record<string, number> = {};
+        const userLikedSet = new Set(
+          (userLikesData ?? []).map((like: any) => like.post_id)
+        );
+
+        // Count likes per post
+        (likesData ?? []).forEach((like: any) => {
+          likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
+        });
+
         const mapped: PostItem[] =
           (postsData ?? []).map((row: any) => {
             const author = row.profiles as any | null;
@@ -160,6 +194,8 @@ export default function MyProfilePage() {
               image: firstMedia?.url ?? "",
               images: allImages.length > 0 ? allImages : undefined,
               avatar: author?.avatar_url ?? undefined,
+              likeCount: likeCountMap[row.id] || 0,
+              isLiked: userLikedSet.has(row.id),
             };
           }) as PostItem[];
 
@@ -394,6 +430,7 @@ export default function MyProfilePage() {
                       className="cursor-pointer"
                     >
                       <Post
+                        id={post.id}
                         name={post.name}
                         gradYear={post.gradYear}
                         avatar={post.avatar}
@@ -401,6 +438,8 @@ export default function MyProfilePage() {
                         time={post.time}
                         image={post.image}
                         images={post.images}
+                        likeCount={post.likeCount}
+                        isLiked={post.isLiked}
                       />
                     </div>
                   ))

@@ -1,7 +1,9 @@
 // app/components/Post.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface PostProps {
+  id: string | number;
   name: string;
   gradYear?: string;
   avatar?: string;
@@ -9,9 +11,13 @@ interface PostProps {
   time?: string;
   image?: string;
   images?: string[]; // Multiple images for carousel
+  likeCount?: number;
+  isLiked?: boolean;
+  onLikeChange?: (postId: string | number, newLikeCount: number, isLiked: boolean) => void;
 }
 
 export const Post: React.FC<PostProps> = ({
+  id,
   name,
   gradYear,
   avatar,
@@ -19,11 +25,22 @@ export const Post: React.FC<PostProps> = ({
   time = "2w",
   image,
   images,
+  likeCount: initialLikeCount = 0,
+  isLiked: initialIsLiked = false,
+  onLikeChange,
 }) => {
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(initialIsLiked);
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
+  const [isLiking, setIsLiking] = useState(false);
   const [commented, setCommented] = useState(false);
   const [reposted, setReposted] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+
+  // Update state when props change
+  useEffect(() => {
+    setLiked(initialIsLiked);
+    setLikeCount(initialLikeCount);
+  }, [initialIsLiked, initialLikeCount]);
   
   // Carousel state
   const imageList = images && images.length > 0 ? images : image ? [image] : [];
@@ -42,6 +59,65 @@ export const Post: React.FC<PostProps> = ({
 
   const goToImage = (index: number) => {
     setCurrentImageIndex(index);
+  };
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent post click
+    if (isLiking) return;
+
+    setIsLiking(true);
+    const newLikedState = !liked;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("User not authenticated");
+        setIsLiking(false);
+        return;
+      }
+
+      if (newLikedState) {
+        // Like the post
+        const { error } = await supabase
+          .from("post_likes")
+          .insert({
+            post_id: id,
+            user_id: user.id,
+          });
+
+        if (error) {
+          // If it's a unique constraint error, the like already exists
+          if (error.code !== "23505") {
+            console.error("Error liking post:", error);
+            setIsLiking(false);
+            return;
+          }
+        }
+        setLiked(true);
+        setLikeCount((prev) => prev + 1);
+        onLikeChange?.(id, likeCount + 1, true);
+      } else {
+        // Unlike the post
+        const { error } = await supabase
+          .from("post_likes")
+          .delete()
+          .eq("post_id", id)
+          .eq("user_id", user.id);
+
+        if (error) {
+          console.error("Error unliking post:", error);
+          setIsLiking(false);
+          return;
+        }
+        setLiked(false);
+        setLikeCount((prev) => Math.max(0, prev - 1));
+        onLikeChange?.(id, Math.max(0, likeCount - 1), false);
+      }
+    } catch (err) {
+      console.error("Unexpected error toggling like:", err);
+    } finally {
+      setIsLiking(false);
+    }
   };
   return (
     <article className="w-full max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
@@ -190,12 +266,13 @@ export const Post: React.FC<PostProps> = ({
 
           <button
             aria-label="Like"
-            onClick={() => setLiked(!liked)}
-            className={`flex items-center justify-center flex-1 p-2 rounded-md transition-all duration-300 ${
+            onClick={handleLike}
+            disabled={isLiking}
+            className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
               liked
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-neutral-800 hover:scale-105"
-            } active:scale-95`}
+            } active:scale-95 disabled:opacity-50`}
           >
             <img
               src="/svgs/like.svg"
@@ -204,11 +281,17 @@ export const Post: React.FC<PostProps> = ({
                 liked ? "scale-125 rotate-12" : ""
               }`}
             />
+            {likeCount > 0 && (
+              <span className="text-xs font-medium">{likeCount}</span>
+            )}
           </button>
 
           <button
             aria-label="Comment"
-            onClick={() => setCommented(!commented)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCommented(!commented);
+            }}
             className={`flex items-center justify-center flex-1 p-2 rounded-md transition-all duration-300 ${
               commented
                 ? "text-[var(--color-accent)] scale-110"
@@ -226,7 +309,10 @@ export const Post: React.FC<PostProps> = ({
 
           <button
             aria-label="Repost"
-            onClick={() => setReposted(!reposted)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setReposted(!reposted);
+            }}
             className={`flex items-center justify-center flex-1 p-2 rounded-md transition-all duration-300 ${
               reposted
                 ? "text-[var(--color-accent)] scale-110"
@@ -244,7 +330,8 @@ export const Post: React.FC<PostProps> = ({
 
           <button
             aria-label="Download"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setDownloaded(true);
               setTimeout(() => setDownloaded(false), 600);
             }}

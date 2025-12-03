@@ -15,6 +15,9 @@ type PostItem = {
   image: string;
   images?: string[];
   avatar?: string;
+  likeCount?: number;
+  isLiked?: boolean;
+  commentCount?: number;
 };
 
 type NewPostPayload = {
@@ -35,6 +38,7 @@ export default function Home() {
   const [postsError, setPostsError] = useState<string | null>(null);
 
   const [posts, setPosts] = useState<PostItem[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -81,18 +85,52 @@ export default function Home() {
           return;
         }
 
-        // 2) Fetch the user's profile to get university_id
+        // 2) Fetch the user's profile to get university_id and role
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("university_id, full_name, graduation_year, avatar_url")
+          .select("university_id, full_name, graduation_year, avatar_url, role")
           .eq("id", user.id)
           .single();
 
-        if (profileError || !profile) {
-          console.error("Failed to load profile for posts:", profileError);
+        if (profileError) {
+          console.error("Failed to load profile for posts:", {
+            error: profileError,
+            code: profileError.code,
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint,
+            userId: user.id,
+          });
+          // Check if it's a "not found" error (PGRST116) or RLS issue
+          if (profileError.code === "PGRST116" || profileError.message?.includes("No rows")) {
+            if (!mounted) return;
+            setPostsError("Profile not found. Please complete your profile setup.");
+            setLoadingPosts(false);
+            return;
+          }
+          // Check for RLS policy violation
+          if (profileError.code === "42501" || profileError.message?.includes("row-level security")) {
+            if (!mounted) return;
+            setPostsError("Access denied. Please check your account permissions.");
+            setLoadingPosts(false);
+            return;
+          }
           if (!mounted) return;
-          setPostsError("Unable to load your profile.");
+          setPostsError("Unable to load your profile. Please try again.");
+          setLoadingPosts(false);
           return;
+        }
+
+        if (!profile) {
+          if (!mounted) return;
+          setPostsError("Profile not found. Please complete your profile setup.");
+          setLoadingPosts(false);
+          return;
+        }
+
+        // Set user role for conditional rendering
+        if (mounted) {
+          setUserRole((profile as any).role || null);
         }
 
         const universityId = (profile as any).university_id;
@@ -125,6 +163,46 @@ export default function Home() {
           .eq("is_deleted", false)
           .order("created_at", { ascending: false });
 
+        // 4) Get like counts and check if current user has liked each post
+        const postIds = (postsData ?? []).map((p: any) => p.id);
+        
+        // Get like counts for all posts
+        const { data: likesData } = await supabase
+          .from("post_likes")
+          .select("post_id")
+          .in("post_id", postIds);
+
+        // Get user's likes
+        const { data: userLikesData } = await supabase
+          .from("post_likes")
+          .select("post_id")
+          .eq("user_id", user.id)
+          .in("post_id", postIds);
+
+        // Get comment counts for all posts
+        const { data: commentsData } = await supabase
+          .from("comments")
+          .select("post_id")
+          .in("post_id", postIds)
+          .eq("is_deleted", false);
+
+        // Create maps for quick lookup
+        const likeCountMap: Record<string, number> = {};
+        const commentCountMap: Record<string, number> = {};
+        const userLikedSet = new Set(
+          (userLikesData ?? []).map((like: any) => like.post_id)
+        );
+
+        // Count likes per post
+        (likesData ?? []).forEach((like: any) => {
+          likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
+        });
+
+        // Count comments per post
+        (commentsData ?? []).forEach((comment: any) => {
+          commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
+        });
+
         if (postsErr) {
           console.error("Error loading posts:", postsErr);
           if (!mounted) return;
@@ -156,6 +234,9 @@ export default function Home() {
               image: firstMedia?.url ?? "",
               images: allImages.length > 0 ? allImages : undefined,
               avatar: author?.avatar_url ?? undefined,
+              likeCount: likeCountMap[row.id] || 0,
+              isLiked: userLikedSet.has(row.id),
+              commentCount: commentCountMap[row.id] || 0,
             };
           }) as PostItem[];
 
@@ -175,7 +256,11 @@ export default function Home() {
     };
   }, []);
 
-  const openCreatePost = () => setShowModal(true);
+  const openCreatePost = () => {
+    if (userRole === "admin") {
+      setShowModal(true);
+    }
+  };
 
   const handleCreatePost = (newPost: NewPostPayload) => {
     const postWithId: PostItem = {
@@ -187,14 +272,27 @@ export default function Home() {
       gradYear: newPost.gradYear,
       image: newPost.images[0] ?? "",
       avatar: undefined,
+      likeCount: 0,
+      isLiked: false,
     };
 
     setPosts((prev) => [postWithId, ...prev]);
   };
 
+  const handleLikeChange = (postId: string | number, newLikeCount: number, isLiked: boolean) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? { ...post, likeCount: newLikeCount, isLiked }
+          : post
+      )
+    );
+  };
+
   return (
     <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex flex-col items-center gap-6 transition-colors">
-      {/* MakePost with ref observed by IntersectionObserver */}
+      {/* MakePost with ref observed by IntersectionObserver - Only show for admin users */}
+      {userRole === "admin" && (
       <div ref={postRef} className="w-full flex justify-center">
         <MakePost
           onStartPost={openCreatePost}
@@ -203,6 +301,7 @@ export default function Home() {
           onArticleClick={() => console.log("open write-article editor")}
         />
       </div>
+      )}
 
       {/* Posts list */}
       <div className="w-full max-w-2xl flex flex-col gap-6">
@@ -213,20 +312,24 @@ export default function Home() {
             className="cursor-pointer"
           >
             <Post
-              name={p.name}
-              text={p.text}
-              time={p.time}
-              gradYear={p.gradYear}
-              image={p.image}
+              id={p.id}
+            name={p.name}
+            text={p.text}
+            time={p.time}
+            gradYear={p.gradYear}
+            image={p.image}
               images={p.images}
               avatar={p.avatar}
-            />
+              likeCount={p.likeCount}
+              isLiked={p.isLiked}
+              onLikeChange={handleLikeChange}
+          />
           </div>
         ))}
       </div>
 
-      {/* Floating circular bubble (appears only when MakePost is out of view) */}
-      {showBubble && (
+      {/* Floating circular bubble (appears only when MakePost is out of view and user is admin) */}
+      {showBubble && userRole === "admin" && (
         <button
           onClick={openCreatePost}
           aria-label="Start a post"

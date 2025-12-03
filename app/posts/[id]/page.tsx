@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Post } from "@/components/Posts";
+import Comments from "@/components/Comments";
 
 type PostDetail = {
   id: string;
@@ -14,7 +15,8 @@ type PostDetail = {
   image: string;
   images?: string[];
   avatar?: string;
-  likes?: number;
+  likeCount?: number;
+  isLiked?: boolean;
   comments?: number;
 };
 
@@ -67,20 +69,45 @@ export default function PostDetailPage() {
 
         if (!mounted) return;
 
-        const author = (postData as any).profiles as any | null;
-        const media = ((postData as any).post_media as any[]) ?? [];
+        const postDataTyped = postData as any;
+
+        const author = postDataTyped.profiles as any | null;
+        const media = (postDataTyped.post_media as any[]) ?? [];
         const sortedMedia = media
           .slice()
           .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
         const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
         const firstMedia = sortedMedia[0] ?? null;
 
-        // TODO: Load actual likes and comments count from database
+        // Get like count and check if current user has liked
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const postIdFromData = postDataTyped.id;
+
+        const { data: likesData } = await supabase
+          .from("post_likes")
+          .select("user_id")
+          .eq("post_id", postIdFromData);
+
+        const likeCount = likesData?.length || 0;
+        const isLiked = user
+          ? (likesData ?? []).some((like: any) => like.user_id === user.id)
+          : false;
+
+        // Get comment count
+        const { data: commentsData } = await supabase
+          .from("comments")
+          .select("id")
+          .eq("post_id", postIdFromData)
+          .eq("is_deleted", false);
+
+        const commentCount = commentsData?.length || 0;
+
         const postDetail: PostDetail = {
-          id: (postData as any).id,
+          id: postIdFromData,
           name: author?.full_name ?? "Unknown",
           text: (postData as any).body ?? "",
-          time: new Date((postData as any).created_at).toLocaleString(),
+          time: new Date(postDataTyped.created_at).toLocaleString(),
           gradYear:
             author?.graduation_year != null
               ? String(author.graduation_year).slice(-2)
@@ -88,8 +115,9 @@ export default function PostDetailPage() {
           image: firstMedia?.url ?? "",
           images: allImages.length > 0 ? allImages : undefined,
           avatar: author?.avatar_url ?? undefined,
-          likes: 0, // TODO: Get from likes table
-          comments: 0, // TODO: Get from comments table
+          likeCount,
+          isLiked,
+          comments: commentCount,
         };
 
         setPost(postDetail);
@@ -166,6 +194,7 @@ export default function PostDetailPage() {
         {/* Post */}
         <div className="mb-6">
           <Post
+            id={post.id}
             name={post.name}
             gradYear={post.gradYear}
             avatar={post.avatar}
@@ -173,6 +202,8 @@ export default function PostDetailPage() {
             time={post.time}
             image={post.image}
             images={post.images}
+            likeCount={post.likeCount}
+            isLiked={post.isLiked}
           />
         </div>
 
@@ -180,7 +211,7 @@ export default function PostDetailPage() {
         <div className="bg-white rounded-lg border border-neutral-200 p-4 mb-6">
           <div className="flex items-center justify-around text-sm">
             <div className="text-center">
-              <div className="font-semibold text-slate-900">{post.likes ?? 0}</div>
+              <div className="font-semibold text-slate-900">{post.likeCount ?? 0}</div>
               <div className="text-slate-500">Likes</div>
             </div>
             <div className="text-center">
@@ -193,9 +224,7 @@ export default function PostDetailPage() {
         {/* Comments Section */}
         <div className="bg-white rounded-lg border border-neutral-200 p-4">
           <h2 className="font-semibold text-slate-900 mb-4">Comments</h2>
-          <div className="text-center py-8 text-sm text-slate-500">
-            Comments feature coming soon
-          </div>
+          <Comments postId={postId} />
         </div>
       </div>
     </div>
