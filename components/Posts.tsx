@@ -292,7 +292,7 @@ export const Post: React.FC<PostProps> = ({
             aria-label="Comment"
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/posts/${id}`);
+              router.push(`/posts/${id}#comments`);
             }}
             className={`flex items-center justify-center flex-1 p-2 rounded-md transition-all duration-300 ${
               commented

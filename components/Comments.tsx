@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type Comment = {
@@ -28,10 +28,36 @@ export default function Comments({ postId }: CommentsProps) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     loadComments();
   }, [postId]);
+
+  // Focus comment textarea if hash is present
+  useEffect(() => {
+    const handleHashFocus = () => {
+      if (window.location.hash === "#comments" && commentTextareaRef.current && !loading) {
+        // Small delay to ensure the page has fully rendered
+        setTimeout(() => {
+          commentTextareaRef.current?.focus();
+          commentTextareaRef.current?.scrollIntoView({ 
+            behavior: "smooth", 
+            block: "center" 
+          });
+          // Remove hash after focusing to allow re-focusing if needed
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        }, 300);
+      }
+    };
+
+    // Check on mount and when loading completes
+    handleHashFocus();
+
+    // Also listen for hash changes
+    window.addEventListener("hashchange", handleHashFocus);
+    return () => window.removeEventListener("hashchange", handleHashFocus);
+  }, [loading]); // Run after comments are loaded
 
   const loadComments = async () => {
     try {
@@ -257,8 +283,9 @@ export default function Comments({ postId }: CommentsProps) {
   return (
     <div className="space-y-4">
       {/* Comment Input */}
-      <div className="border-b border-neutral-200 pb-4">
+      <div id="comments" className="border-b border-neutral-200 pb-4">
         <textarea
+          ref={commentTextareaRef}
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Write a comment..."
