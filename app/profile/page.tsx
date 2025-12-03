@@ -503,93 +503,87 @@ export default function MyProfilePage() {
 
   // Normal authenticated + profile present render
   return (
-    <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex justify-center px-4 transition-colors">
-      <div className="w-full max-w-2xl">
-        {/* Profile Header Card */}
-        <div className="bg-[var(--card-bg)] rounded-2xl shadow-sm border border-[var(--card-border)] mb-6 overflow-hidden transition-colors">
-          {/* Header Section */}
-          <div className="px-6 py-5 border-b border-[var(--card-border)]">
-            <h1 className="text-2xl font-semibold text-[var(--text-primary)]">My Profile</h1>
+    <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex flex-col items-center px-4 transition-colors">
+      <div className="w-full max-w-6xl">
+        {/* Profile Header - Centered */}
+        <div className="flex flex-col items-center mb-6">
+          {/* Title */}
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)] mb-6">My Profile</h1>
+
+          {/* Avatar */}
+          <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm mb-4">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={profile.full_name || "Profile"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-3xl">
+                {profile.full_name?.[0]?.toUpperCase() || "?"}
+              </div>
+            )}
           </div>
 
-          {/* Profile Info Section */}
-          <div className="px-6 py-6">
-            {/* Avatar + Name */}
-            <div className="flex gap-4 mb-4">
-              <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm">
-                {profile.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.full_name || "Profile"}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl">
-                    {profile.full_name?.[0]?.toUpperCase() || "?"}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-semibold text-xl text-[var(--text-primary)]">
-                    {profile.full_name || "Unknown User"}
-                  </h2>
-                  {profile.graduation_year && (
-                    <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                      <img
-                        src="/svgs/graduate.svg"
-                        alt="Graduate"
-                        className="h-3 w-3"
-                      />
-                      {String(profile.graduation_year).slice(-2)}
-                    </span>
-                  )}
-                </div>
-
-                {profile.program_of_study && (
-                  <div className="text-sm text-[var(--text-secondary)] mt-1">
-                    {profile.program_of_study}
-                  </div>
-                )}
-
-                <div className="text-sm font-medium text-[var(--text-secondary)] mt-2">
-                  {connectionsCount} campus connections
-                </div>
-              </div>
-            </div>
-
-            {/* Bio */}
-            {profile.bio && (
-              <div className="mt-4 text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-line">
-                {profile.bio}
-              </div>
+          {/* Name + Grad Year */}
+          <div className="flex items-center gap-2 flex-wrap justify-center mb-2">
+            <h2 className="font-semibold text-xl text-[var(--text-primary)]">
+              {profile.full_name || "Unknown User"}
+            </h2>
+            {profile.graduation_year && (
+              <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                <img
+                  src="/svgs/graduate.svg"
+                  alt="Graduate"
+                  className="h-3 w-3"
+                />
+                {String(profile.graduation_year).slice(-2)}
+              </span>
             )}
+          </div>
 
-            {/* Role Tag */}
-            {profile.org_role && (
-              <div className="mt-4 inline-flex px-3 py-1.5 rounded-full bg-[var(--color-accent)]">
-                <span className="text-xs font-medium text-white">
-                  {profile.org_role}
-                </span>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => router.push("/profileEditor")}
-                className="flex-1 h-11 rounded-lg bg-[var(--color-accent)] text-white font-semibold hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition shadow-sm"
-              >
-                Edit Profile
-              </button>
-              <button
-                onClick={() => router.push("/settings")}
-                className="flex-1 h-11 rounded-lg border border-slate-300 font-semibold hover:bg-gray-50 transition text-black"
-              >
-                Settings
-              </button>
+          {/* Program of Study */}
+          {profile.program_of_study && (
+            <div className="text-sm text-[var(--text-secondary)] mb-2 text-center">
+              {profile.program_of_study}
             </div>
+          )}
+
+          {/* Connections Count */}
+          <div className="text-sm font-medium text-[var(--text-secondary)] mb-4 text-center">
+            {connectionsCount} campus connections
+          </div>
+
+          {/* Bio */}
+          {profile.bio && (
+            <div className="text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-line text-center max-w-2xl mb-4">
+              {profile.bio}
+            </div>
+          )}
+
+          {/* Role Tag */}
+          {profile.org_role && (
+            <div className="inline-flex px-3 py-1.5 rounded-full bg-[var(--color-accent)] mb-6">
+              <span className="text-xs font-medium text-white">
+                {profile.org_role}
+              </span>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.push("/profileEditor")}
+              className="px-6 h-11 rounded-lg bg-[var(--color-accent)] text-white font-semibold hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition shadow-sm"
+            >
+              Edit Profile
+            </button>
+            <button
+              onClick={() => router.push("/settings")}
+              className="px-6 h-11 rounded-lg border border-slate-300 font-semibold hover:bg-gray-50 transition text-black"
+            >
+              Settings
+            </button>
           </div>
         </div>
 
@@ -634,7 +628,7 @@ export default function MyProfilePage() {
           {/* Tab Content */}
           <div className="p-6">
             {activeTab === "posts" && (
-              <div className="space-y-6">
+              <div>
                 {loadingPosts ? (
                   <div className="text-center py-12">
                     <div className="text-sm text-slate-500">Loading posts...</div>
@@ -649,29 +643,78 @@ export default function MyProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  userPosts.map((post) => (
-                    <div
-                      key={post.id}
-                      onClick={() => router.push(`/posts/${post.id}`)}
-                      className="cursor-pointer"
-                    >
-                      <Post
-                        id={post.id}
-                        name={post.name}
-                        gradYear={post.gradYear}
-                        avatar={post.avatar}
-                        text={post.text}
-                        created_at={post.created_at}
-                        image={post.image}
-                        images={post.images}
-                        likeCount={post.likeCount}
-                        isLiked={post.isLiked}
-                        commentCount={post.commentCount}
-                        repostCount={post.repostCount}
-                        isReposted={post.isReposted}
-                      />
-                    </div>
-                  ))
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {userPosts.map((post) => {
+                      const hasMedia = post.image || (post.images && post.images.length > 0);
+                      return (
+                        <div
+                          key={post.id}
+                          onClick={() => router.push(`/posts/${post.id}`)}
+                          className={`cursor-pointer group relative rounded-lg overflow-hidden border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
+                            hasMedia 
+                              ? "aspect-square bg-gray-100 dark:bg-gray-800" 
+                              : "bg-[var(--card-bg)] min-h-[120px] max-h-[200px]"
+                          }`}
+                        >
+                          {hasMedia ? (
+                            <>
+                              <img
+                                src={post.image || post.images?.[0] || ""}
+                                alt={post.text || "Post"}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              {/* Overlay on hover */}
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-4 text-white">
+                                  <div className="flex items-center gap-1">
+                                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    </svg>
+                                    <span className="font-semibold">{post.likeCount || 0}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    </svg>
+                                    <span className="font-semibold">{post.commentCount || 0}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Multiple images indicator */}
+                              {post.images && post.images.length > 1 && (
+                                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  {post.images.length}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex flex-col justify-between p-4">
+                              <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed">
+                                {post.text || "No content"}
+                              </p>
+                              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--card-border)] text-xs text-[var(--text-secondary)]">
+                                <div className="flex items-center gap-1">
+                                  <svg className="w-4 h-4 fill-current text-[var(--color-accent)]" viewBox="0 0 24 24">
+                                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                  <span>{post.likeCount || 0}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  </svg>
+                                  <span>{post.commentCount || 0}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}
@@ -751,20 +794,6 @@ export default function MyProfilePage() {
                   </button>
                 </div>
 
-                {/* Activity Indicator */}
-                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)] mb-4">
-                  <div className={`h-2 w-2 rounded-full ${
-                    activityType === "liked" ? "bg-red-500" :
-                    activityType === "commented" ? "bg-blue-500" :
-                    "bg-green-500"
-                  }`} />
-                  <span>
-                    {activityType === "liked" && "Posts you've liked"}
-                    {activityType === "commented" && "Posts you've commented on"}
-                    {activityType === "reposted" && "Posts you've reposted"}
-                  </span>
-                </div>
-
                 {/* Activity Posts */}
                 {loadingActivity ? (
                   <div className="text-center py-12">
@@ -784,86 +813,156 @@ export default function MyProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    {activityPosts.map((post) => (
-                      <div
-                        key={post.id}
-                        onClick={() => router.push(`/posts/${post.id}`)}
-                        className="cursor-pointer"
-                      >
-                        {/* Activity Badge */}
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium mb-3 ${
-                          activityType === "liked" ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400" :
-                          activityType === "commented" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400" :
-                          "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                        }`}>
-                          {activityType === "liked" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {activityPosts.map((post) => {
+                      const hasMedia = post.image || (post.images && post.images.length > 0);
+                      return (
+                        <div
+                          key={post.id}
+                          onClick={() => router.push(`/posts/${post.id}`)}
+                          className={`cursor-pointer group relative rounded-lg overflow-hidden border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
+                            hasMedia 
+                              ? "aspect-square bg-gray-100 dark:bg-gray-800" 
+                              : "bg-[var(--card-bg)] min-h-[120px] max-h-[200px]"
+                          }`}
+                        >
+                          {hasMedia ? (
                             <>
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                              You liked this
+                              <img
+                                src={post.image || post.images?.[0] || ""}
+                                alt={post.text || "Post"}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              {/* Activity Badge */}
+                              <div className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                                activityType === "liked" ? "bg-red-500/90 text-white" :
+                                activityType === "commented" ? "bg-blue-500/90 text-white" :
+                                "bg-green-500/90 text-white"
+                              }`}>
+                                {activityType === "liked" && (
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                )}
+                                {activityType === "commented" && (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  </svg>
+                                )}
+                                {activityType === "reposted" && (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                )}
+                              </div>
+                              {/* Overlay on hover */}
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-4 text-white">
+                                  <div className="flex items-center gap-1">
+                                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    </svg>
+                                    <span className="font-semibold">{post.likeCount || 0}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    </svg>
+                                    <span className="font-semibold">{post.commentCount || 0}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Multiple images indicator */}
+                              {post.images && post.images.length > 1 && (
+                                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  {post.images.length}
+                                </div>
+                              )}
                             </>
-                          )}
-                          {activityType === "commented" && (
-                            <>
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                              </svg>
-                              You commented on this
-                            </>
-                          )}
-                          {activityType === "reposted" && (
-                            <>
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              You reposted this
-                            </>
+                          ) : (
+                            <div className="w-full h-full flex flex-col justify-between p-4 relative">
+                              {/* Activity Badge */}
+                              <div className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                                activityType === "liked" ? "bg-red-500/90 text-white" :
+                                activityType === "commented" ? "bg-blue-500/90 text-white" :
+                                "bg-green-500/90 text-white"
+                              }`}>
+                                {activityType === "liked" && (
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                )}
+                                {activityType === "commented" && (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  </svg>
+                                )}
+                                {activityType === "reposted" && (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                )}
+                              </div>
+                              <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed">
+                                {post.text || "No content"}
+                              </p>
+                              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--card-border)] text-xs text-[var(--text-secondary)]">
+                                <div className="flex items-center gap-1">
+                                  <svg className="w-4 h-4 fill-current text-[var(--color-accent)]" viewBox="0 0 24 24">
+                                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                  <span>{post.likeCount || 0}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  </svg>
+                                  <span>{post.commentCount || 0}</span>
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </div>
-                        <Post
-                          id={post.id}
-                          name={post.name}
-                          gradYear={post.gradYear}
-                          avatar={post.avatar}
-                          text={post.text}
-                          created_at={post.created_at}
-                          image={post.image}
-                          images={post.images}
-                          likeCount={post.likeCount}
-                          isLiked={post.isLiked}
-                          commentCount={post.commentCount}
-                          repostCount={post.repostCount}
-                          isReposted={post.isReposted}
-                        />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
             )}
 
             {activeTab === "about" && (
-              <div className="space-y-4">
+              <div className="max-w-2xl mx-auto space-y-6">
+                {profile.bio && (
+                  <div className="pb-4 border-b border-[var(--card-border)]">
+                    <div className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-2">
+                      Bio
+                    </div>
+                    <div className="text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-line">
+                      {profile.bio}
+                    </div>
+                  </div>
+                )}
                 {profile.program_of_study && (
-                  <div className="pb-3 border-b border-neutral-100">
-                    <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+                  <div className="pb-4 border-b border-[var(--card-border)]">
+                    <div className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-2">
                       Program of Study
                     </div>
-                    <div className="text-sm text-slate-900">{profile.program_of_study}</div>
+                    <div className="text-sm text-[var(--text-primary)]">{profile.program_of_study}</div>
                   </div>
                 )}
                 {profile.graduation_year && (
-                  <div className="pb-3 border-b border-neutral-100">
-                    <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+                  <div className="pb-4 border-b border-[var(--card-border)]">
+                    <div className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-2">
                       Graduation Year
                     </div>
-                    <div className="text-sm text-slate-900">{profile.graduation_year}</div>
+                    <div className="text-sm text-[var(--text-primary)]">{profile.graduation_year}</div>
                   </div>
                 )}
-                {!profile.program_of_study && !profile.graduation_year && (
-                  <div className="text-center py-8 text-sm text-slate-500">
+                {!profile.bio && !profile.program_of_study && !profile.graduation_year && (
+                  <div className="text-center py-12 text-sm text-[var(--text-secondary)]">
                     No additional information available
                   </div>
                 )}
