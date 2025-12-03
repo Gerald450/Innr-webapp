@@ -135,7 +135,12 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
     if (item.path) {
       setTimeout(() => {
         setIsOpen(false);
-        router.push(item.path);
+        // Special handling for Saves button - navigate to activity tab with saves type
+        if (item.label === "Saves") {
+          router.push("/profile?tab=activity&type=saves");
+        } else {
+          router.push(item.path);
+        }
       }, 150);
     }
   }

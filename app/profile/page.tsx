@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Post } from "@/components/Posts";
 
 type PostItem = {
@@ -24,6 +24,7 @@ type PostItem = {
 
 export default function MyProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<any | null>(null);
   const [connectionsCount, setConnectionsCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,6 +36,25 @@ export default function MyProfilePage() {
   const [activityType, setActivityType] = useState<"liked" | "commented" | "reposted" | "saves">("liked");
   const [activityPosts, setActivityPosts] = useState<PostItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState<boolean>(false);
+
+  // Check URL parameters on mount to set tab and activity type
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const type = searchParams.get("type");
+    
+    if (tab === "activity") {
+      setActiveTab("activity");
+      if (type === "saves") {
+        setActivityType("saves");
+      } else if (type === "liked") {
+        setActivityType("liked");
+      } else if (type === "commented") {
+        setActivityType("commented");
+      } else if (type === "reposted") {
+        setActivityType("reposted");
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let mounted = true;
