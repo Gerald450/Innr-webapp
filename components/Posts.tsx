@@ -14,6 +14,7 @@ interface PostProps {
   images?: string[]; // Multiple images for carousel
   likeCount?: number;
   isLiked?: boolean;
+  commentCount?: number;
   onLikeChange?: (postId: string | number, newLikeCount: number, isLiked: boolean) => void;
 }
 
@@ -28,6 +29,7 @@ export const Post: React.FC<PostProps> = ({
   images,
   likeCount: initialLikeCount = 0,
   isLiked: initialIsLiked = false,
+  commentCount = 0,
   onLikeChange,
 }) => {
   const router = useRouter();
@@ -294,7 +296,7 @@ export const Post: React.FC<PostProps> = ({
               e.stopPropagation();
               router.push(`/posts/${id}#comments`);
             }}
-            className={`flex items-center justify-center flex-1 p-2 rounded-md transition-all duration-300 ${
+            className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
               commented
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-neutral-800 hover:scale-105"
@@ -307,6 +309,9 @@ export const Post: React.FC<PostProps> = ({
                 commented ? "scale-125" : ""
               }`}
             />
+            {commentCount > 0 && (
+              <span className="text-xs font-medium">{commentCount}</span>
+            )}
           </button>
 
           <button

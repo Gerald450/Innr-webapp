@@ -204,6 +204,7 @@ export default function PostDetailPage() {
             images={post.images}
             likeCount={post.likeCount}
             isLiked={post.isLiked}
+            commentCount={post.comments}
           />
         </div>
 

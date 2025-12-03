@@ -313,17 +313,18 @@ export default function Home() {
           >
             <Post
               id={p.id}
-            name={p.name}
-            text={p.text}
-            time={p.time}
-            gradYear={p.gradYear}
-            image={p.image}
+              name={p.name}
+              text={p.text}
+              time={p.time}
+              gradYear={p.gradYear}
+              image={p.image}
               images={p.images}
               avatar={p.avatar}
               likeCount={p.likeCount}
               isLiked={p.isLiked}
+              commentCount={p.commentCount}
               onLikeChange={handleLikeChange}
-          />
+            />
           </div>
         ))}
       </div>

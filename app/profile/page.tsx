@@ -16,6 +16,7 @@ type PostItem = {
   avatar?: string;
   likeCount?: number;
   isLiked?: boolean;
+  commentCount?: number;
 };
 
 export default function MyProfilePage() {
@@ -161,8 +162,16 @@ export default function MyProfilePage() {
               .in("post_id", postIds)
           : { data: null };
 
+        // Get comment counts for all posts
+        const { data: commentsData } = await supabase
+          .from("comments")
+          .select("post_id")
+          .in("post_id", postIds)
+          .eq("is_deleted", false);
+
         // Create maps for quick lookup
         const likeCountMap: Record<string, number> = {};
+        const commentCountMap: Record<string, number> = {};
         const userLikedSet = new Set(
           (userLikesData ?? []).map((like: any) => like.post_id)
         );
@@ -170,6 +179,11 @@ export default function MyProfilePage() {
         // Count likes per post
         (likesData ?? []).forEach((like: any) => {
           likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
+        });
+
+        // Count comments per post
+        (commentsData ?? []).forEach((comment: any) => {
+          commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
         });
 
         const mapped: PostItem[] =
@@ -196,6 +210,7 @@ export default function MyProfilePage() {
               avatar: author?.avatar_url ?? undefined,
               likeCount: likeCountMap[row.id] || 0,
               isLiked: userLikedSet.has(row.id),
+              commentCount: commentCountMap[row.id] || 0,
             };
           }) as PostItem[];
 
@@ -440,6 +455,7 @@ export default function MyProfilePage() {
                         images={post.images}
                         likeCount={post.likeCount}
                         isLiked={post.isLiked}
+                        commentCount={post.commentCount}
                       />
                     </div>
                   ))
