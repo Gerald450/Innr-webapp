@@ -1,5 +1,6 @@
 // app/components/Post.tsx
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 interface PostProps {
@@ -29,6 +30,7 @@ export const Post: React.FC<PostProps> = ({
   isLiked: initialIsLiked = false,
   onLikeChange,
 }) => {
+  const router = useRouter();
   const [liked, setLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isLiking, setIsLiking] = useState(false);
@@ -290,7 +292,7 @@ export const Post: React.FC<PostProps> = ({
             aria-label="Comment"
             onClick={(e) => {
               e.stopPropagation();
-              setCommented(!commented);
+              router.push(`/posts/${id}`);
             }}
             className={`flex items-center justify-center flex-1 p-2 rounded-md transition-all duration-300 ${
               commented
