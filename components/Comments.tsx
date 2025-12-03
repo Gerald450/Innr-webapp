@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, memo } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { getRelativeTime } from "@/utils/relativeTime";
 
 type Comment = {
   id: string;
@@ -316,13 +317,8 @@ export default function Comments({ postId }: CommentsProps) {
               <span className="font-semibold text-sm text-slate-900">
                 {comment.author.full_name || "Anonymous"}
               </span>
-              {comment.author.graduation_year && (
-                <span className="text-xs text-slate-500">
-                  {String(comment.author.graduation_year).slice(-2)}
-                </span>
-              )}
               <span className="text-xs text-slate-500">
-                {new Date(comment.created_at).toLocaleString()}
+                {getRelativeTime(comment.created_at)}
               </span>
             </div>
             <p className="text-sm text-slate-700 mb-2 whitespace-pre-line">

@@ -57,7 +57,7 @@ type CreatePostModalProps = {
     id: string;
     name: string;
     text: string;
-    time: string;
+    created_at: string;
     gradYear: string;
     images: string[]; // now multiple media URLs
   }) => void;
@@ -177,7 +177,7 @@ export default function CreatePostModal({
         id: post.id,
         name: displayName,
         text: post.body ?? "",
-        time: "just now",
+        created_at: post.created_at,
         gradYear: displayGradYear,
         images: uploadedMedia.map((m) => m.url),
       });

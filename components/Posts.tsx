@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import TooltipButton from "./TooltipButton";
+import { getRelativeTime } from "@/utils/relativeTime";
 
 interface PostProps {
   id: string | number;
@@ -10,7 +11,7 @@ interface PostProps {
   gradYear?: string;
   avatar?: string;
   text: string;
-  time?: string;
+  created_at?: string; // ISO timestamp string
   image?: string;
   images?: string[]; // Multiple images for carousel
   likeCount?: number;
@@ -25,7 +26,7 @@ export const Post: React.FC<PostProps> = ({
   gradYear,
   avatar,
   text,
-  time = "2w",
+  created_at,
   image,
   images,
   likeCount: initialLikeCount = 0,
@@ -154,7 +155,7 @@ export const Post: React.FC<PostProps> = ({
             </div>
 
             <span className="text-xs text-neutral-500 ml-1 shrink-0">
-              {time}
+              {created_at ? getRelativeTime(created_at) : "just now"}
             </span>
           </div>
         </div>

@@ -9,7 +9,7 @@ type PostItem = {
   id: string;
   name: string;
   text: string;
-  time: string;
+  created_at: string;
   gradYear: string;
   image: string;
   images?: string[];
@@ -200,7 +200,7 @@ export default function MyProfilePage() {
               id: row.id,
               name: author?.full_name ?? "Unknown",
               text: row.body ?? "",
-              time: new Date(row.created_at).toLocaleString(),
+              created_at: row.created_at,
               gradYear:
                 author?.graduation_year != null
                   ? String(author.graduation_year).slice(-2)
@@ -450,7 +450,7 @@ export default function MyProfilePage() {
                         gradYear={post.gradYear}
                         avatar={post.avatar}
                         text={post.text}
-                        time={post.time}
+                        created_at={post.created_at}
                         image={post.image}
                         images={post.images}
                         likeCount={post.likeCount}

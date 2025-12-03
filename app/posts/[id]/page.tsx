@@ -10,7 +10,7 @@ type PostDetail = {
   id: string;
   name: string;
   text: string;
-  time: string;
+  created_at: string;
   gradYear: string;
   image: string;
   images?: string[];
@@ -107,7 +107,7 @@ export default function PostDetailPage() {
           id: postIdFromData,
           name: author?.full_name ?? "Unknown",
           text: (postData as any).body ?? "",
-          time: new Date(postDataTyped.created_at).toLocaleString(),
+          created_at: postDataTyped.created_at,
           gradYear:
             author?.graduation_year != null
               ? String(author.graduation_year).slice(-2)
@@ -199,7 +199,7 @@ export default function PostDetailPage() {
             gradYear={post.gradYear}
             avatar={post.avatar}
             text={post.text}
-            time={post.time}
+            created_at={post.created_at}
             image={post.image}
             images={post.images}
             likeCount={post.likeCount}

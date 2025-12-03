@@ -10,7 +10,7 @@ type PostItem = {
   id: number | string;
   name: string;
   text: string;
-  time: string;
+  created_at: string;
   gradYear: string;
   image: string;
   images?: string[];
@@ -24,7 +24,7 @@ type NewPostPayload = {
   id: string;
   name: string;
   text: string;
-  time: string;
+  created_at: string;
   gradYear: string;
   images: string[];
 };
@@ -226,7 +226,7 @@ export default function Home() {
               id: row.id,
               name: author?.full_name ?? "Unknown",
               text: row.body ?? "",
-              time: new Date(row.created_at).toLocaleString(),
+              created_at: row.created_at,
               gradYear:
                 author?.graduation_year != null
                   ? String(author.graduation_year).slice(-2)
@@ -268,7 +268,7 @@ export default function Home() {
         typeof newPost.id === "number" ? (newPost.id as any as number) : Date.now(),
       name: newPost.name,
       text: newPost.text,
-      time: newPost.time ?? "just now",
+      created_at: newPost.created_at ?? new Date().toISOString(),
       gradYear: newPost.gradYear,
       image: newPost.images[0] ?? "",
       avatar: undefined,
@@ -315,7 +315,7 @@ export default function Home() {
               id={p.id}
               name={p.name}
               text={p.text}
-              time={p.time}
+              created_at={p.created_at}
               gradYear={p.gradYear}
               image={p.image}
               images={p.images}
