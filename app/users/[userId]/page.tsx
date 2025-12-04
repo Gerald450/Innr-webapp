@@ -356,7 +356,7 @@ export default function UserProfilePage() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="p-0 sm:p-6">
             {activeTab === "posts" && (
               <div>
                 {loadingPosts ? (
@@ -370,14 +370,14 @@ export default function UserProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-0.5 sm:gap-2 lg:gap-4">
                     {userPosts.map((post) => {
                       const hasMedia = post.image || (post.images && post.images.length > 0);
                       return (
                         <div
                           key={post.id}
                           onClick={() => router.push(`/posts/${post.id}`)}
-                          className={`cursor-pointer group relative rounded-lg overflow-hidden border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
+                          className={`cursor-pointer group relative overflow-hidden sm:rounded-lg border-0 sm:border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
                             hasMedia 
                               ? "aspect-square bg-gray-100 dark:bg-gray-800" 
                               : "bg-[var(--card-bg)] min-h-[120px] max-h-[200px]"
