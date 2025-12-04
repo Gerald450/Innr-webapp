@@ -1,115 +1,549 @@
-// app/events/[id]/page.tsx
-import { events } from "../../../data/events";
-import Image from "next/image";
-import Link from "next/link";
+"use client";
 
-type Props = {
-  params: Promise<{ id: string }>;
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+import Link from "next/link";
+import { getRelativeTime } from "@/utils/relativeTime";
+
+type EventDetail = {
+  id: string;
+  post_id: string;
+  title: string;
+  description: string;
+  starts_at: string;
+  ends_at?: string;
+  location_name?: string;
+  location_address?: string;
+  external_url?: string;
+  imageSrc?: string;
+  organizer?: string;
+  organizerId?: string;
+  organizerAvatar?: string;
+  created_at?: string;
+  images?: string[];
 };
 
-export default async function EventDetail({ params }: Props) {
-  const resolved = await params;
-  const id = String(resolved.id);
+export default function EventDetail() {
+  const params = useParams();
+  const router = useRouter();
+  const eventId = params?.id as string;
+  const [event, setEvent] = useState<EventDetail | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [joined, setJoined] = useState<boolean>(false);
+  const [isJoining, setIsJoining] = useState<boolean>(false);
 
-  const ev = events.find((e) => String(e.id) === id);
+  useEffect(() => {
+    if (!eventId) return;
 
-  if (!ev) {
+    let mounted = true;
+
+    const loadEvent = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // Fetch event with related post data
+        const { data: eventData, error: eventErr } = await supabase
+          .from("events")
+          .select(
+            `
+            id,
+            post_id,
+            starts_at,
+            ends_at,
+            location_name,
+            location_address,
+            external_url,
+            posts!inner (
+              id,
+              title,
+              body,
+              created_at,
+              profiles!inner (
+                id,
+                full_name,
+                avatar_url,
+                role
+              ),
+              post_media (
+                url,
+                order_index
+              )
+            )
+          `
+          )
+          .eq("id", eventId)
+          .single();
+
+        if (eventErr || !eventData) {
+          console.error("Error loading event:", eventErr);
+          if (!mounted) return;
+          setError("Event not found");
+          return;
+        }
+
+        if (!mounted) return;
+
+        const eventDataTyped = eventData as any;
+        const post = eventDataTyped.posts as any;
+        const author = post?.profiles as any;
+        const media = (post?.post_media as any[]) ?? [];
+        const sortedMedia = media
+          .slice()
+          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+        const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
+        const firstMedia = sortedMedia[0] ?? null;
+
+        const startDate = new Date(eventDataTyped.starts_at);
+        const formattedDate = startDate.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+        const formattedTime = startDate.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        });
+
+        let endDateStr = "";
+        let endTimeStr = "";
+        if (eventDataTyped.ends_at) {
+          const endDate = new Date(eventDataTyped.ends_at);
+          endDateStr = endDate.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          });
+          endTimeStr = endDate.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          });
+        }
+
+        const eventDetail: EventDetail = {
+          id: eventDataTyped.id,
+          post_id: eventDataTyped.post_id,
+          title: post?.title || "Untitled Event",
+          description: post?.body || "",
+          starts_at: eventDataTyped.starts_at,
+          ends_at: eventDataTyped.ends_at,
+          location_name: eventDataTyped.location_name,
+          location_address: eventDataTyped.location_address,
+          external_url: eventDataTyped.external_url,
+          imageSrc: firstMedia?.url,
+          images: allImages.length > 0 ? allImages : undefined,
+          organizer: author?.full_name || "Unknown",
+          organizerId: author?.id,
+          organizerAvatar: author?.avatar_url,
+          created_at: post?.created_at,
+        };
+
+        setEvent(eventDetail);
+
+        // Check if user has joined (if authenticated)
+        if (user) {
+          // TODO: Check attendees table if it exists
+          // For now, we'll just set to false
+          setJoined(false);
+        }
+      } catch (err) {
+        console.error("Unexpected error loading event:", err);
+        if (mounted) setError("Failed to load event");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadEvent();
+
+    return () => {
+      mounted = false;
+    };
+  }, [eventId]);
+
+  const handleToggleAttend = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isJoining) return;
+
+    setIsJoining(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Please sign in to attend events");
+        setIsJoining(false);
+        return;
+      }
+
+      // TODO: Implement actual attend/leave functionality with attendees table
+      setJoined(!joined);
+    } catch (err) {
+      console.error("Error toggling attendance:", err);
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!event) return;
+
+    const url = `${window.location.origin}/events/${event.id}`;
+    if ((navigator as any).share) {
+      try {
+        await (navigator as any).share({
+          title: event.title,
+          text: event.description,
+          url,
+        });
+      } catch (_) {}
+      return;
+    }
+    // fallback: copy link
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard");
+    } catch {
+      console.error("Failed to copy link");
+    }
+  };
+
+  if (loading) {
     return (
-      <main className="p-6 text-black">
-        <p>Event not found</p>
-        <Link href="/events" className="text-blue-600 underline">
-          Back to events
-        </Link>
-      </main>
+      <div className="min-h-screen bg-[#F2F4F7] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg text-slate-600">Loading event...</div>
+        </div>
+      </div>
     );
   }
 
-  const date = new Date(ev.datetime);
-  const dateStr = date.toLocaleDateString(undefined, {
+  if (error || !event) {
+    return (
+      <div className="min-h-screen bg-[#F2F4F7] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <h1 className="text-xl font-semibold text-slate-900 mb-2">
+            {error || "Event not found"}
+          </h1>
+          <p className="text-slate-600 mb-4">
+            The event you're looking for doesn't exist or has been deleted.
+          </p>
+          <Link
+            href="/events"
+            className="inline-block px-4 py-2 bg-[var(--color-accent)] text-white rounded-md hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"
+          >
+            Back to Events
+        </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const startDate = new Date(event.starts_at);
+  const formattedDate = startDate.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
   });
-  const timeRange = date.toLocaleTimeString([], {
+  const formattedTime = startDate.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
   });
 
+  let endDateStr = "";
+  let endTimeStr = "";
+  if (event.ends_at) {
+    const endDate = new Date(event.ends_at);
+    endDateStr = endDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+    endTimeStr = endDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  const location = event.location_name || event.location_address || "Location TBD";
+
   return (
-    <main className="max-w-xl mx-auto pb-20 text-black">
-      {/* Hero */}
-      <div className="relative">
-        <div className="h-[260px] md:h-[320px] w-full overflow-hidden rounded-b-2xl bg-gray-50">
-          <Image
-            src={ev.imageSrc}
-            alt={ev.title}
-            fill
-            className="object-contain object-center"
-          />
-        </div>
+    <div className="min-h-screen bg-[#F2F4F7]">
+      {/* Back Button */}
+      <div className="max-w-4xl mx-auto px-4 pt-6">
+        <button
+          onClick={() => router.back()}
+          className="mb-4 text-sm text-slate-600 hover:text-slate-900 flex items-center gap-2"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Back
+        </button>
       </div>
 
-      {/* Card - smaller overlap, higher z so it sits above hero cleanly */}
-      <div className="-mt-12 md:-mt-16 mx-4 bg-white p-6 rounded-lg shadow-xl relative z-20">
-        <h2 className="text-xl font-semibold mb-2">
-          {ev.title} is happening at UAPB
-        </h2>
-
-        <div className="grid gap-4 mt-4">
-          {/* Date */}
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-md bg-gray-100 grid place-items-center flex-shrink-0">
-              📅
-            </div>
-            <div>
-              <div className="font-semibold">{dateStr}</div>
-              <div className="text-gray-600">{timeRange}</div>
-            </div>
-          </div>
-
-          {/* Location */}
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-gray-100 grid place-items-center flex-shrink-0">
-              📍
-            </div>
-            <div>
-              <div className="font-semibold">{ev.location.split(",")[0]}</div>
-              <div className="text-gray-600">
-                {ev.location.split(",").slice(1).join(", ").trim()}
+      {/* Hero Image */}
+      <div className="max-w-4xl mx-auto px-4 mb-6">
+        <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-2xl overflow-hidden bg-gray-100">
+          {event.imageSrc ? (
+            <img
+              src={event.imageSrc}
+              alt={event.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-accent)]/5">
+              <div className="text-center">
+                <svg
+                  className="w-16 h-16 mx-auto text-[var(--color-accent)]/30"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
               </div>
             </div>
-          </div>
-
-          {/* Organizer */}
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 relative rounded-md overflow-hidden flex-shrink-0">
-              <Image
-                src={ev.imageSrc}
-                alt={ev.organizer}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div>
-              <div className="font-semibold">{ev.organizer}</div>
-              <div className="text-gray-600">{ev.attendees} attendees</div>
-            </div>
-          </div>
+          )}
         </div>
-
-        <hr className="my-5 border-gray-200" />
-
-        {/* Description */}
-        <h3 className="font-medium mb-2 text-lg">About Event</h3>
-        <p className="text-black leading-relaxed">{ev.description}</p>
       </div>
 
-      <div className="px-4 mt-4">
-        <Link href="/events" className="text-blue-600">
-          ← Back to events
-        </Link>
+      {/* Main Content */}
+      <div className="max-w-4xl mx-auto px-4 pb-20">
+        {/* Event Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 md:p-8 mb-6">
+          {/* Title */}
+          <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+            {event.title}
+          </h1>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <button
+              onClick={handleToggleAttend}
+              disabled={isJoining}
+              className={`px-6 py-2.5 rounded-lg text-sm font-semibold border transition-colors ${
+                joined
+                  ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
+                  : "bg-white text-[var(--color-accent)] border-[var(--color-accent)] hover:bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)]"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isJoining ? "Loading..." : joined ? "Joined" : "Attend"}
+            </button>
+
+            <button
+              onClick={handleShare}
+              className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-neutral-300 text-neutral-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                />
+              </svg>
+              Share
+            </button>
+
+            {event.external_url && (
+              <a
+                href={event.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-neutral-300 text-neutral-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+                Learn More
+              </a>
+            )}
+          </div>
+
+          <hr className="border-neutral-200 mb-6" />
+
+          {/* Event Details Grid */}
+          <div className="grid gap-6 md:grid-cols-2 mb-6">
+            {/* Date & Time */}
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center flex-shrink-0">
+                <svg
+                  className="w-6 h-6 text-[var(--color-accent)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium text-neutral-500 mb-1">
+                  Date & Time
+                </div>
+                <div className="font-semibold text-neutral-900">{formattedDate}</div>
+                <div className="text-sm text-neutral-600">{formattedTime}</div>
+                {event.ends_at && (
+                  <>
+                    <div className="text-xs text-neutral-500 mt-1">Until</div>
+                    <div className="text-sm text-neutral-600">
+                      {endDateStr !== formattedDate ? endDateStr : ""} {endTimeStr}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Location */}
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center flex-shrink-0">
+                <svg
+                  className="w-6 h-6 text-[var(--color-accent)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium text-neutral-500 mb-1">
+                  Location
+                </div>
+                <div className="font-semibold text-neutral-900">
+                  {event.location_name || "Location TBD"}
+                </div>
+                {event.location_address && (
+                  <div className="text-sm text-neutral-600">
+                    {event.location_address}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Organizer */}
+            {event.organizer && (
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {event.organizerAvatar ? (
+                    <img
+                      src={event.organizerAvatar}
+                      alt={event.organizer}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <svg
+                      className="w-6 h-6 text-[var(--color-accent)]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-neutral-500 mb-1">
+                    Organizer
+                  </div>
+                  {event.organizerId ? (
+                    <button
+                      onClick={() => router.push(`/users/${event.organizerId}`)}
+                      className="font-semibold text-neutral-900 hover:text-[var(--color-accent)] transition-colors text-left"
+                    >
+                      {event.organizer}
+                    </button>
+                  ) : (
+                    <div className="font-semibold text-neutral-900">
+                      {event.organizer}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <hr className="border-neutral-200 mb-6" />
+
+          {/* Description */}
+            <div>
+            <h2 className="text-xl font-semibold text-neutral-900 mb-3">
+              About This Event
+            </h2>
+            <div className="text-neutral-700 leading-relaxed whitespace-pre-line">
+              {event.description || "No description provided."}
+            </div>
+          </div>
+
+          {/* Created Date */}
+          {event.created_at && (
+            <div className="mt-6 pt-6 border-t border-neutral-200">
+              <div className="text-xs text-neutral-500">
+                Created {getRelativeTime(event.created_at)}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </main>
+      </div>
   );
 }
