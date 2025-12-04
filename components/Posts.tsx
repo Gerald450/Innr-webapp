@@ -352,7 +352,6 @@ export const Post: React.FC<PostProps> = ({
       setDeleteModalOpen(false);
       setMenuOpen(false);
       onPostDelete?.(id);
-      router.push("/");
     } catch (err) {
       console.error("Unexpected error deleting post:", err);
       alert("Failed to delete post. Please try again.");

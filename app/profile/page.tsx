@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Post } from "@/components/Posts";
@@ -22,7 +22,7 @@ type PostItem = {
   isReposted?: boolean;
 };
 
-export default function MyProfilePage() {
+function MyProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<any | null>(null);
@@ -1042,5 +1042,19 @@ export default function MyProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MyProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="bg-[var(--bg-primary)] min-h-screen flex items-center justify-center transition-colors">
+        <div className="text-center">
+          <div className="text-lg text-[var(--text-secondary)]">Loading profile…</div>
+        </div>
+      </div>
+    }>
+      <MyProfilePageContent />
+    </Suspense>
   );
 }
