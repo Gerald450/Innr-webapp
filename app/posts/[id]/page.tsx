@@ -32,6 +32,7 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!postId) return;
@@ -87,6 +88,9 @@ export default function PostDetailPage() {
 
         // Get like count and check if current user has liked
         const { data: { user } } = await supabase.auth.getUser();
+        if (user && mounted) {
+          setCurrentUserId(user.id);
+        }
         
         const postIdFromData = postDataTyped.id;
 
@@ -241,6 +245,14 @@ export default function PostDetailPage() {
             commentCount={post.comments}
             repostCount={post.repostCount}
             isReposted={post.isReposted}
+            isAuthor={currentUserId === post.authorId}
+            showMenu={true}
+            onPostUpdate={(postId, newText) => {
+              setPost((prev) => prev ? { ...prev, text: newText } : null);
+            }}
+            onPostDelete={() => {
+              router.push("/");
+            }}
           />
         </div>
 

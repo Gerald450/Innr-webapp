@@ -1,5 +1,5 @@
 // app/components/Post.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import TooltipButton from "./TooltipButton";
@@ -25,6 +25,10 @@ interface PostProps {
   onLikeChange?: (postId: string | number, newLikeCount: number, isLiked: boolean) => void;
   onRepostChange?: (postId: string | number, newRepostCount: number, isReposted: boolean) => void;
   onBookmarkChange?: (postId: string | number, newBookmarkCount: number, isBookmarked: boolean) => void;
+  isAuthor?: boolean; // Whether the current user is the author
+  showMenu?: boolean; // Whether to show the three-dot menu (only on detail page)
+  onPostUpdate?: (postId: string | number, newText: string) => void; // Callback when post is updated
+  onPostDelete?: (postId: string | number) => void; // Callback when post is deleted
 }
 
 export const Post: React.FC<PostProps> = ({
@@ -47,6 +51,10 @@ export const Post: React.FC<PostProps> = ({
   onLikeChange,
   onRepostChange,
   onBookmarkChange,
+  isAuthor = false,
+  showMenu = false,
+  onPostUpdate,
+  onPostDelete,
 }) => {
   const router = useRouter();
   const [liked, setLiked] = useState(initialIsLiked);
@@ -59,6 +67,13 @@ export const Post: React.FC<PostProps> = ({
   const [bookmarked, setBookmarked] = useState(initialIsBookmarked);
   const [bookmarkCount, setBookmarkCount] = useState(initialBookmarkCount);
   const [isBookmarking, setIsBookmarking] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [editedText, setEditedText] = useState(text);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Update state when props change
   useEffect(() => {
@@ -68,7 +83,25 @@ export const Post: React.FC<PostProps> = ({
     setRepostCount(initialRepostCount);
     setBookmarked(initialIsBookmarked);
     setBookmarkCount(initialBookmarkCount);
-  }, [initialIsLiked, initialLikeCount, initialIsReposted, initialRepostCount, initialIsBookmarked, initialBookmarkCount]);
+    setEditedText(text);
+  }, [initialIsLiked, initialLikeCount, initialIsReposted, initialRepostCount, initialIsBookmarked, initialBookmarkCount, text]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
   
   // Carousel state
   const imageList = images && images.length > 0 ? images : image ? [image] : [];
@@ -267,6 +300,67 @@ export const Post: React.FC<PostProps> = ({
     }
   };
 
+  const handleEdit = async () => {
+    if (isEditing) return;
+    if (!editedText.trim()) {
+      alert("Post text cannot be empty");
+      return;
+    }
+
+    setIsEditing(true);
+    try {
+      const { error } = await supabase
+        .from("posts")
+        .update({ body: editedText.trim() })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error updating post:", error);
+        alert("Failed to update post. Please try again.");
+        setIsEditing(false);
+        return;
+      }
+
+      setEditModalOpen(false);
+      setMenuOpen(false);
+      onPostUpdate?.(id, editedText.trim());
+    } catch (err) {
+      console.error("Unexpected error updating post:", err);
+      alert("Failed to update post. Please try again.");
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isDeleting) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("posts")
+        .update({ is_deleted: true })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error deleting post:", error);
+        alert("Failed to delete post. Please try again.");
+        setIsDeleting(false);
+        return;
+      }
+
+      setDeleteModalOpen(false);
+      setMenuOpen(false);
+      onPostDelete?.(id);
+      router.push("/");
+    } catch (err) {
+      console.error("Unexpected error deleting post:", err);
+      alert("Failed to delete post. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <article className="w-full max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
 
@@ -334,9 +428,85 @@ export const Post: React.FC<PostProps> = ({
               )}
             </div>
 
-            <span className="text-xs text-neutral-500 ml-1 shrink-0">
-              {created_at ? getRelativeTime(created_at) : "just now"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-neutral-500 ml-1 shrink-0">
+                {created_at ? getRelativeTime(created_at) : "just now"}
+              </span>
+              
+              {/* Three-dot menu - only show on detail page for author */}
+              {showMenu && isAuthor && (
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(!menuOpen);
+                    }}
+                    className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-neutral-600 hover:text-neutral-900"
+                    aria-label="Post options"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {menuOpen && (
+                    <div className="absolute right-0 top-10 z-50 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditModalOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteModalOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -554,6 +724,75 @@ export const Post: React.FC<PostProps> = ({
 
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-semibold text-neutral-900 mb-4">Edit Post</h2>
+            <textarea
+              value={editedText}
+              onChange={(e) => setEditedText(e.target.value)}
+              className="w-full min-h-[120px] p-3 border border-neutral-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent text-sm"
+              placeholder="What's on your mind?"
+              autoFocus
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setEditModalOpen(false);
+                  setEditedText(text);
+                }}
+                className="px-4 py-2 text-sm font-medium text-neutral-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={isEditing}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEdit}
+                disabled={isEditing || !editedText.trim() || editedText.trim() === text}
+                className="px-4 py-2 text-sm font-medium text-white bg-[var(--color-accent)] rounded-lg hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isEditing ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-semibold text-neutral-900 mb-2">Delete Post</h2>
+            <p className="text-sm text-neutral-600 mb-6">
+              Are you sure you want to delete this post? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-neutral-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 };
