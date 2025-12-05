@@ -404,7 +404,7 @@ export const Post: React.FC<PostProps> = ({
                       <img
                         src="/svgs/graduate.svg"
                         alt="Graduate cap"
-                        className="h-3 w-3 object-contain"
+                        className="h-3 w-3 object-contain dark:brightness-0 dark:invert"
                       />
                       <span className="leading-none">{gradYear}</span>
                     </span>
@@ -418,7 +418,7 @@ export const Post: React.FC<PostProps> = ({
                       <img
                         src="/svgs/graduate.svg"
                         alt="Graduate cap"
-                        className="h-3 w-3 object-contain"
+                        className="h-3 w-3 object-contain dark:brightness-0 dark:invert"
                       />
                       <span className="leading-none">{gradYear}</span>
                     </span>
@@ -633,7 +633,7 @@ export const Post: React.FC<PostProps> = ({
             <img
               src="/svgs/like.svg"
               alt="Like"
-              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
+              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 dark:brightness-0 dark:invert ${
                 liked ? "scale-125 rotate-12" : ""
               }`}
             />
@@ -658,7 +658,7 @@ export const Post: React.FC<PostProps> = ({
             <img
               src="/svgs/comment.svg"
               alt="Comment"
-              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
+              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 dark:brightness-0 dark:invert ${
                 commented ? "scale-125" : ""
               }`}
             />
@@ -681,7 +681,7 @@ export const Post: React.FC<PostProps> = ({
             <img
               src="/svgs/repost.svg"
               alt="Repost"
-              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
+              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 dark:brightness-0 dark:invert ${
                 reposted ? "scale-125 rotate-180" : ""
               }`}
             />
