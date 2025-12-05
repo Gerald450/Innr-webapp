@@ -46,9 +46,9 @@ export default function MenuDrawer({
         role="dialog"
         aria-modal="true"
         aria-hidden={!open}
-        className={`fixed top-0 right-0 z-50 h-full w-[92%] max-w-[420px] transform bg-white shadow-2xl transition-transform duration-300
+        className={`fixed top-0 right-0 z-50 h-full w-[92%] max-w-[420px] transform bg-[var(--card-bg)] shadow-2xl transition-all duration-300
           ${open ? "translate-x-0" : "translate-x-full"}
-          rounded-l-2xl overflow-auto text-black`}
+          rounded-l-2xl overflow-auto text-[var(--text-primary)]`}
       >
         <div className="p-5">
           {/* Header */}
@@ -57,7 +57,7 @@ export default function MenuDrawer({
             <button
               aria-label="Close menu"
               onClick={onClose}
-              className="p-2 rounded-md hover:bg-gray-100"
+              className="p-2 rounded-md hover:bg-[var(--bg-primary)] transition-colors"
             >
               ✕
             </button>
@@ -65,13 +65,13 @@ export default function MenuDrawer({
 
           {/* Search bar */}
           <div className="mb-6">
-            <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-3">
-              <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none">
+            <div className="flex items-center gap-2 bg-[var(--bg-primary)] rounded-full px-4 py-3">
+              <svg className="w-5 h-5 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none">
                 <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <input
-                className="bg-transparent outline-none w-full text-sm"
+                className="bg-transparent outline-none w-full text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
                 placeholder="Search menu"
                 aria-label="Search menu"
               />
@@ -90,14 +90,14 @@ export default function MenuDrawer({
                 className="flex items-start gap-4 group"
                 onClick={onClose}
               >
-                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-white shadow flex items-center justify-center">
+                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-[var(--bg-primary)] shadow flex items-center justify-center">
                   {/* If you use next/image keep using it, or replace with <img> if icons are static */}
                   <Image src={t.icon} alt={`${t.label} icon`} width={36} height={36} />
                 </div>
 
                 <div>
                   <div className="font-semibold text-lg group-hover:underline">{t.label}</div>
-                  <div className="text-sm text-gray-600 max-w-[260px] leading-5">
+                  <div className="text-sm text-[var(--text-secondary)] max-w-[260px] leading-5">
                     {/* Basic descriptions — replace or localize per tab */}
                     {t.id === "events" && "Organize or find events and other things to do online and nearby."}
                     {t.id === "chats" && "Message your friends and groups in private or group chats."}

@@ -308,7 +308,7 @@ export default function Comments({ postId }: CommentsProps) {
     };
 
     return (
-      <div className={`${depth > 0 ? "ml-6 mt-3" : ""} border-l-2 border-neutral-200 pl-4`}>
+      <div className={`${depth > 0 ? "ml-6 mt-3" : ""} border-l-2 border-[var(--card-border)] pl-4`}>
         <div className="flex gap-3">
           {comment.author_id ? (
             <button
@@ -339,20 +339,20 @@ export default function Comments({ postId }: CommentsProps) {
                     e.stopPropagation();
                     commentRouter.push(`/users/${comment.author_id}`);
                   }}
-                  className="font-semibold text-sm text-slate-900 hover:text-[var(--color-accent)] transition-colors"
+                  className="font-semibold text-sm text-[var(--text-primary)] hover:text-[var(--color-accent)] transition-colors"
                 >
                   {comment.author.full_name || "Anonymous"}
                 </button>
               ) : (
-                <span className="font-semibold text-sm text-slate-900">
+                <span className="font-semibold text-sm text-[var(--text-primary)]">
                   {comment.author.full_name || "Anonymous"}
                 </span>
               )}
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-[var(--text-secondary)]">
                 {getRelativeTime(comment.created_at)}
               </span>
             </div>
-            <p className="text-sm text-slate-700 mb-2 whitespace-pre-line">
+            <p className="text-sm text-[var(--text-primary)] mb-2 whitespace-pre-line">
               {comment.body}
             </p>
             <div className="flex items-center gap-4 mb-2">
@@ -362,7 +362,7 @@ export default function Comments({ postId }: CommentsProps) {
                 className={`flex items-center gap-1.5 text-xs transition-colors ${
                   comment.isLiked
                     ? "text-[var(--color-accent)]"
-                    : "text-slate-500 hover:text-slate-700"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 } disabled:opacity-50`}
               >
                 <svg
@@ -399,7 +399,7 @@ export default function Comments({ postId }: CommentsProps) {
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Write a reply..."
                   rows={2}
-                  className="w-full p-2 border rounded-md text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                  className="w-full p-2 border border-[var(--card-border)] rounded-md text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
                 />
                 <div className="flex gap-2 mt-2">
                   <button
@@ -411,7 +411,7 @@ export default function Comments({ postId }: CommentsProps) {
                   </button>
                   <button
                     onClick={handleCancelReply}
-                    className="px-3 py-1.5 border text-xs rounded-md hover:bg-gray-50 transition"
+                    className="px-3 py-1.5 border border-[var(--card-border)] text-xs rounded-md hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors"
                   >
                     Cancel
                   </button>
@@ -435,21 +435,21 @@ export default function Comments({ postId }: CommentsProps) {
 
   if (loading) {
     return (
-      <div className="text-center py-8 text-sm text-slate-500">Loading comments...</div>
+      <div className="text-center py-8 text-sm text-[var(--text-secondary)]">Loading comments...</div>
     );
   }
 
   return (
     <div className="space-y-4">
       {/* Comment Input */}
-      <div id="comments" className="border-b border-neutral-200 pb-4">
+      <div id="comments" className="border-b border-[var(--card-border)] pb-4">
         <textarea
           ref={commentTextareaRef}
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Write a comment..."
           rows={3}
-          className="w-full p-3 border rounded-md text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] text-black"
+          className="w-full p-3 border border-[var(--card-border)] rounded-md text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
         />
         <div className="flex justify-end mt-2">
           <button
@@ -465,7 +465,7 @@ export default function Comments({ postId }: CommentsProps) {
       {/* Comments List */}
       <div className="space-y-4">
         {comments.length === 0 ? (
-          <div className="text-center py-8 text-sm text-slate-500">
+          <div className="text-center py-8 text-sm text-[var(--text-secondary)]">
             No comments yet. Be the first to comment!
           </div>
         ) : (

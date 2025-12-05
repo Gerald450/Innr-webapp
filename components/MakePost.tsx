@@ -19,15 +19,15 @@ export function MakePost({
   onArticleClick,
 }: MakePostProps) {
   return (
-    <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+    <div className="w-full max-w-2xl rounded-2xl border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 shadow-sm transition-colors">
       {/* Top row: avatar + input */}
       <div className="flex items-center gap-3">
 
         <button
           type="button"
           onClick={onStartPost}
-          className="flex-1 rounded-full border border-gray-300 bg-gray-50 px-4 py-2 text-left text-sm text-gray-500
-                     hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 rounded-full border border-[var(--card-border)] bg-[var(--bg-primary)] px-4 py-2 text-left text-sm text-[var(--text-secondary)]
+                     hover:bg-[var(--card-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors"
         >
           {placeholder}
         </button>
@@ -99,8 +99,8 @@ function ActionButton({ label, onClick, iconType }: ActionButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2 text-gray-600
-                 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-300"
+      className="flex flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2 text-[var(--text-secondary)]
+                 hover:bg-[var(--bg-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--card-border)] transition-colors"
     >
       <span className={baseColor}>{icon}</span>
       <span className="font-medium">{label}</span>

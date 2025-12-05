@@ -201,7 +201,7 @@ export default function CreatePostModal({
       role="dialog"
     >
     
-      <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-3xl rounded-2xl bg-[var(--card-bg)] p-6 shadow-xl transition-colors">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <textarea
@@ -209,14 +209,14 @@ export default function CreatePostModal({
               onChange={(e) => setText(e.target.value)}
               rows={5}
               placeholder="What's happening on campus?"
-              className="w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+              className="w-full resize-none rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
             />
           </div>
 
           <button
             onClick={onClose}
             aria-label="Close"
-            className="ml-3 rounded-full px-2 py-1 text-gray-600 hover:bg-gray-100 text-black"
+            className="ml-3 rounded-full px-2 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
           >
             ✕
           </button>
@@ -243,7 +243,7 @@ export default function CreatePostModal({
         ) : null}
 
         <div className="mt-4 flex items-center justify-between">
-          <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100">
+          <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-[var(--bg-primary)] transition-colors">
             <input
               type="file"
               accept="image/*,video/*,application/pdf"
@@ -251,13 +251,13 @@ export default function CreatePostModal({
               className="hidden"
               multiple
             />
-            <span className="text-sm text-gray-600">Attach media</span>
+            <span className="text-sm text-[var(--text-secondary)]">Attach media</span>
           </label>
 
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50 text-black"
+              className="rounded-md border border-[var(--card-border)] px-4 py-2 text-sm hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors"
             >
               Cancel
             </button>

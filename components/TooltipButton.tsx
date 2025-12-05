@@ -59,7 +59,7 @@ const TooltipButton: FC<TooltipButtonProps> = ({
       {children ? (
         children
       ) : iconSrc ? (
-        <img src={iconSrc} alt={label} className="h-4 w-4" />
+        <img src={iconSrc} alt={label} className="h-4 w-4 svg-icon" />
       ) : null}
 
       {badge !== undefined && (
@@ -69,7 +69,7 @@ const TooltipButton: FC<TooltipButtonProps> = ({
       )}
 
       {showTooltip && (
-        <span className="absolute left-1/2 top-full mt-3 -translate-x-1/2 px-2 py-1 text-xs text-white bg-black rounded whitespace-nowrap opacity-50">
+        <span className="absolute left-1/2 top-full mt-3 -translate-x-1/2 px-2 py-1 text-xs text-white bg-black rounded whitespace-nowrap opacity-50" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--card-bg)' }}>
           {label}
         </span>
       )}

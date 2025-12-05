@@ -209,13 +209,13 @@ export default function CreateEventModal({
       aria-modal="true"
       role="dialog"
     >
-      <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl my-8">
+      <div className="w-full max-w-3xl rounded-2xl bg-[var(--card-bg)] p-6 shadow-xl my-8 transition-colors">
         <div className="flex items-start justify-between gap-4 mb-4">
-          <h2 className="text-xl font-semibold text-black">Create Event</h2>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)]">Create Event</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full px-2 py-1 text-gray-600 hover:bg-gray-100 text-black"
+            className="rounded-full px-2 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
           >
             ✕
           </button>
@@ -224,21 +224,21 @@ export default function CreateEventModal({
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
               Event Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+              className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
               placeholder="Enter event title"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
               Description
             </label>
             <textarea
@@ -253,25 +253,25 @@ export default function CreateEventModal({
           {/* Date/Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                 Start Date & Time <span className="text-red-500">*</span>
               </label>
               <input
                 type="datetime-local"
                 value={startsAt}
                 onChange={(e) => setStartsAt(e.target.value)}
-                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                 End Date & Time
               </label>
               <input
                 type="datetime-local"
                 value={endsAt}
                 onChange={(e) => setEndsAt(e.target.value)}
-                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
               />
             </div>
           </div>
@@ -279,26 +279,26 @@ export default function CreateEventModal({
           {/* Location */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                 Location Name
               </label>
               <input
                 type="text"
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
                 placeholder="e.g., Student Center"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                 Location Address
               </label>
               <input
                 type="text"
                 value={locationAddress}
                 onChange={(e) => setLocationAddress(e.target.value)}
-                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
                 placeholder="Full address"
               />
             </div>
@@ -306,24 +306,24 @@ export default function CreateEventModal({
 
           {/* External URL */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
               External URL (optional)
             </label>
             <input
               type="url"
               value={externalUrl}
               onChange={(e) => setExternalUrl(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+              className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
               placeholder="https://..."
             />
           </div>
 
           {/* Media Upload */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
               Event Image/Media
             </label>
-            <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm border hover:bg-gray-50">
+            <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm border border-[var(--card-border)] hover:bg-[var(--bg-primary)] transition-colors">
               <input
                 type="file"
                 accept="image/*,video/*"
@@ -331,7 +331,7 @@ export default function CreateEventModal({
                 className="hidden"
                 multiple
               />
-              <span className="text-sm text-gray-600">Attach media</span>
+              <span className="text-sm text-[var(--text-secondary)]">Attach media</span>
             </label>
             {mediaPreviews.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-3">
@@ -348,7 +348,7 @@ export default function CreateEventModal({
                         newFiles.splice(i, 1);
                         setMediaFiles(newFiles);
                       }}
-                      className="absolute top-0 right-0 text-sm text-red-600 bg-white rounded-full p-1"
+                      className="absolute top-0 right-0 text-sm text-red-600 bg-[var(--card-bg)] rounded-full p-1"
                     >
                       ✕
                     </button>
@@ -359,10 +359,10 @@ export default function CreateEventModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 justify-end pt-4 border-t">
+          <div className="flex gap-2 justify-end pt-4 border-t border-[var(--card-border)]">
             <button
               onClick={onClose}
-              className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50 text-black"
+              className="rounded-md border border-[var(--card-border)] px-4 py-2 text-sm hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors"
             >
               Cancel
             </button>
