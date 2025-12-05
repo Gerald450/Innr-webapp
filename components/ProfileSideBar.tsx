@@ -202,7 +202,7 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
             >
               <img
                 src={item.icon}
-                className="h-6 w-6 dark:brightness-0 dark:invert"
+                className="h-6 w-6 svg-icon"
                 alt={`${item.label} icon`}
               />
               <span className="text-[var(--text-primary)]">{item.label}</span>

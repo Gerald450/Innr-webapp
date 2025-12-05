@@ -259,11 +259,11 @@ export default function EventsClient() {
                 {/* MOBILE: flex row | DESKTOP: block */}
                 <div className="flex md:block w-full">
                   {/* IMAGE */}
-                  <div className="w-24 h-24 md:w-full md:h-36 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  <div className="w-24 h-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)]">
                     <img
                       src={ev.imageSrc}
                       alt={ev.title}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
                   </div>
 

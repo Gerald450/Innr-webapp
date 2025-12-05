@@ -95,7 +95,7 @@ export const Navbar: React.FC = () => {
           {windowWidth !== null && isWide && (
             <div className="flex h-9 items-center rounded-full bg-[var(--bg-primary)] px-3">
               <span className="text-sm text-[var(--text-secondary)]">
-                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4 dark:brightness-0 dark:invert" />
+                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4 svg-icon" />
               </span>
               <input
                 type="search"
@@ -114,7 +114,7 @@ export const Navbar: React.FC = () => {
                 aria-label={searchExpanded ? "Close search" : "Open search"}
                 className="ml-2 p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition flex-shrink-0"
               >
-                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4 dark:brightness-0 dark:invert" />
+                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4 svg-icon" />
               </button>
 
               {searchExpanded && (
@@ -163,7 +163,7 @@ export const Navbar: React.FC = () => {
                     aria-label={tab.label}
                   >
                     <div className="relative">
-                      <img src={tab.icon} alt={tab.label} className="h-6 w-6 dark:brightness-0 dark:invert" />
+                      <img src={tab.icon} alt={tab.label} className="h-6 w-6 svg-icon" />
 
                       {/* BADGE attached directly to the image */}
                       {isNotifications && (
@@ -197,7 +197,7 @@ export const Navbar: React.FC = () => {
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[var(--bg-primary)] transition hover:bg-[var(--card-bg)]"
               aria-label="Menu"
             >
-              <img src="/svgs/menu.svg" className="h-5 w-5 dark:brightness-0 dark:invert" />
+              <img src="/svgs/menu.svg" className="h-5 w-5 svg-icon" />
             </div>
           </TooltipButton>
           <MenuDrawer
@@ -216,7 +216,7 @@ export const Navbar: React.FC = () => {
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[var(--bg-primary)] transition hover:bg-[var(--card-bg)]"
               aria-label="Notifications"
             >
-              <img src="/svgs/notification.svg" className="dark:brightness-0 dark:invert" />
+              <img src="/svgs/notification.svg" className="svg-icon" />
               <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
                 3
               </span>

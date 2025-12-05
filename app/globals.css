@@ -35,3 +35,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* SVG filters - only respond to .dark class, not system preference */
+.svg-icon {
+  filter: brightness(0);
+  transition: filter 0.3s ease;
+}
+
+.dark .svg-icon {
+  filter: brightness(0) invert(1);
+}
