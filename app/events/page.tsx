@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import CreateEventModal from "@/components/CreateEventModal";
 import EventsCard from "@/components/EventsCard";
+import EventsCalendar from "@/components/EventsCalendar";
 
 type EventItem = {
   id: string;
@@ -25,6 +26,7 @@ type EventItem = {
 };
 
 export default function EventsClient() {
+  const [activeTab, setActiveTab] = useState<"events" | "calendar">("events");
   const [joinedMap, setJoinedMap] = useState<Record<string, boolean>>({});
   const [attendeeCounts, setAttendeeCounts] = useState<Record<string, number>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -361,53 +363,85 @@ export default function EventsClient() {
               Events
             </h1>
             <p className="text-sm text-[var(--text-secondary)] mt-1">
-              See upcoming events and add them to your calendar.
+              {activeTab === "events"
+                ? "See upcoming events and add them to your calendar."
+                : "View your joined events on the calendar."}
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-md text-sm font-medium hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"
-          >
-            + Create Event
-          </button>
+          {activeTab === "events" && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-md text-sm font-medium hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"
+            >
+              + Create Event
+            </button>
+          )}
         </header>
 
-        {/* Centered, smaller cards - LinkedIn style */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
-          {loading ? (
-            <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
-              Loading events...
-            </div>
-          ) : events.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
-              No events found. Create one to get started!
-            </div>
-          ) : (
-            events.map((ev) => {
-              const joined = !!joinedMap[ev.id];
-              const attendeeCount = attendeeCounts[ev.id] ?? ev.attendees ?? 0;
-              const isToggling = togglingAttend[ev.id] || false;
-              
-              // Create event object with updated attendee count
-              const eventWithCount = {
-                ...ev,
-                attendees: attendeeCount,
-              };
+        {/* Tabs */}
+        <div className="mb-6 flex gap-2 border-b border-[var(--card-border)]">
+          <button
+            onClick={() => setActiveTab("events")}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === "events"
+                ? "text-[var(--color-accent)] border-[var(--color-accent)]"
+                : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Events
+          </button>
+          <button
+            onClick={() => setActiveTab("calendar")}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === "calendar"
+                ? "text-[var(--color-accent)] border-[var(--color-accent)]"
+                : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Calendar
+          </button>
+        </div>
 
-              return (
-                <EventsCard
-                  key={ev.id}
-                  event={eventWithCount}
-                  joined={joined}
-                  onToggleAttend={handleToggleAttend}
-                  onShare={handleShare}
-                  onClick={() => router.push(`/events/${ev.id}`)}
-                  isToggling={isToggling}
-                />
-              );
-            })
-          )}
-        </section>
+        {/* Content based on active tab */}
+        {activeTab === "events" ? (
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
+            {loading ? (
+              <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
+                Loading events...
+              </div>
+            ) : events.length === 0 ? (
+              <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
+                No events found. Create one to get started!
+              </div>
+            ) : (
+              events.map((ev) => {
+                const joined = !!joinedMap[ev.id];
+                const attendeeCount = attendeeCounts[ev.id] ?? ev.attendees ?? 0;
+                const isToggling = togglingAttend[ev.id] || false;
+                
+                // Create event object with updated attendee count
+                const eventWithCount = {
+                  ...ev,
+                  attendees: attendeeCount,
+                };
+
+                return (
+                  <EventsCard
+                    key={ev.id}
+                    event={eventWithCount}
+                    joined={joined}
+                    onToggleAttend={handleToggleAttend}
+                    onShare={handleShare}
+                    onClick={() => router.push(`/events/${ev.id}`)}
+                    isToggling={isToggling}
+                  />
+                );
+              })
+            )}
+          </section>
+        ) : (
+          <EventsCalendar />
+        )}
       </div>
 
       {/* Create Event Modal */}

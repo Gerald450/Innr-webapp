@@ -33,6 +33,7 @@ export default function EventDetail() {
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState<boolean>(false);
   const [isJoining, setIsJoining] = useState<boolean>(false);
+  const [attendeeCount, setAttendeeCount] = useState<number>(0);
 
   useEffect(() => {
     if (!eventId) return;
@@ -147,11 +148,52 @@ export default function EventDetail() {
 
         setEvent(eventDetail);
 
-        // Check if user has joined (if authenticated)
+        // Check if user has joined and get attendee count
         if (user) {
-          // TODO: Check attendees table if it exists
-          // For now, we'll just set to false
-          setJoined(false);
+          // Get user's profile ID
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("id", user.id)
+            .single();
+
+          if (!profileError && profile) {
+            const userId = profile.id;
+
+            // Check if user is attending
+            const { data: userAttendee, error: attendeeError } = await supabase
+              .from("event_attendees")
+              .select("id")
+              .eq("event_id", eventId)
+              .eq("user_id", userId)
+              .single();
+
+            if (!attendeeError && userAttendee) {
+              setJoined(true);
+            } else {
+              setJoined(false);
+            }
+
+            // Get attendee count
+            const { count, error: countErr } = await supabase
+              .from("event_attendees")
+              .select("*", { count: "exact", head: true })
+              .eq("event_id", eventId);
+
+            if (!countErr && count !== null) {
+              setAttendeeCount(count);
+            }
+          }
+        } else {
+          // If not authenticated, still get attendee count
+          const { count, error: countErr } = await supabase
+            .from("event_attendees")
+            .select("*", { count: "exact", head: true })
+            .eq("event_id", eventId);
+
+          if (!countErr && count !== null) {
+            setAttendeeCount(count);
+          }
         }
       } catch (err) {
         console.error("Unexpected error loading event:", err);
@@ -174,17 +216,78 @@ export default function EventDetail() {
 
     setIsJoining(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
         alert("Please sign in to attend events");
         setIsJoining(false);
         return;
       }
 
-      // TODO: Implement actual attend/leave functionality with attendees table
-      setJoined(!joined);
+      // Get user's profile ID
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error("Error getting profile:", profileError);
+        alert("Failed to get your profile.");
+        setIsJoining(false);
+        return;
+      }
+
+      const userId = profile.id;
+      const currentlyJoined = joined;
+
+      if (currentlyJoined) {
+        // Unattend: Delete from event_attendees
+        const { error: deleteError } = await supabase
+          .from("event_attendees")
+          .delete()
+          .eq("event_id", eventId)
+          .eq("user_id", userId);
+
+        if (deleteError) {
+          console.error("Error un-attending event:", deleteError);
+          alert("Failed to un-attend event. Please try again.");
+          setIsJoining(false);
+          return;
+        }
+
+        // Update local state
+        setJoined(false);
+        setAttendeeCount((prev) => Math.max(0, prev - 1));
+      } else {
+        // Attend: Insert into event_attendees
+        const { error: insertError } = await supabase
+          .from("event_attendees")
+          .insert({
+            event_id: eventId,
+            user_id: userId,
+            status: "interested", // Default status
+          });
+
+        if (insertError) {
+          // If it's a unique constraint error, the user is already attending
+          if (insertError.code === "23505") {
+            // Already attending, just update local state
+            setJoined(true);
+          } else {
+            console.error("Error attending event:", insertError);
+            alert("Failed to attend event. Please try again.");
+            setIsJoining(false);
+            return;
+          }
+        } else {
+          // Successfully inserted
+          setJoined(true);
+          setAttendeeCount((prev) => prev + 1);
+        }
+      }
     } catch (err) {
       console.error("Error toggling attendance:", err);
+      alert("An unexpected error occurred. Please try again.");
     } finally {
       setIsJoining(false);
     }
@@ -340,6 +443,13 @@ export default function EventDetail() {
             {event.title}
           </h1>
 
+          {/* Attendee Count */}
+          {attendeeCount > 0 && (
+            <div className="text-sm text-[var(--text-secondary)] mb-4">
+              {attendeeCount} {attendeeCount === 1 ? "person is" : "people are"} attending
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <button
@@ -351,7 +461,7 @@ export default function EventDetail() {
                   : "bg-[var(--card-bg)] text-[var(--color-accent)] border-[var(--color-accent)] hover:bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)]"
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {isJoining ? "Loading..." : joined ? "Joined" : "Attend"}
+              {isJoining ? "..." : joined ? "Joined" : "Attend"}
             </button>
 
             <button
@@ -525,7 +635,7 @@ export default function EventDetail() {
           <hr className="border-[var(--card-border)] mb-6" />
 
           {/* Description */}
-          <div>
+            <div>
             <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-3">
               About This Event
             </h2>
