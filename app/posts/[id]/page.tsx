@@ -175,9 +175,9 @@ export default function PostDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F2F4F7] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center transition-colors">
         <div className="text-center">
-          <div className="text-lg text-slate-600">Loading post...</div>
+          <div className="text-lg text-[var(--text-secondary)]">Loading post...</div>
         </div>
       </div>
     );
@@ -185,12 +185,12 @@ export default function PostDetailPage() {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-[#F2F4F7] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center px-4 transition-colors">
         <div className="text-center max-w-md">
-          <h1 className="text-xl font-semibold text-slate-900 mb-2">
+          <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
             {error || "Post not found"}
           </h1>
-          <p className="text-slate-600 mb-4">
+          <p className="text-[var(--text-secondary)] mb-4">
             The post you're looking for doesn't exist or has been deleted.
           </p>
           <button
@@ -205,12 +205,12 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F2F4F7] py-10 flex flex-col items-center px-4">
+    <div className="min-h-screen bg-[var(--bg-primary)] py-10 flex flex-col items-center px-4 transition-colors">
       <div className="w-full max-w-2xl">
         {/* Back button */}
         <button
           onClick={() => router.back()}
-          className="mb-4 text-sm text-slate-600 hover:text-slate-900 flex items-center gap-2"
+          className="mb-4 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 transition-colors"
         >
           <svg
             className="w-4 h-4"
@@ -257,22 +257,22 @@ export default function PostDetailPage() {
         </div>
 
         {/* Engagement Stats */}
-        <div className="bg-white rounded-lg border border-neutral-200 p-4 mb-6">
+        <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] p-4 mb-6 transition-colors">
           <div className="flex items-center justify-around text-sm">
             <div className="text-center">
-              <div className="font-semibold text-slate-900">{post.likeCount ?? 0}</div>
-              <div className="text-slate-500">Likes</div>
+              <div className="font-semibold text-[var(--text-primary)]">{post.likeCount ?? 0}</div>
+              <div className="text-[var(--text-secondary)]">Likes</div>
             </div>
             <div className="text-center">
-              <div className="font-semibold text-slate-900">{post.comments ?? 0}</div>
-              <div className="text-slate-500">Comments</div>
+              <div className="font-semibold text-[var(--text-primary)]">{post.comments ?? 0}</div>
+              <div className="text-[var(--text-secondary)]">Comments</div>
             </div>
           </div>
         </div>
 
         {/* Comments Section */}
-        <div className="bg-white rounded-lg border border-neutral-200 p-4">
-          <h2 className="font-semibold text-slate-900 mb-4">Comments</h2>
+        <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] p-4 transition-colors">
+          <h2 className="font-semibold text-[var(--text-primary)] mb-4">Comments</h2>
           <Comments postId={postId} />
         </div>
       </div>

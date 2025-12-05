@@ -361,7 +361,7 @@ export const Post: React.FC<PostProps> = ({
   };
 
   return (
-    <article className="w-full max-w-xl md:max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-neutral-200 mb-5">
+    <article className="w-full max-w-xl md:max-w-2xl mx-auto bg-[var(--card-bg)] rounded-lg shadow-sm border border-[var(--card-border)] mb-5 transition-colors">
 
       {/* TOP ROW */}
       <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
@@ -371,7 +371,7 @@ export const Post: React.FC<PostProps> = ({
               e.stopPropagation();
               router.push(`/users/${authorId}`);
             }}
-            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all"
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full overflow-hidden bg-[var(--bg-primary)] flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all"
           >
             <img
               src={avatar || "/images/avatar_placeholder.png"}
@@ -382,7 +382,7 @@ export const Post: React.FC<PostProps> = ({
         ) : (
           <img
             src={avatar || "/images/avatar_placeholder.png"}
-            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-gray-300 flex-shrink-0"
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-[var(--bg-primary)] flex-shrink-0"
             alt={`${name} avatar`}
           />
         )}
@@ -396,11 +396,11 @@ export const Post: React.FC<PostProps> = ({
                     e.stopPropagation();
                     router.push(`/users/${authorId}`);
                   }}
-                  className="font-semibold text-neutral-900 text-sm leading-none truncate flex items-center gap-1 hover:text-[var(--color-accent)] transition-colors"
+                  className="font-semibold text-[var(--text-primary)] text-sm leading-none truncate flex items-center gap-1 hover:text-[var(--color-accent)] transition-colors"
                 >
                   <span className="truncate">{name}</span>
                   {gradYear && (
-                    <span className="flex items-center gap-1 text-neutral-500 text-xs shrink-0">
+                    <span className="flex items-center gap-1 text-[var(--text-secondary)] text-xs shrink-0">
                       <img
                         src="/svgs/graduate.svg"
                         alt="Graduate cap"
@@ -411,10 +411,10 @@ export const Post: React.FC<PostProps> = ({
                   )}
                 </button>
               ) : (
-                <p className="font-semibold text-neutral-900 text-sm leading-none truncate flex items-center gap-1">
+                <p className="font-semibold text-[var(--text-primary)] text-sm leading-none truncate flex items-center gap-1">
                   <span className="truncate">{name}</span>
                   {gradYear && (
-                    <span className="flex items-center gap-1 text-neutral-500 text-xs shrink-0">
+                    <span className="flex items-center gap-1 text-[var(--text-secondary)] text-xs shrink-0">
                       <img
                         src="/svgs/graduate.svg"
                         alt="Graduate cap"
@@ -428,7 +428,7 @@ export const Post: React.FC<PostProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-500 ml-1 shrink-0">
+              <span className="text-xs text-[var(--text-secondary)] ml-1 shrink-0">
                 {created_at ? getRelativeTime(created_at) : "just now"}
               </span>
               
@@ -440,7 +440,7 @@ export const Post: React.FC<PostProps> = ({
                       e.stopPropagation();
                       setMenuOpen(!menuOpen);
                     }}
-                    className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-neutral-600 hover:text-neutral-900"
+                    className="p-1.5 rounded-full hover:bg-[var(--bg-primary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     aria-label="Post options"
                   >
                     <svg
@@ -454,14 +454,14 @@ export const Post: React.FC<PostProps> = ({
 
                   {/* Dropdown Menu */}
                   {menuOpen && (
-                    <div className="absolute right-0 top-10 z-50 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1">
+                    <div className="absolute right-0 top-10 z-50 w-48 bg-[var(--card-bg)] rounded-lg shadow-lg border border-[var(--card-border)] py-1 transition-colors">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditModalOpen(true);
                           setMenuOpen(false);
                         }}
-                        className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                        className="w-full px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors flex items-center gap-2"
                       >
                         <svg
                           className="w-4 h-4"
@@ -511,8 +511,8 @@ export const Post: React.FC<PostProps> = ({
       </header>
 
       {/* TEXT */}
-      <div className="px-3 sm:px-4 pb-3 border-b border-[#E5E7EB]">
-        <p className="text-neutral-800 text-sm leading-relaxed whitespace-pre-line">
+      <div className="px-3 sm:px-4 pb-3 border-b border-[var(--card-border)]">
+        <p className="text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-line">
           {text}
         </p>
       </div>
@@ -520,7 +520,7 @@ export const Post: React.FC<PostProps> = ({
       {/* IMAGE SECTION – full width, no padding with carousel */}
       {imageList.length > 0 && (
         <div className="w-full bg-black relative">
-          <div className="w-full max-h-[80vh] overflow-hidden bg-[#F3F3F3] relative">
+          <div className="w-full max-h-[80vh] overflow-hidden bg-[var(--bg-primary)] relative">
             {/* Carousel Container */}
             <div className="relative w-full h-full">
               {imageList.map((img, index) => (
@@ -616,7 +616,7 @@ export const Post: React.FC<PostProps> = ({
       )}
 
       {/* ACTION BAR */}
-      <div className="flex justify-between items-center py-2 text-neutral-600 border-t border-[#E5E7EB] px-3 sm:px-4">
+      <div className="flex justify-between items-center py-2 text-[var(--text-secondary)] border-t border-[var(--card-border)] px-3 sm:px-4">
         <div className="flex w-full justify-between">
 
           <TooltipButton
@@ -627,7 +627,7 @@ export const Post: React.FC<PostProps> = ({
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
               liked
                 ? "text-[var(--color-accent)] scale-110"
-                : "hover:text-neutral-800 hover:scale-105"
+                : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95 disabled:opacity-50`}
           >
             <img
@@ -652,7 +652,7 @@ export const Post: React.FC<PostProps> = ({
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
               commented
                 ? "text-[var(--color-accent)] scale-110"
-                : "hover:text-neutral-800 hover:scale-105"
+                : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95`}
           >
             <img
@@ -675,7 +675,7 @@ export const Post: React.FC<PostProps> = ({
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
               reposted
                 ? "text-[var(--color-accent)] scale-110"
-                : "hover:text-neutral-800 hover:scale-105"
+                : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95 disabled:opacity-50`}
           >
             <img
@@ -698,7 +698,7 @@ export const Post: React.FC<PostProps> = ({
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
               bookmarked
                 ? "text-[var(--color-accent)] scale-110"
-                : "hover:text-neutral-800 hover:scale-105"
+                : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95 disabled:opacity-50`}
           >
             <svg
@@ -728,14 +728,14 @@ export const Post: React.FC<PostProps> = ({
       {editModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div
-            className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6"
+            className="bg-[var(--card-bg)] rounded-lg shadow-xl w-full max-w-lg p-6 transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-semibold text-neutral-900 mb-4">Edit Post</h2>
+            <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Edit Post</h2>
             <textarea
               value={editedText}
               onChange={(e) => setEditedText(e.target.value)}
-              className="w-full min-h-[120px] p-3 border border-neutral-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent text-sm"
+              className="w-full min-h-[120px] p-3 border border-[var(--card-border)] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent text-sm bg-[var(--bg-primary)] text-[var(--text-primary)]"
               placeholder="What's on your mind?"
               autoFocus
             />
@@ -745,7 +745,7 @@ export const Post: React.FC<PostProps> = ({
                   setEditModalOpen(false);
                   setEditedText(text);
                 }}
-                className="px-4 py-2 text-sm font-medium text-neutral-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-primary)] rounded-lg hover:bg-[var(--card-bg)] transition-colors"
                 disabled={isEditing}
               >
                 Cancel
@@ -766,17 +766,17 @@ export const Post: React.FC<PostProps> = ({
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div
-            className="bg-white rounded-lg shadow-xl w-full max-w-md p-6"
+            className="bg-[var(--card-bg)] rounded-lg shadow-xl w-full max-w-md p-6 transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-semibold text-neutral-900 mb-2">Delete Post</h2>
-            <p className="text-sm text-neutral-600 mb-6">
+            <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">Delete Post</h2>
+            <p className="text-sm text-[var(--text-secondary)] mb-6">
               Are you sure you want to delete this post? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-neutral-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-primary)] rounded-lg hover:bg-[var(--card-bg)] transition-colors"
                 disabled={isDeleting}
               >
                 Cancel

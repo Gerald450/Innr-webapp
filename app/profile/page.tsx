@@ -490,21 +490,21 @@ function MyProfilePageContent() {
     return (
       <div className="bg-[var(--bg-primary)] min-h-screen flex justify-center items-start px-4 py-10 transition-colors">
         <div className="w-full max-w-2xl bg-[var(--card-bg)] rounded-2xl shadow-sm border border-[var(--card-border)] overflow-hidden p-8 transition-colors">
-          <h2 className="text-2xl font-semibold mb-4 text-black">My Profile</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-[var(--text-primary)]">My Profile</h2>
 
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-md bg-red-50 text-red-700 text-sm">
+            <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">
               {errorMsg}
             </div>
           )}
 
           {!authChecked && (
-            <div className="mb-4 text-sm text-slate-600">Checking authentication…</div>
+            <div className="mb-4 text-sm text-[var(--text-secondary)]">Checking authentication…</div>
           )}
 
           {authChecked && !profile && (
             <>
-              <div className="mb-6 text-sm text-slate-600">
+              <div className="mb-6 text-sm text-[var(--text-secondary)]">
                 No profile found for the signed-in user.
               </div>
               <div className="flex gap-3">
@@ -516,7 +516,7 @@ function MyProfilePageContent() {
                 </button>
                 <button
                   onClick={() => router.push("/profileEditor")}
-                  className="px-4 py-2 border border-slate-300 rounded-md hover:bg-gray-50 transition"
+                  className="px-4 py-2 border border-[var(--card-border)] rounded-md hover:bg-[var(--bg-primary)] transition-colors text-[var(--text-primary)]"
                 >
                   Create profile
                 </button>
@@ -525,7 +525,7 @@ function MyProfilePageContent() {
           )}
 
           {!authChecked && (
-            <div className="mt-4 text-sm text-slate-500">
+            <div className="mt-4 text-sm text-[var(--text-secondary)]">
               If you expected to be signed in, check your session or open dev tools.
             </div>
           )}
@@ -544,7 +544,7 @@ function MyProfilePageContent() {
           <h1 className="text-2xl font-semibold text-[var(--text-primary)] mb-6">My Profile</h1>
 
           {/* Avatar */}
-          <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm mb-4">
+          <div className="w-24 h-24 rounded-full bg-[var(--card-bg)] overflow-hidden flex-shrink-0 border-2 border-[var(--card-bg)] shadow-sm mb-4">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -552,7 +552,7 @@ function MyProfilePageContent() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-3xl">
+              <div className="w-full h-full flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-secondary)] text-3xl">
                 {profile.full_name?.[0]?.toUpperCase() || "?"}
               </div>
             )}
@@ -613,7 +613,7 @@ function MyProfilePageContent() {
             </button>
             <button
               onClick={() => router.push("/settings")}
-              className="px-6 h-11 rounded-lg border border-slate-300 font-semibold hover:bg-gray-50 transition text-black"
+              className="px-6 h-11 rounded-lg border border-[var(--card-border)] font-semibold hover:bg-[var(--bg-primary)] transition-colors text-[var(--text-primary)]"
             >
               Settings
             </button>
@@ -664,14 +664,14 @@ function MyProfilePageContent() {
               <div>
                 {loadingPosts ? (
                   <div className="text-center py-12">
-                    <div className="text-sm text-slate-500">Loading posts...</div>
+                    <div className="text-sm text-[var(--text-secondary)]">Loading posts...</div>
                   </div>
                 ) : userPosts.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="text-sm text-slate-500 mb-2">
+                    <div className="text-sm text-[var(--text-secondary)] mb-2">
                       No posts yet.
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-[var(--text-secondary)] opacity-70">
                       Start sharing your campus experience!
                     </div>
                   </div>
@@ -853,17 +853,17 @@ function MyProfilePageContent() {
                 {/* Activity Posts */}
                 {loadingActivity ? (
                   <div className="text-center py-12">
-                    <div className="text-sm text-slate-500">Loading activity...</div>
+                    <div className="text-sm text-[var(--text-secondary)]">Loading activity...</div>
                   </div>
                 ) : activityPosts.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="text-sm text-slate-500 mb-2">
+                    <div className="text-sm text-[var(--text-secondary)] mb-2">
                       {activityType === "liked" && "No liked posts yet"}
                       {activityType === "commented" && "No comments yet"}
                       {activityType === "reposted" && "No reposts yet"}
                       {activityType === "saves" && "No saved posts yet"}
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-[var(--text-secondary)] opacity-70">
                       {activityType === "liked" && "Start liking posts to see them here"}
                       {activityType === "commented" && "Start commenting on posts to see them here"}
                       {activityType === "reposted" && "Start reposting to see them here"}

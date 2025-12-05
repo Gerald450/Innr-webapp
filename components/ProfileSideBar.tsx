@@ -149,7 +149,7 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
     <div
       ref={sidebarRef}
       className={`
-        fixed top-0 right-0 h-full w-80 bg-white shadow-xl transition-transform duration-300 z-50
+        fixed top-0 right-0 h-full w-80 bg-[var(--card-bg)] shadow-xl transition-all duration-300 z-50
         ${isOpen ? "translate-x-0" : "translate-x-full"}
       `}
       aria-hidden={!isOpen}
@@ -157,13 +157,14 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
       <aside
         className="
           mt-14 mx-0
-          w-full bg-white text-gray-900
+          w-full bg-[var(--card-bg)] text-[var(--text-primary)]
           rounded-l-xl
           p-6
           overflow-auto
           h-[calc(100vh-56px)]
+          transition-colors
         "
-        style={{ borderLeft: "3px solid rgba(0,0,0,0.03)" }}
+        style={{ borderLeft: "3px solid var(--card-border)" }}
       >
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -173,10 +174,10 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
             className="w-16 h-16 rounded-full bg-black shrink-0 object-cover"
           />
           <div>
-            <div className="text-lg font-semibold leading-5">
+            <div className="text-lg font-semibold leading-5 text-[var(--text-primary)]">
               {profile?.full_name ?? "Not Logged in"}
             </div>
-            <div className="text-sm text-black mt-1">
+            <div className="text-sm text-[var(--text-secondary)] mt-1">
               {profile?.username ? `@${profile.username}` : "No username"}
             </div>
           </div>
@@ -193,7 +194,7 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
                 text-base font-medium
                 px-1 py-2
                 transition-all duration-150
-                hover:bg-gray-50
+                hover:bg-[var(--bg-primary)]
                 ${clickedIndex === i ? "scale-95 opacity-70" : ""}
               `}
               type="button"
@@ -201,10 +202,10 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
             >
               <img
                 src={item.icon}
-                className="text-gray-400 h-6 w-6"
+                className="h-6 w-6 dark:brightness-0 dark:invert"
                 alt={`${item.label} icon`}
               />
-              <span className="text-gray-800">{item.label}</span>
+              <span className="text-[var(--text-primary)]">{item.label}</span>
             </button>
           ))}
         </div>

@@ -215,7 +215,7 @@ export default function EventsClient() {
   };
 
   return (
-    <main className="flex justify-center p-4 md:p-6 lg:p-8">
+    <main className="flex justify-center p-4 md:p-6 lg:p-8 bg-[var(--bg-primary)] min-h-screen transition-colors">
       {/* Center container */}
       <div className="w-full max-w-6xl">
         <header className="mb-6 flex items-center justify-between">
@@ -223,7 +223,7 @@ export default function EventsClient() {
             <h1 className="text-2xl font-semibold text-[var(--color-accent)]">
               Events
             </h1>
-            <p className="text-sm text-neutral-500 mt-1">
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
               See upcoming events and add them to your calendar.
             </p>
           </div>
@@ -238,11 +238,11 @@ export default function EventsClient() {
         {/* Centered, smaller cards - LinkedIn style */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
           {loading ? (
-            <div className="col-span-full text-center py-8 text-slate-500">
+            <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
               Loading events...
             </div>
           ) : events.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-slate-500">
+            <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
               No events found. Create one to get started!
             </div>
           ) : (
@@ -254,7 +254,7 @@ export default function EventsClient() {
                 key={ev.id}
                 role="button"
                 onClick={() => router.push(`/events/${ev.id}`)}
-                className="cursor-pointer bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition"
+                className="cursor-pointer bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-md transition-colors"
               >
                 {/* MOBILE: flex row | DESKTOP: block */}
                 <div className="flex md:block w-full">
@@ -271,20 +271,20 @@ export default function EventsClient() {
                   <div className="flex flex-1 flex-col p-3">
                     {/* TOP SECTION (date + title + location) */}
                     <div className="flex-1">
-                      <div className="text-xs text-neutral-500">
+                      <div className="text-xs text-[var(--text-secondary)]">
                         {ev.datetime}
                       </div>
 
-                      <h2 className="text-sm font-semibold leading-tight text-neutral-900 line-clamp-2">
+                      <h2 className="text-sm font-semibold leading-tight text-[var(--text-primary)] line-clamp-2">
                         {ev.title}
                       </h2>
 
                       {/* description only desktop */}
-                      <p className="hidden md:block text-xs text-neutral-500 line-clamp-2">
+                      <p className="hidden md:block text-xs text-[var(--text-secondary)] line-clamp-2">
                         {ev.description}
                       </p>
 
-                      <div className="text-xs text-neutral-500 flex items-center gap-2 mt-1">
+                      <div className="text-xs text-[var(--text-secondary)] flex items-center gap-2 mt-1">
                         <svg
                           className="w-4 h-4 text-neutral-400"
                           fill="none"
@@ -318,7 +318,7 @@ export default function EventsClient() {
                           View
                         </Link>
 
-                        <div className="text-[11px] text-neutral-500">
+                        <div className="text-[11px] text-[var(--text-secondary)]">
                           {ev.organizer && <span>{ev.organizer}</span>}
                           <span className="mx-1">·</span>
                           <span>{ev.attendees} attending</span>
@@ -333,7 +333,7 @@ export default function EventsClient() {
                           className={`px-4 py-1.5 rounded-md text-xs font-medium border ${
                             joined
                               ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
-                              : "bg-white text-[var(--color-accent)] border-[var(--color-accent)]"
+                              : "bg-[var(--card-bg)] text-[var(--color-accent)] border-[var(--color-accent)]"
                           }`}
                         >
                           {joined ? "Joined" : "Attend"}
@@ -344,7 +344,7 @@ export default function EventsClient() {
                           type="button"
                           onClick={(e) => handleShare(e, ev)}
                           aria-label="Share event"
-                          className="flex h-8 w-8 border border-gray-200 rounded-full items-center justify-center hover:bg-gray-50 transition"
+                          className="flex h-8 w-8 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors"
                         >
                           <img
                             src="/svgs/share.svg"

@@ -76,13 +76,13 @@ export const Navbar: React.FC = () => {
     windowWidth !== null ? windowWidth >= 768 && windowWidth < 928 : false;
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-black/5 shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-[var(--card-bg)] border-b border-[var(--card-border)] shadow-sm transition-colors">
       <div className="grid grid-cols-[1fr_minmax(0,670px)_1fr] items-center px-3 sm:px-4 lg:px-6 h-14">
         {/* LEFT: logo + search */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div 
             onClick={() => router.push("/")}
-            className="flex items-center justify-center h-9 w-9 shrink-0 rounded-full bg-gray-100 cursor-pointer overflow-hidden hover:bg-gray-200 transition-colors"
+            className="flex items-center justify-center h-9 w-9 shrink-0 rounded-full bg-[var(--bg-primary)] cursor-pointer overflow-hidden hover:bg-[var(--card-bg)] transition-colors"
           >
             <img
               src="/images/logo.png"
@@ -93,14 +93,14 @@ export const Navbar: React.FC = () => {
 
           {/* Wide: full search (renders only when we know width and it's wide) */}
           {windowWidth !== null && isWide && (
-            <div className="flex h-9 items-center rounded-full bg-[#f0f2f5] px-3">
-              <span className="text-sm text-neutral-500">
-                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4" />
+            <div className="flex h-9 items-center rounded-full bg-[var(--bg-primary)] px-3">
+              <span className="text-sm text-[var(--text-secondary)]">
+                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4 dark:brightness-0 dark:invert" />
               </span>
               <input
                 type="search"
                 placeholder="Search Innr"
-                className="ml-2 w-44 max-w-[80vw] bg-transparent text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none"
+                className="ml-2 w-44 max-w-[80vw] bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none"
               />
             </div>
           )}
@@ -112,23 +112,23 @@ export const Navbar: React.FC = () => {
                 onClick={() => setSearchExpanded((s) => !s)}
                 aria-expanded={searchExpanded}
                 aria-label={searchExpanded ? "Close search" : "Open search"}
-                className="ml-2 p-2 rounded-full text-neutral-600 hover:bg-[#f0f2f5] transition flex-shrink-0"
+                className="ml-2 p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition flex-shrink-0"
               >
-                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4" />
+                <img src="/svgs/search.svg" alt="Menu" className="h-4 w-4 dark:brightness-0 dark:invert" />
               </button>
 
               {searchExpanded && (
-                <div className="absolute left-0 top-10 z-50 w-[260px] max-w-[90vw] rounded-md bg-white p-2 shadow-lg">
+                <div className="absolute left-0 top-10 z-50 w-[260px] max-w-[90vw] rounded-md bg-[var(--card-bg)] border border-[var(--card-border)] p-2 shadow-lg transition-colors">
                   <div
-                    className="flex items-center rounded-md bg-[#f5f7f9] px-2 py-1"
+                    className="flex items-center rounded-md bg-[var(--bg-primary)] px-2 py-1"
                     title="Menu"
                   >
-                    <span className="text-neutral-500"></span>
+                    <span className="text-[var(--text-secondary)]"></span>
                     <input
                       ref={inputRef}
                       type="search"
                       placeholder="Search Innr"
-                      className="ml-2 w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none"
+                      className="ml-2 w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none"
                       aria-label="Search Innr"
                     />
                   </div>
@@ -158,12 +158,12 @@ export const Navbar: React.FC = () => {
                 >
                   <div
                     className={`relative flex-1 flex flex-col items-center text-xl transition py-1 ${
-                      isActive ? "text-[#0866ff]" : "text-neutral-500"
+                      isActive ? "text-[var(--color-accent)]" : "text-[var(--text-secondary)]"
                     }`}
                     aria-label={tab.label}
                   >
                     <div className="relative">
-                      <img src={tab.icon} alt={tab.label} className="h-6 w-6" />
+                      <img src={tab.icon} alt={tab.label} className="h-6 w-6 dark:brightness-0 dark:invert" />
 
                       {/* BADGE attached directly to the image */}
                       {isNotifications && (
@@ -194,10 +194,10 @@ export const Navbar: React.FC = () => {
             className="flex md:hidden"
           >
             <div
-              className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+              className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[var(--bg-primary)] transition hover:bg-[var(--card-bg)]"
               aria-label="Menu"
             >
-              <img src="/svgs/menu.svg" className="h-5 w-5" />
+              <img src="/svgs/menu.svg" className="h-5 w-5 dark:brightness-0 dark:invert" />
             </div>
           </TooltipButton>
           <MenuDrawer
@@ -213,10 +213,10 @@ export const Navbar: React.FC = () => {
             className="flex md:hidden"
           >
             <div
-              className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[#e4e6eb] transition hover:bg-[#d8dadf]"
+              className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[var(--bg-primary)] transition hover:bg-[var(--card-bg)]"
               aria-label="Notifications"
             >
-              <img src="/svgs/notification.svg" />
+              <img src="/svgs/notification.svg" className="dark:brightness-0 dark:invert" />
               <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
                 3
               </span>

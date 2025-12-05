@@ -216,9 +216,9 @@ export default function EventDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F2F4F7] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center transition-colors">
         <div className="text-center">
-          <div className="text-lg text-slate-600">Loading event...</div>
+          <div className="text-lg text-[var(--text-secondary)]">Loading event...</div>
         </div>
       </div>
     );
@@ -226,12 +226,12 @@ export default function EventDetail() {
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-[#F2F4F7] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center px-4 transition-colors">
         <div className="text-center max-w-md">
-          <h1 className="text-xl font-semibold text-slate-900 mb-2">
+          <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
             {error || "Event not found"}
           </h1>
-          <p className="text-slate-600 mb-4">
+          <p className="text-[var(--text-secondary)] mb-4">
             The event you're looking for doesn't exist or has been deleted.
           </p>
           <Link
@@ -276,12 +276,12 @@ export default function EventDetail() {
   const location = event.location_name || event.location_address || "Location TBD";
 
   return (
-    <div className="min-h-screen bg-[#F2F4F7]">
+    <div className="min-h-screen bg-[var(--bg-primary)] transition-colors">
       {/* Back Button */}
       <div className="max-w-4xl mx-auto px-4 pt-6">
         <button
           onClick={() => router.back()}
-          className="mb-4 text-sm text-slate-600 hover:text-slate-900 flex items-center gap-2"
+          className="mb-4 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 transition-colors"
         >
           <svg
             className="w-4 h-4"
@@ -302,7 +302,7 @@ export default function EventDetail() {
 
       {/* Hero Image */}
       <div className="max-w-4xl mx-auto px-4 mb-6">
-        <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-2xl overflow-hidden bg-gray-100">
+        <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-2xl overflow-hidden bg-[var(--card-bg)]">
           {event.imageSrc ? (
             <img
               src={event.imageSrc}
@@ -334,9 +334,9 @@ export default function EventDetail() {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 pb-20">
         {/* Event Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 md:p-8 mb-6">
+        <div className="bg-[var(--card-bg)] rounded-2xl shadow-sm border border-[var(--card-border)] p-6 md:p-8 mb-6 transition-colors">
           {/* Title */}
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-4">
             {event.title}
           </h1>
 
@@ -348,7 +348,7 @@ export default function EventDetail() {
               className={`px-6 py-2.5 rounded-lg text-sm font-semibold border transition-colors ${
                 joined
                   ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
-                  : "bg-white text-[var(--color-accent)] border-[var(--color-accent)] hover:bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)]"
+                  : "bg-[var(--card-bg)] text-[var(--color-accent)] border-[var(--color-accent)] hover:bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)]"
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isJoining ? "Loading..." : joined ? "Joined" : "Attend"}
@@ -356,7 +356,7 @@ export default function EventDetail() {
 
             <button
               onClick={handleShare}
-              className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-neutral-300 text-neutral-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+              className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-[var(--card-border)] text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors flex items-center gap-2"
             >
               <svg
                 className="w-4 h-4"
@@ -379,7 +379,7 @@ export default function EventDetail() {
                 href={event.external_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-neutral-300 text-neutral-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-[var(--card-border)] text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors flex items-center gap-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -399,7 +399,7 @@ export default function EventDetail() {
             )}
           </div>
 
-          <hr className="border-neutral-200 mb-6" />
+          <hr className="border-[var(--card-border)] mb-6" />
 
           {/* Event Details Grid */}
           <div className="grid gap-6 md:grid-cols-2 mb-6">
@@ -421,15 +421,15 @@ export default function EventDetail() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium text-neutral-500 mb-1">
+                <div className="text-sm font-medium text-[var(--text-secondary)] mb-1">
                   Date & Time
                 </div>
-                <div className="font-semibold text-neutral-900">{formattedDate}</div>
-                <div className="text-sm text-neutral-600">{formattedTime}</div>
+                <div className="font-semibold text-[var(--text-primary)]">{formattedDate}</div>
+                <div className="text-sm text-[var(--text-secondary)]">{formattedTime}</div>
                 {event.ends_at && (
                   <>
-                    <div className="text-xs text-neutral-500 mt-1">Until</div>
-                    <div className="text-sm text-neutral-600">
+                    <div className="text-xs text-[var(--text-secondary)] mt-1">Until</div>
+                    <div className="text-sm text-[var(--text-secondary)]">
                       {endDateStr !== formattedDate ? endDateStr : ""} {endTimeStr}
                     </div>
                   </>
@@ -461,14 +461,14 @@ export default function EventDetail() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium text-neutral-500 mb-1">
+                <div className="text-sm font-medium text-[var(--text-secondary)] mb-1">
                   Location
                 </div>
-                <div className="font-semibold text-neutral-900">
+                <div className="font-semibold text-[var(--text-primary)]">
                   {event.location_name || "Location TBD"}
                 </div>
                 {event.location_address && (
-                  <div className="text-sm text-neutral-600">
+                  <div className="text-sm text-[var(--text-secondary)]">
                     {event.location_address}
                   </div>
                 )}
@@ -502,18 +502,18 @@ export default function EventDetail() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-neutral-500 mb-1">
+                  <div className="text-sm font-medium text-[var(--text-secondary)] mb-1">
                     Organizer
                   </div>
                   {event.organizerId ? (
                     <button
                       onClick={() => router.push(`/users/${event.organizerId}`)}
-                      className="font-semibold text-neutral-900 hover:text-[var(--color-accent)] transition-colors text-left"
+                      className="font-semibold text-[var(--text-primary)] hover:text-[var(--color-accent)] transition-colors text-left"
                     >
                       {event.organizer}
                     </button>
                   ) : (
-                    <div className="font-semibold text-neutral-900">
+                    <div className="font-semibold text-[var(--text-primary)]">
                       {event.organizer}
                     </div>
                   )}
@@ -522,22 +522,22 @@ export default function EventDetail() {
             )}
           </div>
 
-          <hr className="border-neutral-200 mb-6" />
+          <hr className="border-[var(--card-border)] mb-6" />
 
           {/* Description */}
-            <div>
-            <h2 className="text-xl font-semibold text-neutral-900 mb-3">
+          <div>
+            <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-3">
               About This Event
             </h2>
-            <div className="text-neutral-700 leading-relaxed whitespace-pre-line">
+            <div className="text-[var(--text-primary)] leading-relaxed whitespace-pre-line">
               {event.description || "No description provided."}
             </div>
           </div>
 
           {/* Created Date */}
           {event.created_at && (
-            <div className="mt-6 pt-6 border-t border-neutral-200">
-              <div className="text-xs text-neutral-500">
+            <div className="mt-6 pt-6 border-t border-[var(--card-border)]">
+              <div className="text-xs text-[var(--text-secondary)]">
                 Created {getRelativeTime(event.created_at)}
               </div>
             </div>
