@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import CreateEventModal from "@/components/CreateEventModal";
+import EventsCard from "@/components/EventsCard";
 
 type EventItem = {
   id: string;
@@ -25,14 +26,107 @@ type EventItem = {
 
 export default function EventsClient() {
   const [joinedMap, setJoinedMap] = useState<Record<string, boolean>>({});
+  const [attendeeCounts, setAttendeeCounts] = useState<Record<string, number>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [togglingAttend, setTogglingAttend] = useState<Record<string, boolean>>({});
   const router = useRouter();
 
-  const handleToggleAttend = (e: React.MouseEvent, id: string) => {
+  const handleToggleAttend = async (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation();
-    setJoinedMap((prev) => ({ ...prev, [id]: !prev[id] }));
+    
+    // Prevent multiple clicks
+    if (togglingAttend[eventId]) return;
+    
+    setTogglingAttend((prev) => ({ ...prev, [eventId]: true }));
+
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        alert("You must be signed in to attend events.");
+        setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
+        return;
+      }
+
+      // Get user's profile ID
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error("Error getting profile:", profileError);
+        alert("Failed to get your profile.");
+        setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
+        return;
+      }
+
+      const userId = profile.id;
+      const currentlyJoined = joinedMap[eventId];
+
+      if (currentlyJoined) {
+        // Unattend: Delete from event_attendees
+        const { error: deleteError } = await supabase
+          .from("event_attendees")
+          .delete()
+          .eq("event_id", eventId)
+          .eq("user_id", userId);
+
+        if (deleteError) {
+          console.error("Error un-attending event:", deleteError);
+          alert("Failed to un-attend event. Please try again.");
+          setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
+          return;
+        }
+
+        // Update local state
+        setJoinedMap((prev) => ({ ...prev, [eventId]: false }));
+        setAttendeeCounts((prev) => ({
+          ...prev,
+          [eventId]: Math.max(0, (prev[eventId] || 0) - 1),
+        }));
+      } else {
+        // Attend: Insert into event_attendees
+        const { error: insertError } = await supabase
+          .from("event_attendees")
+          .insert({
+            event_id: eventId,
+            user_id: userId,
+            status: "interested", // Default status
+          });
+
+        if (insertError) {
+          // If it's a unique constraint error, the user is already attending
+          if (insertError.code === "23505") {
+            // Already attending, just update local state
+            setJoinedMap((prev) => ({ ...prev, [eventId]: true }));
+          } else {
+            console.error("Error attending event:", insertError);
+            alert("Failed to attend event. Please try again.");
+            setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
+            return;
+          }
+        } else {
+          // Successfully inserted
+          setJoinedMap((prev) => ({ ...prev, [eventId]: true }));
+          setAttendeeCounts((prev) => ({
+            ...prev,
+            [eventId]: (prev[eventId] || 0) + 1,
+          }));
+        }
+      }
+    } catch (err) {
+      console.error("Unexpected error toggling attend:", err);
+      alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
+    }
   };
 
   // Load events from Supabase
@@ -122,7 +216,42 @@ export default function EventsClient() {
 
         if (!mounted) return;
 
-        // 4. Map events data
+        // 4. Get all event IDs
+        const eventIds = (eventsData ?? []).map((row: any) => row.id);
+
+        // 5. Get attendee counts for all events
+        const { data: attendeeCountsData, error: attendeeCountsError } = await supabase
+          .from("event_attendees")
+          .select("event_id")
+          .in("event_id", eventIds);
+
+        if (attendeeCountsError) {
+          console.error("Error loading attendee counts:", attendeeCountsError);
+        }
+
+        // Count attendees per event
+        const countsMap: Record<string, number> = {};
+        (attendeeCountsData ?? []).forEach((row: any) => {
+          countsMap[row.event_id] = (countsMap[row.event_id] || 0) + 1;
+        });
+
+        // 6. Get current user's attendee status for all events
+        const { data: userAttendeesData, error: userAttendeesError } = await supabase
+          .from("event_attendees")
+          .select("event_id")
+          .eq("user_id", user.id)
+          .in("event_id", eventIds);
+
+        if (userAttendeesError) {
+          console.error("Error loading user attendees:", userAttendeesError);
+        }
+
+        // Map user's attendance status
+        const userJoinedSet = new Set(
+          (userAttendeesData ?? []).map((row: any) => row.event_id)
+        );
+
+        // 7. Map events data
         const mapped: EventItem[] = (eventsData ?? [])
           .map((row: any) => {
             const post = row.posts as any;
@@ -161,7 +290,7 @@ export default function EventsClient() {
               location: row.location_name || row.location_address || "Location TBD",
               imageSrc: firstMedia?.url,
               organizer: author?.full_name || "Unknown",
-              attendees: 0, // TODO: Get from attendees table
+              attendees: countsMap[row.id] || 0,
               starts_at: row.starts_at,
               ends_at: row.ends_at,
               location_name: row.location_name,
@@ -172,6 +301,14 @@ export default function EventsClient() {
           .filter((e: EventItem | null) => e !== null) as EventItem[];
 
         setEvents(mapped);
+        
+        // Set attendee counts and joined status
+        setAttendeeCounts(countsMap);
+        const joinedStatus: Record<string, boolean> = {};
+        eventIds.forEach((eventId: string) => {
+          joinedStatus[eventId] = userJoinedSet.has(eventId);
+        });
+        setJoinedMap(joinedStatus);
       } catch (err) {
         console.error("Unexpected error loading events:", err);
       } finally {
@@ -247,117 +384,27 @@ export default function EventsClient() {
             </div>
           ) : (
             events.map((ev) => {
-            const joined = !!joinedMap[ev.id];
+              const joined = !!joinedMap[ev.id];
+              const attendeeCount = attendeeCounts[ev.id] ?? ev.attendees ?? 0;
+              const isToggling = togglingAttend[ev.id] || false;
+              
+              // Create event object with updated attendee count
+              const eventWithCount = {
+                ...ev,
+                attendees: attendeeCount,
+              };
 
-            return (
-              <article
-                key={ev.id}
-                role="button"
-                onClick={() => router.push(`/events/${ev.id}`)}
-                className="cursor-pointer bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-md transition-colors"
-              >
-                {/* MOBILE: flex row | DESKTOP: block */}
-                <div className="flex md:block w-full">
-                  {/* IMAGE */}
-                  <div className="w-24 h-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)]">
-                    <img
-                      src={ev.imageSrc}
-                      alt={ev.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* CONTENT + BUTTONS */}
-                  <div className="flex flex-1 flex-col p-3">
-                    {/* TOP SECTION (date + title + location) */}
-                    <div className="flex-1">
-                      <div className="text-xs text-[var(--text-secondary)]">
-                        {ev.datetime}
-                      </div>
-
-                      <h2 className="text-sm font-semibold leading-tight text-[var(--text-primary)] line-clamp-2">
-                        {ev.title}
-                      </h2>
-
-                      {/* description only desktop */}
-                      <p className="hidden md:block text-xs text-[var(--text-secondary)] line-clamp-2">
-                        {ev.description}
-                      </p>
-
-                      <div className="text-xs text-[var(--text-secondary)] flex items-center gap-2 mt-1">
-                        <svg
-                          className="w-4 h-4 text-neutral-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M12 11a3 3 0 100-6 3 3 0 000 6z"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                          />
-                          <path
-                            d="M21 20c0-4.97-4.03-9-9-9s-9 4.03-9 9"
-                            stroke="currentColor"
-                            strokeWidth="1.2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <span className="truncate">{ev.location}</span>
-                      </div>
-                    </div>
-
-                    {/* ACTION ROW */}
-                    <div className="flex items-center justify-end md:justify-between mt-2">
-                      {/* LEFT SIDE ONLY DESKTOP (view + attendees) */}
-                      <div className="hidden md:flex items-center gap-2">
-                        <Link
-                          href={`/events/${ev.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="px-3 py-1.5 text-xs border border-[var(--color-accent)] text-[var(--color-accent)] rounded-full hover:bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)] transition"
-                        >
-                          View
-                        </Link>
-
-                        <div className="text-[11px] text-[var(--text-secondary)]">
-                          {ev.organizer && <span>{ev.organizer}</span>}
-                          <span className="mx-1">·</span>
-                          <span>{ev.attendees} attending</span>
-                        </div>
-                      </div>
-
-                      {/* RIGHT SIDE — ALWAYS VISIBLE */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleAttend(e, ev.id)}
-                          className={`px-4 py-1.5 rounded-md text-xs font-medium border ${
-                            joined
-                              ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
-                              : "bg-[var(--card-bg)] text-[var(--color-accent)] border-[var(--color-accent)]"
-                          }`}
-                        >
-                          {joined ? "Joined" : "Attend"}
-                        </button>
-
-                       
-                        <button
-                          type="button"
-                          onClick={(e) => handleShare(e, ev)}
-                          aria-label="Share event"
-                          className="flex h-8 w-8 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors"
-                        >
-                          <img
-                            src="/svgs/share.svg"
-                            alt="Share"
-                            className="w-4 h-4"
-                          />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
+              return (
+                <EventsCard
+                  key={ev.id}
+                  event={eventWithCount}
+                  joined={joined}
+                  onToggleAttend={handleToggleAttend}
+                  onShare={handleShare}
+                  onClick={() => router.push(`/events/${ev.id}`)}
+                  isToggling={isToggling}
+                />
+              );
             })
           )}
         </section>
