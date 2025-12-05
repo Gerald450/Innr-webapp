@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -21,6 +21,7 @@ export default function EventsCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [eventsByDate, setEventsByDate] = useState<EventsByDate>({});
   const [loading, setLoading] = useState(true);
+  const eventsDetailsRef = useRef<HTMLDivElement>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -152,6 +153,16 @@ export default function EventsCalendar() {
   const handleDateClick = (day: number) => {
     const date = new Date(year, month, day);
     setSelectedDate(date);
+    
+    // Scroll to events details after a short delay to ensure it's rendered
+    setTimeout(() => {
+      if (eventsDetailsRef.current) {
+        eventsDetailsRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+    }, 100);
   };
 
   const isToday = (day: number) => {
@@ -334,7 +345,10 @@ export default function EventsCalendar() {
 
       {/* Selected Date Events */}
       {selectedDate && getSelectedDateEvents().length > 0 && (
-        <div className="mt-6 bg-[var(--card-bg)] rounded-2xl border border-[var(--card-border)] p-6 transition-colors">
+        <div
+          ref={eventsDetailsRef}
+          className="mt-6 bg-[var(--card-bg)] rounded-2xl border border-[var(--card-border)] p-6 transition-colors"
+        >
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
             Events on {selectedDate.toLocaleDateString("en-US", {
               weekday: "long",
@@ -420,7 +434,10 @@ export default function EventsCalendar() {
       )}
 
       {selectedDate && getSelectedDateEvents().length === 0 && (
-        <div className="mt-6 bg-[var(--card-bg)] rounded-2xl border border-[var(--card-border)] p-6 text-center transition-colors">
+        <div
+          ref={eventsDetailsRef}
+          className="mt-6 bg-[var(--card-bg)] rounded-2xl border border-[var(--card-border)] p-6 text-center transition-colors"
+        >
           <p className="text-[var(--text-secondary)]">
             No events on {selectedDate.toLocaleDateString("en-US", {
               month: "long",

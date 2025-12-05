@@ -360,7 +360,7 @@ export default function EventsClient() {
         <header className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-[var(--color-accent)]">
-              Events
+              {activeTab === "events" ? "Events" : "Calendar"}
             </h1>
             <p className="text-sm text-[var(--text-secondary)] mt-1">
               {activeTab === "events"

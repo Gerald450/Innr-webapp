@@ -54,7 +54,7 @@ export default function EventsCard({
       {/* MOBILE: flex row | DESKTOP: block */}
       <div className="flex md:block w-full">
         {/* IMAGE */}
-        <div className="w-24 h-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)]">
+        <div className="w-24 h-29 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)]">
           <img
             src={event.imageSrc}
             alt={event.title}
