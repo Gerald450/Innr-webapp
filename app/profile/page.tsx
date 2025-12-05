@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Post } from "@/components/Posts";
+import { Post } from "@/components/PostsCard";
 
 type PostItem = {
   id: string;

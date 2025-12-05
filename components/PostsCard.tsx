@@ -361,7 +361,7 @@ export const Post: React.FC<PostProps> = ({
   };
 
   return (
-    <article className="w-full max-w-xl md:max-w-2xl mx-auto bg-[var(--card-bg)] rounded-lg shadow-sm border border-[var(--card-border)] mb-5 transition-colors">
+    <article className="w-full max-w-xl md:max-w-2xl mx-auto bg-[var(--card-bg)] rounded-lg shadow-sm border border-[var(--card-border)] mb-[10px] transition-colors">
 
       {/* TOP ROW */}
       <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">

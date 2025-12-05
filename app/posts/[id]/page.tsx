@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Post } from "@/components/Posts";
+import { Post } from "@/components/PostsCard";
 import Comments from "@/components/Comments";
 
 type PostDetail = {

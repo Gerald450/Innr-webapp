@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Post } from "../components/Posts";
+import { Post } from "../components/PostsCard";
 import { MakePost } from "@/components/MakePost";
 import CreatePostModal from "@/components/CreatePostModal";
 
@@ -383,7 +383,7 @@ export default function Home() {
       )}
 
       {/* Posts list */}
-      <div className="w-full max-w-2xl flex flex-col gap-6">
+      <div className="w-full max-w-2xl flex flex-col gap-1">
         {posts.map((p) => (
           <div
             key={p.id}
