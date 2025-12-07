@@ -120,7 +120,7 @@ function MultiSelect({ label, options, selected, onChange, placeholder }: MultiS
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-md shadow-lg max-h-60 overflow-y-auto">
           {options.map((option) => (
             <label
               key={option}
@@ -182,28 +182,33 @@ export default function CreateEventModal({
 
   // Options for dropdowns
   const eventTypeOptions = [
-    "Academic (lecture, seminar, workshop, study session)",
-    "Social (party, mixer, hangout, game night)",
-    "Cultural (performance, exhibition, film screening)",
-    "Athletic/Recreation (game, tournament, fitness class, intramural)",
-    "Career/Professional (career fair, networking, info session, interview prep)",
-    "Community Service (volunteer, fundraiser, charity)",
-    "Club Meeting (general meeting, elections, recruitment)",
-    "Wellness (mental health, meditation, health fair)",
-    "Greek Life (rush, formal, philanthropy)",
+    "Academic",
+    "Social",
+    "Cultural",
+    "Athletic/Recreation",
+    "Career/Professional",
+    "Community Service",
+    "Club Meeting",
+    "Wellness",
+    "Greek Life",
     "Religious/Spiritual",
+    "Other",
   ];
 
   const audienceOptions = [
     "All Students",
     "Undergrad Only",
     "Graduate Students",
-    "Specific Year (Freshmen, Sophomores, etc.)",
+    "Freshmen", 
+    "Sophomores",
+    "Juniors",
+    "Seniors",
     "Alumni",
     "Faculty/Staff Welcome",
     "Commuter Students",
     "International Students",
-    "Specific Major/Department",
+    "Major/Department",
+    "Other",
   ];
 
   const logisticsOptions = [
@@ -211,9 +216,10 @@ export default function CreateEventModal({
     "Food Provided",
     "RSVP Required",
     "Limited Capacity",
-    "Outdoor",
-    "Virtual/Hybrid",
+    "Outdoor Event",
+    "Virtual/Hybrid Event",
     "Recurring Series",
+    "Other",
   ];
 
   const specialInterestOptions = [
@@ -221,13 +227,15 @@ export default function CreateEventModal({
     "Technology/STEM",
     "Sustainability",
     "Diversity & Inclusion",
+    "Other",
   ];
 
   const timeBasedOptions = [
     "Orientation Week",
     "Homecoming",
     "Finals Week",
-    "Late Night (after 9pm)",
+    "Late Night",
+    "Other",
   ];
 
   useEffect(() => {
@@ -345,7 +353,7 @@ export default function CreateEventModal({
           event_type: eventType.length > 0 ? eventType : null,
           audience: audience.length > 0 ? audience : null,
           logistics: logistics.length > 0 ? logistics : null,
-          special_interest: specialInterest.length > 0 ? specialInterest : null,
+          special_interests: specialInterest.length > 0 ? specialInterest : null,
           time_based: timeBased.length > 0 ? timeBased : null,
         })
         .select()
@@ -385,12 +393,12 @@ export default function CreateEventModal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-6 md:pt-8 lg:pt-10 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto"
       aria-modal="true"
       role="dialog"
     >
-      <div className="w-full max-w-3xl rounded-2xl bg-[var(--card-bg)] p-6 shadow-xl my-8 transition-colors">
-        <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="w-full max-w-3xl max-h-[90vh] rounded-2xl bg-[var(--card-bg)] p-6 shadow-xl transition-colors flex flex-col">
+        <div className="flex items-start justify-between gap-4 mb-4 flex-shrink-0">
           <h2 className="text-xl font-semibold text-[var(--text-primary)]">Create Event</h2>
           <button
             onClick={onClose}
@@ -401,7 +409,7 @@ export default function CreateEventModal({
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1 pr-2">
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
@@ -498,59 +506,62 @@ export default function CreateEventModal({
             />
           </div>
 
-          {/* Event Type */}
-          <div>
-            <MultiSelect
-              label="Event Type"
-              options={eventTypeOptions}
-              selected={eventType}
-              onChange={setEventType}
-              placeholder="Select event types..."
-            />
-          </div>
+          {/* Dropdown Fields - 2 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Event Type */}
+            <div>
+              <MultiSelect
+                label="Event Type"
+                options={eventTypeOptions}
+                selected={eventType}
+                onChange={setEventType}
+                placeholder="Select event types..."
+              />
+            </div>
 
-          {/* Audience */}
-          <div>
-            <MultiSelect
-              label="Audience"
-              options={audienceOptions}
-              selected={audience}
-              onChange={setAudience}
-              placeholder="Select audience..."
-            />
-          </div>
+            {/* Audience */}
+            <div>
+              <MultiSelect
+                label="Audience"
+                options={audienceOptions}
+                selected={audience}
+                onChange={setAudience}
+                placeholder="Select audience..."
+              />
+            </div>
 
-          {/* Logistics */}
-          <div>
-            <MultiSelect
-              label="Logistics"
-              options={logisticsOptions}
-              selected={logistics}
-              onChange={setLogistics}
-              placeholder="Select logistics..."
-            />
-          </div>
+            {/* Logistics */}
+            <div>
+              <MultiSelect
+                label="Logistics"
+                options={logisticsOptions}
+                selected={logistics}
+                onChange={setLogistics}
+                placeholder="Select logistics..."
+              />
+            </div>
 
-          {/* Special Interest */}
-          <div>
-            <MultiSelect
-              label="Special Interest"
-              options={specialInterestOptions}
-              selected={specialInterest}
-              onChange={setSpecialInterest}
-              placeholder="Select special interests..."
-            />
-          </div>
+            {/* Special Interest */}
+            <div>
+              <MultiSelect
+                label="Special Interest"
+                options={specialInterestOptions}
+                selected={specialInterest}
+                onChange={setSpecialInterest}
+                placeholder="Select special interests..."
+              />
+            </div>
 
-          {/* Time Based */}
-          <div>
-            <MultiSelect
-              label="Time Based"
-              options={timeBasedOptions}
-              selected={timeBased}
-              onChange={setTimeBased}
-              placeholder="Select time-based options..."
-            />
+            {/* Time Based */}
+            <div>
+              <MultiSelect
+                label="Time Based"
+                options={timeBasedOptions}
+                selected={timeBased}
+                onChange={setTimeBased}
+                placeholder="Select time-based options..."
+              />
+            </div>
           </div>
 
           {/* Media Upload */}
@@ -593,21 +604,22 @@ export default function CreateEventModal({
             )}
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 justify-end pt-4 border-t border-[var(--card-border)]">
-            <button
-              onClick={onClose}
-              className="rounded-md border border-[var(--card-border)] px-4 py-2 text-sm hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)]"
-            >
-              Create Event
-            </button>
-          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 justify-end pt-4 border-t border-[var(--card-border)] mt-4 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="rounded-md border border-[var(--card-border)] px-4 py-2 text-sm hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)]"
+          >
+            Create Event
+          </button>
         </div>
       </div>
     </div>

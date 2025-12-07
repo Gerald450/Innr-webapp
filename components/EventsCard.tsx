@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
 type EventItem = {
@@ -17,6 +17,11 @@ type EventItem = {
   location_name?: string;
   location_address?: string;
   external_url?: string;
+  event_type?: string[] | null;
+  audience?: string[] | null;
+  logistics?: string[] | null;
+  special_interests?: string[] | null;
+  time_based?: string[] | null;
 };
 
 type EventsCardProps = {
@@ -44,6 +49,71 @@ export default function EventsCard({
   isToggling = false,
 }: EventsCardProps) {
   const truncatedDescription = truncateDescription(event.description, 100);
+  const tagsContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [showArrows, setShowArrows] = useState(false);
+
+  // Collect all tags into a single array
+  const allTags = [
+    ...(event.event_type || []),
+    ...(event.audience || []),
+    ...(event.logistics || []),
+    ...(event.special_interests || []),
+    ...(event.time_based || []),
+  ];
+
+  // Check scroll position and update arrow visibility
+  const checkScroll = () => {
+    const container = tagsContainerRef.current;
+    if (!container) return;
+
+    const canScroll = container.scrollWidth > container.clientWidth;
+    setShowArrows(canScroll);
+    setCanScrollLeft(container.scrollLeft > 0);
+    setCanScrollRight(
+      container.scrollLeft < container.scrollWidth - container.clientWidth - 1
+    );
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const container = tagsContainerRef.current;
+    if (!container) return;
+
+    // Check on resize
+    const resizeObserver = new ResizeObserver(checkScroll);
+    resizeObserver.observe(container);
+
+    container.addEventListener("scroll", checkScroll);
+
+    return () => {
+      resizeObserver.disconnect();
+      container.removeEventListener("scroll", checkScroll);
+    };
+  }, [allTags]);
+
+  const scrollLeft = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (tagsContainerRef.current) {
+      // Scroll by approximately 80% of container width on mobile, fixed amount on desktop
+      const scrollAmount = window.innerWidth < 768 
+        ? tagsContainerRef.current.clientWidth * 0.8 
+        : 100;
+      tagsContainerRef.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (tagsContainerRef.current) {
+      // Scroll by approximately 80% of container width on mobile, fixed amount on desktop
+      const scrollAmount = window.innerWidth < 768 
+        ? tagsContainerRef.current.clientWidth * 0.8 
+        : 100;
+      tagsContainerRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
 
   return (
     <article
@@ -79,6 +149,92 @@ export default function EventsCard({
               <p className="hidden md:block text-xs text-[var(--text-secondary)] mt-1">
                 {truncatedDescription}
               </p>
+            )}
+
+            {/* Tags - Mobile: Show 2 tags, Desktop: Carousel */}
+            {allTags.length > 0 && (
+              <>
+                {/* Mobile: Show only 2 tags */}
+                <div className="flex flex-wrap gap-1.5 mt-2 mb-1 md:hidden">
+                  {allTags.slice(0, 2).map((tag, idx) => (
+                    <span
+                      key={`tag-mobile-${idx}`}
+                      className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full border border-[var(--color-accent)]/20 whitespace-nowrap"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Desktop: Full carousel */}
+                <div className="hidden md:block relative mt-2 mb-1">
+                  {/* Left Arrow */}
+                  {showArrows && canScrollLeft && (
+                    <button
+                      onClick={scrollLeft}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center bg-[var(--card-bg)]/95 backdrop-blur-sm rounded-full shadow-sm border border-[var(--card-border)] hover:bg-[var(--card-bg)] transition-colors"
+                      aria-label="Scroll tags left"
+                    >
+                      <svg
+                        className="w-3 h-3 text-[var(--text-primary)]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* Tags Container */}
+                  <div
+                    ref={tagsContainerRef}
+                    className="flex gap-1.5 overflow-x-auto scrollbar-hide scroll-smooth px-0.5"
+                    style={{ 
+                      scrollbarWidth: "none", 
+                      msOverflowStyle: "none",
+                      WebkitOverflowScrolling: "touch"
+                    }}
+                  >
+                    {allTags.map((tag, idx) => (
+                      <span
+                        key={`tag-desktop-${idx}`}
+                        className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full border border-[var(--color-accent)]/20 whitespace-nowrap flex-shrink-0"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Right Arrow */}
+                  {showArrows && canScrollRight && (
+                    <button
+                      onClick={scrollRight}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center bg-[var(--card-bg)]/95 backdrop-blur-sm rounded-full shadow-sm border border-[var(--card-border)] hover:bg-[var(--card-bg)] transition-colors"
+                      aria-label="Scroll tags right"
+                    >
+                      <svg
+                        className="w-3 h-3 text-[var(--text-primary)]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </>
             )}
 
             <div className="text-xs text-[var(--text-secondary)] flex items-center gap-2 mt-1">

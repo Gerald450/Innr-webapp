@@ -23,6 +23,11 @@ type EventItem = {
   location_name?: string;
   location_address?: string;
   external_url?: string;
+  event_type?: string[] | null;
+  audience?: string[] | null;
+  logistics?: string[] | null;
+  special_interests?: string[] | null;
+  time_based?: string[] | null;
 };
 
 export default function EventsClient() {
@@ -178,6 +183,11 @@ export default function EventsClient() {
             location_name,
             location_address,
             external_url,
+            event_type,
+            audience,
+            logistics,
+            special_interests,
+            time_based,
             posts!inner (
               id,
               title,
@@ -298,6 +308,11 @@ export default function EventsClient() {
               location_name: row.location_name,
               location_address: row.location_address,
               external_url: row.external_url,
+              event_type: row.event_type,
+              audience: row.audience,
+              logistics: row.logistics,
+              special_interests: row.special_interests,
+              time_based: row.time_based,
             };
           })
           .filter((e: EventItem | null) => e !== null) as EventItem[];

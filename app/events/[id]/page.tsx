@@ -22,6 +22,11 @@ type EventDetail = {
   organizerAvatar?: string;
   created_at?: string;
   images?: string[];
+  event_type?: string[] | null;
+  audience?: string[] | null;
+  logistics?: string[] | null;
+  special_interests?: string[] | null;
+  time_based?: string[] | null;
 };
 
 export default function EventDetail() {
@@ -60,6 +65,11 @@ export default function EventDetail() {
             location_name,
             location_address,
             external_url,
+            event_type,
+            audience,
+            logistics,
+            special_interests,
+            time_based,
             posts!inner (
               id,
               title,
@@ -144,6 +154,11 @@ export default function EventDetail() {
           organizerId: author?.id,
           organizerAvatar: author?.avatar_url,
           created_at: post?.created_at,
+          event_type: eventDataTyped.event_type,
+          audience: eventDataTyped.audience,
+          logistics: eventDataTyped.logistics,
+          special_interests: eventDataTyped.special_interests,
+          time_based: eventDataTyped.time_based,
         };
 
         setEvent(eventDetail);
@@ -631,6 +646,59 @@ export default function EventDetail() {
               </div>
             )}
           </div>
+
+          <hr className="border-[var(--card-border)] mb-6" />
+
+          {/* Tags */}
+          {(event.event_type?.length || event.audience?.length || event.logistics?.length || event.special_interests?.length || event.time_based?.length) && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">
+                Tags
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {event.event_type?.map((tag, idx) => (
+                  <span
+                    key={`event_type-${idx}`}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full border border-[var(--color-accent)]/20"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {event.audience?.map((tag, idx) => (
+                  <span
+                    key={`audience-${idx}`}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full border border-[var(--color-accent)]/20"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {event.logistics?.map((tag, idx) => (
+                  <span
+                    key={`logistics-${idx}`}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full border border-[var(--color-accent)]/20"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {event.special_interests?.map((tag, idx) => (
+                  <span
+                    key={`special_interests-${idx}`}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full border border-[var(--color-accent)]/20"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {event.time_based?.map((tag, idx) => (
+                  <span
+                    key={`time_based-${idx}`}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-[var(--color-accent)]/10 text-[var(--color-accent)] rounded-full border border-[var(--color-accent)]/20"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <hr className="border-[var(--card-border)] mb-6" />
 
