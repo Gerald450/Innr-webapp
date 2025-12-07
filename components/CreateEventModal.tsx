@@ -53,6 +53,113 @@ type CreateEventModalProps = {
   onSuccess?: () => void;
 };
 
+// Multi-select dropdown component
+type MultiSelectProps = {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  placeholder?: string;
+};
+
+function MultiSelect({ label, options, selected, onChange, placeholder }: MultiSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const toggleOption = (option: string) => {
+    if (selected.includes(option)) {
+      onChange(selected.filter((item) => item !== option));
+    } else {
+      onChange([...selected, option]);
+    }
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+        {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors text-left flex items-center justify-between"
+      >
+        <span className={selected.length === 0 ? "text-[var(--text-secondary)]" : ""}>
+          {selected.length === 0
+            ? placeholder || "Select options..."
+            : `${selected.length} selected`}
+        </span>
+        <svg
+          className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="absolute z-10 w-full mt-1 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {options.map((option) => (
+            <label
+              key={option}
+              className="flex items-center px-3 py-2 hover:bg-[var(--bg-primary)] cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(option)}
+                onChange={() => toggleOption(option)}
+                className="mr-2 rounded border-[var(--card-border)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+              />
+              <span className="text-sm text-[var(--text-primary)]">{option}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {selected.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {selected.map((item) => (
+            <span
+              key={item}
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-md"
+            >
+              {item}
+              <button
+                type="button"
+                onClick={() => toggleOption(item)}
+                className="hover:text-red-500"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CreateEventModal({
   onClose,
   onSuccess,
@@ -64,9 +171,64 @@ export default function CreateEventModal({
   const [locationName, setLocationName] = useState("");
   const [locationAddress, setLocationAddress] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
+  const [eventType, setEventType] = useState<string[]>([]);
+  const [audience, setAudience] = useState<string[]>([]);
+  const [logistics, setLogistics] = useState<string[]>([]);
+  const [specialInterest, setSpecialInterest] = useState<string[]>([]);
+  const [timeBased, setTimeBased] = useState<string[]>([]);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  // Options for dropdowns
+  const eventTypeOptions = [
+    "Academic (lecture, seminar, workshop, study session)",
+    "Social (party, mixer, hangout, game night)",
+    "Cultural (performance, exhibition, film screening)",
+    "Athletic/Recreation (game, tournament, fitness class, intramural)",
+    "Career/Professional (career fair, networking, info session, interview prep)",
+    "Community Service (volunteer, fundraiser, charity)",
+    "Club Meeting (general meeting, elections, recruitment)",
+    "Wellness (mental health, meditation, health fair)",
+    "Greek Life (rush, formal, philanthropy)",
+    "Religious/Spiritual",
+  ];
+
+  const audienceOptions = [
+    "All Students",
+    "Undergrad Only",
+    "Graduate Students",
+    "Specific Year (Freshmen, Sophomores, etc.)",
+    "Alumni",
+    "Faculty/Staff Welcome",
+    "Commuter Students",
+    "International Students",
+    "Specific Major/Department",
+  ];
+
+  const logisticsOptions = [
+    "Free",
+    "Food Provided",
+    "RSVP Required",
+    "Limited Capacity",
+    "Outdoor",
+    "Virtual/Hybrid",
+    "Recurring Series",
+  ];
+
+  const specialInterestOptions = [
+    "Arts & Music",
+    "Technology/STEM",
+    "Sustainability",
+    "Diversity & Inclusion",
+  ];
+
+  const timeBasedOptions = [
+    "Orientation Week",
+    "Homecoming",
+    "Finals Week",
+    "Late Night (after 9pm)",
+  ];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -100,8 +262,16 @@ export default function CreateEventModal({
       alert("Please enter an event title");
       return;
     }
+    if (!description.trim()) {
+      alert("Please enter an event description");
+      return;
+    }
     if (!startsAt) {
       alert("Please select a start date and time");
+      return;
+    }
+    if (!locationAddress.trim()) {
+      alert("Please enter a location address");
       return;
     }
 
@@ -172,6 +342,11 @@ export default function CreateEventModal({
           location_name: locationName.trim() || null,
           location_address: locationAddress.trim() || null,
           external_url: externalUrl.trim() || null,
+          event_type: eventType.length > 0 ? eventType : null,
+          audience: audience.length > 0 ? audience : null,
+          logistics: logistics.length > 0 ? logistics : null,
+          special_interest: specialInterest.length > 0 ? specialInterest : null,
+          time_based: timeBased.length > 0 ? timeBased : null,
         })
         .select()
         .single();
@@ -191,6 +366,11 @@ export default function CreateEventModal({
       setLocationName("");
       setLocationAddress("");
       setExternalUrl("");
+      setEventType([]);
+      setAudience([]);
+      setLogistics([]);
+      setSpecialInterest([]);
+      setTimeBased([]);
       setMediaFiles([]);
       setMediaPreviews([]);
       onClose();
@@ -231,7 +411,7 @@ export default function CreateEventModal({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
+              className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] placeholder:text-[var(--text-secondary)] transition-colors"
               placeholder="Enter event title"
             />
           </div>
@@ -239,14 +419,14 @@ export default function CreateEventModal({
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-              Description
+              Description <span className="text-red-500">*</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="Describe your event..."
-              className="w-full resize-none rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-black"
+              className="w-full resize-none rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] placeholder:text-[var(--text-secondary)] transition-colors"
             />
           </div>
 
@@ -260,7 +440,7 @@ export default function CreateEventModal({
                 type="datetime-local"
                 value={startsAt}
                 onChange={(e) => setStartsAt(e.target.value)}
-                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors datetime-input"
               />
             </div>
             <div>
@@ -271,7 +451,7 @@ export default function CreateEventModal({
                 type="datetime-local"
                 value={endsAt}
                 onChange={(e) => setEndsAt(e.target.value)}
-                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors datetime-input"
               />
             </div>
           </div>
@@ -286,19 +466,19 @@ export default function CreateEventModal({
                 type="text"
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] placeholder:text-[var(--text-secondary)] transition-colors"
                 placeholder="e.g., Student Center"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                Location Address
+                Location Address <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={locationAddress}
                 onChange={(e) => setLocationAddress(e.target.value)}
-                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] placeholder:text-[var(--text-secondary)] transition-colors"
                 placeholder="Full address"
               />
             </div>
@@ -307,14 +487,69 @@ export default function CreateEventModal({
           {/* External URL */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-              External URL (optional)
+              External URL
             </label>
             <input
               type="url"
               value={externalUrl}
               onChange={(e) => setExternalUrl(e.target.value)}
-              className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
+              className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] placeholder:text-[var(--text-secondary)] transition-colors"
               placeholder="https://..."
+            />
+          </div>
+
+          {/* Event Type */}
+          <div>
+            <MultiSelect
+              label="Event Type"
+              options={eventTypeOptions}
+              selected={eventType}
+              onChange={setEventType}
+              placeholder="Select event types..."
+            />
+          </div>
+
+          {/* Audience */}
+          <div>
+            <MultiSelect
+              label="Audience"
+              options={audienceOptions}
+              selected={audience}
+              onChange={setAudience}
+              placeholder="Select audience..."
+            />
+          </div>
+
+          {/* Logistics */}
+          <div>
+            <MultiSelect
+              label="Logistics"
+              options={logisticsOptions}
+              selected={logistics}
+              onChange={setLogistics}
+              placeholder="Select logistics..."
+            />
+          </div>
+
+          {/* Special Interest */}
+          <div>
+            <MultiSelect
+              label="Special Interest"
+              options={specialInterestOptions}
+              selected={specialInterest}
+              onChange={setSpecialInterest}
+              placeholder="Select special interests..."
+            />
+          </div>
+
+          {/* Time Based */}
+          <div>
+            <MultiSelect
+              label="Time Based"
+              options={timeBasedOptions}
+              selected={timeBased}
+              onChange={setTimeBased}
+              placeholder="Select time-based options..."
             />
           </div>
 

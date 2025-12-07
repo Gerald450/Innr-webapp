@@ -45,3 +45,34 @@ body {
 .dark .svg-icon {
   filter: brightness(0) invert(1);
 }
+
+/* Datetime-local input calendar icon styling */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+}
+
+input[type="datetime-local"]::-webkit-inner-spin-button,
+input[type="datetime-local"]::-webkit-clear-button {
+  filter: brightness(0);
+  opacity: 1;
+}
+
+.dark input[type="datetime-local"]::-webkit-inner-spin-button,
+.dark input[type="datetime-local"]::-webkit-clear-button {
+  filter: brightness(0) invert(1);
+}
+
+/* Firefox datetime-local styling */
+input[type="datetime-local"] {
+  color-scheme: light;
+}
+
+.dark input[type="datetime-local"] {
+  color-scheme: dark;
+}
