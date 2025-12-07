@@ -282,6 +282,10 @@ export default function CreateEventModal({
       alert("Please enter a location address");
       return;
     }
+    if (mediaFiles.length === 0) {
+      alert("Please upload at least one event image or media file");
+      return;
+    }
 
     try {
       // 0. Get authenticated user and profile
@@ -567,7 +571,7 @@ export default function CreateEventModal({
           {/* Media Upload */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-              Event Image/Media
+              Event Image/Media <span className="text-red-500">*</span>
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm border border-[var(--card-border)] hover:bg-[var(--bg-primary)] transition-colors">
               <input
