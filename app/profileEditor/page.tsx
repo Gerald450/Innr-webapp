@@ -13,6 +13,7 @@ type ProfileRow = {
   program_of_study?: string | null;
   graduation_year?: number | null;
   avatar_url?: string | null;
+  student_type?: string | null;
 };
 
 export default function ProfileEditor() {
@@ -24,6 +25,7 @@ export default function ProfileEditor() {
     program_of_study: "",
     graduation_year: null,
     avatar_url: null,
+    student_type: null,
   });
 
   const [fetching, setFetching] = useState<boolean>(true);
@@ -75,7 +77,7 @@ export default function ProfileEditor() {
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select(
-            "full_name, username, bio, program_of_study, graduation_year, avatar_url"
+            "full_name, username, bio, program_of_study, graduation_year, avatar_url, student_type"
           )
           .eq("id", authUser.id)
           .single();
@@ -92,6 +94,7 @@ export default function ProfileEditor() {
             program_of_study: profileData.program_of_study ?? "",
             graduation_year: profileData.graduation_year ?? null,
             avatar_url: profileData.avatar_url ?? null,
+            student_type: profileData.student_type ?? null,
           });
           if (profileData.avatar_url) setAvatarPreview(profileData.avatar_url);
         }
@@ -296,6 +299,7 @@ export default function ProfileEditor() {
         program_of_study: profile.program_of_study ?? null,
         graduation_year: profile.graduation_year ?? null,
         avatar_url: profile.avatar_url ?? null,
+        student_type: profile.student_type ?? null,
       };
 
       const { data, error } = await supabase
@@ -450,6 +454,45 @@ export default function ProfileEditor() {
           />
         </label>
 
+        {/* Student Type */}
+        <label className="block mb-3">
+          <span className="text-sm font-medium text-[var(--text-primary)] mb-2 block">Student Type</span>
+          <div className="flex gap-4">
+            <label className="inline-flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="student_type"
+                value="Undergraduate"
+                checked={profile.student_type === "Undergraduate"}
+                onChange={(e) =>
+                  setProfile((p) => ({
+                    ...p,
+                    student_type: e.target.value,
+                  }))
+                }
+                className="w-4 h-4 text-[var(--color-accent)] bg-[var(--card-bg)] border-2 border-[var(--card-border)] focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-sm text-[var(--text-primary)]">Undergraduate</span>
+            </label>
+            <label className="inline-flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="student_type"
+                value="Graduate"
+                checked={profile.student_type === "Graduate"}
+                onChange={(e) =>
+                  setProfile((p) => ({
+                    ...p,
+                    student_type: e.target.value,
+                  }))
+                }
+                className="w-4 h-4 text-[var(--color-accent)] bg-[var(--card-bg)] border-2 border-[var(--card-border)] focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-sm text-[var(--text-primary)]">Graduate</span>
+            </label>
+          </div>
+        </label>
+
         {/* Graduation year */}
         <label className="block mb-4">
           <span className="text-sm font-medium text-[var(--text-primary)]">Graduation year</span>
@@ -500,7 +543,7 @@ export default function ProfileEditor() {
                     const { data: profileData } = await supabase
                       .from("profiles")
                       .select(
-                        "full_name, username, bio, program_of_study, graduation_year, avatar_url"
+                        "full_name, username, bio, program_of_study, graduation_year, avatar_url, student_type"
                       )
                       .eq("id", user.id)
                       .single();
@@ -514,6 +557,7 @@ export default function ProfileEditor() {
                       avatar_url:
                         profileData?.avatar_url ??
                         "/images/avatar_placeholder.png",
+                      student_type: profileData?.student_type ?? null,
                     });
 
                     setAvatarPreview(
