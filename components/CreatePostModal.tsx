@@ -74,6 +74,7 @@ export default function CreatePostModal({
   const [text, setText] = useState("");
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -105,6 +106,7 @@ export default function CreatePostModal({
 
   async function handleSubmit() {
     if (!text.trim() && !mediaFiles.length) return; // must have content
+    setIsSubmitting(true);
 
     try {
       // 0. Ensure we have an authenticated user and their profile (for university + display data)
@@ -186,9 +188,11 @@ export default function CreatePostModal({
       setText("");
       setMediaFiles([]);
       setMediaPreviews([]);
+      setIsSubmitting(false);
       onClose();
     } catch (err) {
       console.error("Failed to create post:", err);
+      setIsSubmitting(false);
     }
   }
 
@@ -196,77 +200,138 @@ export default function CreatePostModal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-6 md:pt-8 lg:pt-10"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-6 md:pt-8 lg:pt-15 px-4 pb-4 transition-colors"
       aria-modal="true"
       role="dialog"
     >
-    
-      <div className="w-full max-w-3xl rounded-2xl bg-[var(--card-bg)] p-6 shadow-xl transition-colors">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={5}
-              placeholder="What's happening on campus?"
-              className="w-full resize-none rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
-            />
-          </div>
-
+      <div 
+        className="w-full max-w-2xl rounded-2xl bg-[var(--card-bg)] shadow-xl border border-[var(--card-border)] transition-colors overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)]">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)]">Create Post</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="ml-3 rounded-full px-2 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+            className="p-1.5 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+            disabled={isSubmitting}
           >
-            ✕
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           </button>
         </div>
 
-        {mediaPreviews.length ? (
-          <div className="mt-4 flex flex-wrap gap-3">
-            {mediaPreviews.map((url, i) => (
-              <div key={i} className="relative">
-                <img src={url} alt="preview" className="max-h-32 rounded-md" />
-                <button
-                  onClick={() => {
-                    const newFiles = [...mediaFiles];
-                    newFiles.splice(i, 1);
-                    setMediaFiles(newFiles);
-                  }}
-                  className="absolute top-0 right-0 text-sm text-red-600"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
+        {/* Content */}
+        <div className="p-6">
+          {/* Text Input */}
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={6}
+            placeholder="What's happening on campus?"
+            className="w-full resize-none rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors"
+            disabled={isSubmitting}
+          />
 
-        <div className="mt-4 flex items-center justify-between">
-          <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-[var(--bg-primary)] transition-colors">
-            <input
-              type="file"
-              accept="image/*,video/*,application/pdf"
-              onChange={handleMediaChange}
-              className="hidden"
-              multiple
-            />
-            <span className="text-sm text-[var(--text-secondary)]">Attach media</span>
-          </label>
+          {/* Media Previews */}
+          {mediaPreviews.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {mediaPreviews.map((url, i) => (
+                <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--card-border)] bg-[var(--bg-primary)]">
+                  <img 
+                    src={url} 
+                    alt={`Preview ${i + 1}`} 
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={() => {
+                      const newFiles = [...mediaFiles];
+                      const newPreviews = [...mediaPreviews];
+                      newFiles.splice(i, 1);
+                      newPreviews.splice(i, 1);
+                      setMediaFiles(newFiles);
+                      setMediaPreviews(newPreviews);
+                    }}
+                    disabled={isSubmitting}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 hover:bg-black/90 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove media"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="rounded-md border border-[var(--card-border)] px-4 py-2 text-sm hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)]"
-            >
-              Post
-            </button>
+          {/* Footer Actions */}
+          <div className="mt-6 flex items-center justify-between gap-4">
+            {/* Media Upload Button */}
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] px-4 py-2.5 text-sm text-[var(--text-secondary)] hover:bg-[var(--card-bg)] transition-colors">
+              <input
+                type="file"
+                accept="image/*,video/*,application/pdf"
+                onChange={handleMediaChange}
+                className="hidden"
+                multiple
+                disabled={isSubmitting}
+              />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <span className="font-medium">Add Media</span>
+            </label>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-lg border border-[var(--card-border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || (!text.trim() && !mediaFiles.length)}
+                className="px-5 py-2.5 rounded-lg bg-[var(--color-accent)] text-sm font-semibold text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                {isSubmitting ? "Posting..." : "Post"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
