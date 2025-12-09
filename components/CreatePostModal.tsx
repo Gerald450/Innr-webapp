@@ -146,7 +146,7 @@ export default function CreatePostModal({
       const displayName = (profile as any)?.full_name ?? initialName;
       const displayGradYear =
         (profile as any)?.graduation_year != null
-          ? String((profile as any).graduation_year)
+          ? String((profile as any).graduation_year).slice(-2)
           : initialGradYear;
 
       // 1. Create the post in Supabase

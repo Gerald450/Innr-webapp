@@ -46,9 +46,18 @@ export default function Home() {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only observe if user is admin and modal is not open
+    if (userRole !== "admin" || showModal) {
+      setShowBubble(false);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setShowBubble(!entry.isIntersecting);
+        // Only show bubble when MakePost is out of view and modal is closed
+        if (!showModal) {
+          setShowBubble(!entry.isIntersecting);
+        }
       },
       { threshold: 0.1 }
     );
@@ -60,7 +69,7 @@ export default function Home() {
       if (el) observer.unobserve(el);
       observer.disconnect();
     };
-  }, []);
+  }, [userRole, showModal]);
 
   // Load posts from Supabase for the current user's university
   useEffect(() => {
@@ -415,8 +424,8 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Floating circular bubble (appears only when MakePost is out of view and user is admin) */}
-      {showBubble && userRole === "admin" && (
+      {/* Floating circular bubble (appears only when MakePost is out of view, modal is closed, and user is admin) */}
+      {showBubble && userRole === "admin" && !showModal && (
         <button
           onClick={openCreatePost}
           aria-label="Start a post"
