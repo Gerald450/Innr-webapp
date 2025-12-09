@@ -522,12 +522,12 @@ export const Post: React.FC<PostProps> = ({
         <div className="w-full bg-black relative">
           <div className="w-full max-h-[80vh] overflow-hidden bg-[var(--bg-primary)] relative">
             {/* Carousel Container */}
-            <div className="relative w-full h-full">
+            <div className="relative w-full">
               {imageList.map((img, index) => (
                 <div
                   key={index}
                   className={`transition-opacity duration-500 ${
-                    index === currentImageIndex ? "opacity-100" : "opacity-0 absolute inset-0"
+                    index === currentImageIndex ? "opacity-100 relative" : "opacity-0 absolute inset-0"
                   }`}
                 >
                   <img
@@ -539,12 +539,16 @@ export const Post: React.FC<PostProps> = ({
                 </div>
               ))}
 
-              {/* Navigation Arrows - Only show if multiple images */}
+              {/* Navigation Arrows - Fixed position, centered vertically on image */}
               {hasMultipleImages && (
                 <>
                   <button
                     onClick={prevImage}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200 hover:scale-110 z-10"
+                    className="absolute left-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200 hover:scale-110 z-20"
+                    style={{ 
+                      top: "35%",
+                      transform: "translateY(-50%)"
+                    }}
                     aria-label="Previous image"
                   >
                     <svg
@@ -563,7 +567,11 @@ export const Post: React.FC<PostProps> = ({
                   </button>
                   <button
                     onClick={nextImage}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200 hover:scale-110 z-10"
+                    className="absolute right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200 hover:scale-110 z-20"
+                    style={{ 
+                      top: "35%",
+                      transform: "translateY(-50%)"
+                    }}
                     aria-label="Next image"
                   >
                     <svg
