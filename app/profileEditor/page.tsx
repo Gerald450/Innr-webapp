@@ -325,22 +325,30 @@ export default function ProfileEditor() {
   }
 
   // ---------- render ----------
-  if (fetching) return <div className="p-6">Loading profile…</div>;
+  if (fetching) {
+    return (
+      <div className="bg-[var(--bg-primary)] min-h-screen flex items-center justify-center transition-colors">
+        <div className="text-center">
+          <div className="text-lg text-[var(--text-secondary)]">Loading profile…</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="w-full min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4 py-10 transition-colors">
       <form
         onSubmit={handleSubmit}
-        className="max-w-xl w-full p-6 bg-white text-black rounded shadow"
+        className="max-w-xl w-full p-6 bg-[var(--card-bg)] text-[var(--text-primary)] rounded-2xl shadow-sm border border-[var(--card-border)] transition-colors"
       >
-        <h2 className="text-xl font-semibold mb-4">Edit profile</h2>
+        <h2 className="text-xl font-semibold mb-4 text-[var(--text-primary)]">Edit profile</h2>
 
         {message && (
           <div
-            className={`mb-4 p-3 rounded ${
+            className={`mb-4 p-3 rounded-md text-sm ${
               message.type === "error"
-                ? "bg-red-50 text-red-700"
-                : "bg-green-50 text-green-700"
+                ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
             }`}
           >
             {message.text}
@@ -349,7 +357,7 @@ export default function ProfileEditor() {
 
         {/* Avatar UI */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-20 h-20 rounded-full bg-slate-200 overflow-hidden flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-[var(--bg-primary)] border border-[var(--card-border)] overflow-hidden flex items-center justify-center">
             {avatarPreview ? (
               <img
                 src={avatarPreview}
@@ -357,7 +365,7 @@ export default function ProfileEditor() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="text-sm text-slate-600">No avatar</div>
+              <div className="text-sm text-[var(--text-secondary)]">No avatar</div>
             )}
           </div>
 
@@ -369,7 +377,7 @@ export default function ProfileEditor() {
                 onChange={handleAvatarChange}
                 className="hidden"
               />
-              <span className="px-3 py-2 bg-[var(--color-accent)] text-white rounded text-sm">
+              <span className="px-3 py-2 bg-[var(--color-accent)] text-white rounded text-sm hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition">
                 Change avatar
               </span>
             </label>
@@ -378,40 +386,40 @@ export default function ProfileEditor() {
               <button
                 type="button"
                 onClick={handleRemoveAvatar}
-                className="ml-3 text-sm text-slate-600"
+                className="ml-3 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 Remove
               </button>
             )}
 
             {uploadingAvatar && (
-              <div className="text-xs text-slate-500 mt-2">Uploading…</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-2">Uploading…</div>
             )}
           </div>
         </div>
 
         {/* Full name */}
         <label className="block mb-3">
-          <span className="text-sm font-medium">Full name</span>
+          <span className="text-sm font-medium text-[var(--text-primary)]">Full name</span>
           <input
             value={profile.full_name ?? ""}
             onChange={(e) =>
               setProfile((p) => ({ ...p, full_name: e.target.value }))
             }
-            className="mt-1 block w-full rounded border px-3 py-2"
+            className="mt-1 block w-full rounded border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors"
             placeholder="John Doe"
           />
         </label>
 
         {/* Username */}
         <label className="block mb-3">
-          <span className="text-sm font-medium">Username</span>
+          <span className="text-sm font-medium text-[var(--text-primary)]">Username</span>
           <input
             value={profile.username ?? ""}
             onChange={(e) =>
               setProfile((p) => ({ ...p, username: e.target.value }))
             }
-            className="mt-1 block w-full rounded border px-3 py-2"
+            className="mt-1 block w-full rounded border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors"
             placeholder="johndoe"
             required
           />
@@ -419,11 +427,11 @@ export default function ProfileEditor() {
 
         {/* Bio */}
         <label className="block mb-3">
-          <span className="text-sm font-medium">Bio</span>
+          <span className="text-sm font-medium text-[var(--text-primary)]">Bio</span>
           <textarea
             value={profile.bio ?? ""}
             onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
-            className="mt-1 block w-full rounded border px-3 py-2"
+            className="mt-1 block w-full rounded border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors"
             placeholder="A little about you"
             rows={3}
           />
@@ -431,20 +439,20 @@ export default function ProfileEditor() {
 
         {/* Program */}
         <label className="block mb-3">
-          <span className="text-sm font-medium">Program of study</span>
+          <span className="text-sm font-medium text-[var(--text-primary)]">Program of study</span>
           <input
             value={profile.program_of_study ?? ""}
             onChange={(e) =>
               setProfile((p) => ({ ...p, program_of_study: e.target.value }))
             }
-            className="mt-1 block w-full rounded border px-3 py-2"
+            className="mt-1 block w-full rounded border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors"
             placeholder="Computer Science"
           />
         </label>
 
         {/* Graduation year */}
         <label className="block mb-4">
-          <span className="text-sm font-medium">Graduation year</span>
+          <span className="text-sm font-medium text-[var(--text-primary)]">Graduation year</span>
           <input
             value={profile.graduation_year ?? ""}
             onChange={(e) =>
@@ -454,7 +462,7 @@ export default function ProfileEditor() {
                   e.target.value === "" ? null : Number(e.target.value),
               }))
             }
-            className="mt-1 block w-40 rounded border px-3 py-2"
+            className="mt-1 block w-40 rounded border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors"
             placeholder="2026"
             type="number"
             min={1900}
@@ -467,7 +475,7 @@ export default function ProfileEditor() {
           <button
             type="button"
             onClick={() => router.push("/profile")}
-            className="px-4 py-2 border border-slate-300 rounded text-sm hover:bg-gray-50 text-black"
+            className="px-4 py-2 border border-[var(--card-border)] rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-800 text-[var(--text-primary)] transition-colors"
           >
             Cancel
           </button>
@@ -476,7 +484,7 @@ export default function ProfileEditor() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center px-4 py-2 bg-[var(--color-accent)] text-white rounded shadow disabled:opacity-60"
+              className="inline-flex items-center px-4 py-2 bg-[var(--color-accent)] text-white rounded shadow hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] disabled:opacity-60 transition"
             >
               {loading ? "Saving..." : "Save changes"}
             </button>
@@ -522,7 +530,7 @@ export default function ProfileEditor() {
                   }
                 })();
               }}
-              className="text-sm text-slate-600"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               Reset
             </button>

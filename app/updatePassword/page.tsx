@@ -29,21 +29,27 @@ export default function UpdatePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4 py-10 transition-colors">
+      <div className="max-w-md w-full bg-[var(--card-bg)] p-8 rounded-xl shadow-lg border border-[var(--card-border)] transition-colors">
+        <h2 className="text-2xl font-bold mb-6 text-center text-[var(--text-primary)]">
           Set New Password
         </h2>
 
         {message && (
-          <p className="mb-4 text-center text-sm text-gray-700">{message}</p>
+          <p className={`mb-4 text-center text-sm ${
+            message.includes("successfully") 
+              ? "text-green-700 dark:text-green-400" 
+              : "text-red-700 dark:text-red-400"
+          }`}>
+            {message}
+          </p>
         )}
 
         <form onSubmit={handleUpdatePassword} className="space-y-4">
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-[var(--text-primary)]"
             >
               New Password
             </label>
@@ -53,39 +59,25 @@ export default function UpdatePasswordPage() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"
+              className="mt-1 block w-full px-4 py-2 border border-[var(--card-border)] rounded-lg bg-[var(--card-bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors"
               placeholder="Enter new password"
-              style={{
-                outlineColor: "#ff4136",
-                boxShadow: "0 0 0 2px #ff4136",
-              }}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full text-white py-2 rounded-lg disabled:opacity-50"
-            style={{
-              backgroundColor: "#ff4136",
-            }}
-            onMouseOver={(e) =>
-              (e.currentTarget.style.backgroundColor = "#e03a2c")
-            }
-            onMouseOut={(e) =>
-              (e.currentTarget.style.backgroundColor = "#ff4136")
-            }
+            className="w-full text-white py-2 rounded-lg disabled:opacity-50 bg-[var(--color-accent)] hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"
           >
             {loading ? "Updating..." : "Update Password"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
           Remembered your password?{" "}
           <a
             href="/signin"
-            style={{ color: "#ff4136" }}
-            className="hover:underline"
+            className="text-[var(--color-accent)] hover:underline"
           >
             Sign in
           </a>

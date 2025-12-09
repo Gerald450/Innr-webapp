@@ -155,25 +155,25 @@ export default function AuthPageSupabase() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] flex items-center text-black justify-center px-4">
+    <div className="min-h-screen bg-[var(--bg-primary)] flex items-center text-[var(--text-primary)] justify-center px-4 transition-colors">
       <div className="w-full max-w-6xl flex flex-col md:flex-row md:items-center md:justify-between gap-10">
         <div className="flex-1">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--color-accent)]">
             Innr
           </h1>
-          <p className="mt-4 text-xl text-slate-800 max-w-md">
+          <p className="mt-4 text-xl text-[var(--text-primary)] max-w-md">
             Connect with your campus and the people around you on Innr.
           </p>
         </div>
 
         <div className="flex-1 max-w-md">
-          <div className="bg-white shadow-lg rounded-xl overflow-hidden">
+          <div className="bg-[var(--card-bg)] shadow-lg rounded-xl overflow-hidden border border-[var(--card-border)] transition-colors">
             <main className="p-8">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold text-black">
+                <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
                   {mode === "signin" ? "Sign in" : "Create account"}
                 </h2>
-                <div className="text-sm text-slate-500">
+                <div className="text-sm text-[var(--text-secondary)]">
                   {mode === "signin" ? "New here?" : "Already a member?"}{" "}
                   <button
                     type="button"
@@ -189,58 +189,58 @@ export default function AuthPageSupabase() {
                 </div>
               </div>
 
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
                 Use your email to{" "}
                 {mode === "signin" ? "sign in" : "create an account"}
               </p>
 
               <form className="mt-6 space-y-4" onSubmit={onSubmit} noValidate>
                 {errors.general && (
-                  <div className="text-sm text-red-600">{errors.general}</div>
+                  <div className="text-sm text-red-600 dark:text-red-400">{errors.general}</div>
                 )}
                 {statusMsg && (
-                  <div className="text-sm text-green-700">{statusMsg}</div>
+                  <div className="text-sm text-green-700 dark:text-green-400">{statusMsg}</div>
                 )}
 
                 {mode === "signup" && (
                   <>
                     <label className="block">
-                      <span className="text-sm font-medium text-slate-700">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
                         Full name
                       </span>
                       <input
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] ${
+                        className={`mt-1 block w-full rounded-md border bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors ${
                           errors.fullName
                             ? "border-red-400"
-                            : "border-slate-200"
+                            : "border-[var(--card-border)]"
                         }`}
                         placeholder="Jane Doe"
                       />
                       {errors.fullName && (
-                        <div className="mt-1 text-xs text-red-600">
+                        <div className="mt-1 text-xs text-red-600 dark:text-red-400">
                           {errors.fullName}
                         </div>
                       )}
                     </label>
 
                     <label className="block">
-                      <span className="text-sm font-medium text-slate-700">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
                         Username
                       </span>
                       <input
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] ${
+                        className={`mt-1 block w-full rounded-md border bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors ${
                           errors.username
                             ? "border-red-400"
-                            : "border-slate-200"
+                            : "border-[var(--card-border)]"
                         }`}
                         placeholder="janedoe"
                       />
                       {errors.username && (
-                        <div className="mt-1 text-xs text-red-600">
+                        <div className="mt-1 text-xs text-red-600 dark:text-red-400">
                           {errors.username}
                         </div>
                       )}
@@ -249,27 +249,27 @@ export default function AuthPageSupabase() {
                 )}
 
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-700">
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
                     Email address
                   </span>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] ${
-                      errors.email ? "border-red-400" : "border-slate-200"
+                    className={`mt-1 block w-full rounded-md border bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors ${
+                      errors.email ? "border-red-400" : "border-[var(--card-border)]"
                     }`}
                     placeholder="you@university.edu"
                   />
                   {errors.email && (
-                    <div className="mt-1 text-xs text-red-600">
+                    <div className="mt-1 text-xs text-red-600 dark:text-red-400">
                       {errors.email}
                     </div>
                   )}
                 </label>
 
                 <label className="block relative">
-                  <span className="text-sm font-medium text-slate-700">
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
                     Password
                   </span>
                   <div className="mt-1 flex items-center">
@@ -277,19 +277,24 @@ export default function AuthPageSupabase() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={`flex-1 rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] ${
-                        errors.password ? "border-red-400" : "border-slate-200"
+                      className={`flex-1 rounded-md border bg-[var(--card-bg)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors ${
+                        errors.password ? "border-red-400" : "border-[var(--card-border)]"
                       }`}
                       placeholder="At least 8 characters"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
-                      className="ml-2 text-sm text-slate-500 hover:text-slate-700"
+                      className="ml-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                     >
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
+                  {errors.password && (
+                    <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+                      {errors.password}
+                    </div>
+                  )}
                 </label>
 
                 {mode == "signin" && (
@@ -299,9 +304,9 @@ export default function AuthPageSupabase() {
                         type="checkbox"
                         checked={remember}
                         onChange={() => setRemember((r) => !r)}
-                        className="rounded border-slate-300"
+                        className="rounded border-[var(--card-border)]"
                       />
-                      <span className="text-slate-600">Remember me</span>
+                      <span className="text-[var(--text-secondary)]">Remember me</span>
                     </label>
 
                     <button
@@ -318,7 +323,7 @@ export default function AuthPageSupabase() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full inline-flex items-center justify-center rounded-md bg-[var(--color-accent)] text-white px-4 py-2 font-medium shadow hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] disabled:opacity-60"
+                    className="w-full inline-flex items-center justify-center rounded-md bg-[var(--color-accent)] text-white px-4 py-2 font-medium shadow hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] disabled:opacity-60 transition"
                   >
                     {loading
                       ? "Working..."
@@ -329,7 +334,7 @@ export default function AuthPageSupabase() {
                 </div>
               </form>
 
-              <div className="mt-4 text-center text-sm text-slate-500">
+              <div className="mt-4 text-center text-sm text-[var(--text-secondary)]">
                 By continuing you agree to our{" "}
                 <button className="text-[var(--color-accent)] hover:underline">
                   Terms
