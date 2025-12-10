@@ -34,6 +34,24 @@ type Notification = {
   };
 };
 
+type GroupedNotification = {
+  id: string; // Use the most recent notification's ID as the group ID
+  type: NotificationType;
+  post_id: string | null;
+  comment_id: string | null;
+  event_id: string | null;
+  conversation_id: string | null;
+  is_read: boolean;
+  metadata: any;
+  created_at: string; // Most recent timestamp
+  actors: Array<{
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  }>;
+  notificationIds: string[]; // All notification IDs in this group
+};
+
 const getNotificationIcon = (type: NotificationType) => {
   switch (type) {
     case "new_follower":
@@ -89,11 +107,11 @@ const getNotificationIcon = (type: NotificationType) => {
   }
 };
 
-const getNotificationText = (notification: Notification): string => {
-  const metadata = notification.metadata || {};
-  const snippet = metadata.snippet ? `: "${metadata.snippet}"` : "";
+const getNotificationText = (type: NotificationType, metadata: any = {}): string => {
+  const safeMetadata = metadata || {};
+  const snippet = safeMetadata.snippet ? `: "${safeMetadata.snippet}"` : "";
 
-  switch (notification.type) {
+  switch (type) {
     case "new_follower":
       return "started following you";
     case "post_liked":
@@ -105,7 +123,7 @@ const getNotificationText = (notification: Notification): string => {
     case "mentioned":
       return `mentioned you${snippet}`;
     case "system_announcement":
-      return metadata.title || "System announcement";
+      return safeMetadata.title || "System announcement";
     case "event_created":
       return "created an event";
     case "event_reminder":
@@ -117,9 +135,112 @@ const getNotificationText = (notification: Notification): string => {
   }
 };
 
+const formatActorNames = (actors: Array<{ full_name: string | null }>, count: number): string => {
+  if (count === 0) return "Someone";
+  
+  const validActors = actors.filter(a => a.full_name && a.full_name.trim()).map(a => a.full_name!);
+  
+  if (count === 1) {
+    return validActors[0] || "Someone";
+  } else if (count === 2) {
+    if (validActors.length >= 2) {
+      return `${validActors[0]} and ${validActors[1]}`;
+    } else if (validActors.length === 1) {
+      return `${validActors[0]} and 1 other`;
+    } else {
+      return "Someone and 1 other";
+    }
+  } else {
+    const first = validActors[0] || "Someone";
+    const others = count - 1;
+    return `${first} and ${others} other${others > 1 ? "s" : ""}`;
+  }
+};
+
+// Groups notifications by type and the relevant resource ID
+const groupNotifications = (notifications: Notification[]): GroupedNotification[] => {
+  // Types that should be grouped together
+  const groupableTypes: NotificationType[] = [
+    "post_liked",
+    "comment_added",
+    "comment_replied",
+    "new_follower",
+    "mentioned",
+  ];
+
+  const groups = new Map<string, Notification[]>();
+
+  notifications.forEach((notification) => {
+    // Only group certain types
+    if (!groupableTypes.includes(notification.type)) {
+      // Create a single-item group for non-groupable notifications
+      const key = `single_${notification.id}`;
+      groups.set(key, [notification]);
+      return;
+    }
+
+    // Create a grouping key based on type and the relevant resource
+    let groupKey = notification.type;
+    
+    if (notification.post_id) {
+      groupKey += `_post_${notification.post_id}`;
+    } else if (notification.comment_id) {
+      groupKey += `_comment_${notification.comment_id}`;
+    } else if (notification.event_id) {
+      groupKey += `_event_${notification.event_id}`;
+    } else if (notification.type === "new_follower") {
+      // For followers, group all together (no specific resource)
+      groupKey += "_followers";
+    } else if (notification.type === "mentioned") {
+      // For mentions, group by post_id if available
+      groupKey += notification.post_id ? `_post_${notification.post_id}` : `_mention_${notification.id}`;
+    } else {
+      // Fallback: create unique group
+      groupKey += `_${notification.id}`;
+    }
+
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, []);
+    }
+    groups.get(groupKey)!.push(notification);
+  });
+
+  // Convert groups to GroupedNotification objects
+  return Array.from(groups.entries()).map(([_, group]) => {
+    // Sort by created_at descending (most recent first)
+    const sortedGroup = [...group].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    const firstNotification = sortedGroup[0];
+    const actors = sortedGroup
+      .filter((n) => n.actor)
+      .map((n) => n.actor!)
+      // Remove duplicates by actor ID
+      .filter((actor, index, self) => 
+        index === self.findIndex(a => a.id === actor.id)
+      );
+
+    return {
+      id: firstNotification.id,
+      type: firstNotification.type,
+      post_id: firstNotification.post_id,
+      comment_id: firstNotification.comment_id,
+      event_id: firstNotification.event_id,
+      conversation_id: firstNotification.conversation_id,
+      is_read: sortedGroup.every((n) => n.is_read),
+      metadata: firstNotification.metadata,
+      created_at: firstNotification.created_at,
+      actors,
+      notificationIds: sortedGroup.map((n) => n.id),
+    };
+  });
+};
+
 export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [groupedNotifications, setGroupedNotifications] = useState<GroupedNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [markingRead, setMarkingRead] = useState<Set<string>>(new Set());
@@ -210,6 +331,12 @@ export default function NotificationsPage() {
         }));
 
         setNotifications(transformed);
+        
+        // Group notifications
+        const grouped = groupNotifications(transformed);
+        // Sort grouped notifications by most recent
+        grouped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setGroupedNotifications(grouped);
       } catch (err) {
         console.error("Unexpected error loading notifications:", err);
         if (mounted) setError("Unexpected error loading notifications.");
@@ -225,42 +352,67 @@ export default function NotificationsPage() {
     };
   }, []);
 
-  const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read if not already read
-    if (!notification.is_read && !markingRead.has(notification.id)) {
-      setMarkingRead((prev) => new Set(prev).add(notification.id));
-      
+  // Regroup notifications whenever the notifications array changes
+  useEffect(() => {
+    const grouped = groupNotifications(notifications);
+    grouped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setGroupedNotifications(grouped);
+  }, [notifications]);
+
+  const handleNotificationClick = async (groupedNotification: GroupedNotification) => {
+    // Mark all notifications in the group as read if not already read
+    const unreadIds = groupedNotification.notificationIds.filter((id) => {
+      const notif = notifications.find((n) => n.id === id);
+      return notif && !notif.is_read;
+    });
+
+    if (unreadIds.length > 0) {
+      const idsToMark = unreadIds.filter((id) => !markingRead.has(id));
+      idsToMark.forEach((id) => setMarkingRead((prev) => new Set(prev).add(id)));
+
       try {
         await supabase
           .from("notifications")
           .update({ is_read: true })
-          .eq("id", notification.id);
+          .in("id", idsToMark);
 
         // Update local state
         setNotifications((prev) =>
           prev.map((n) =>
-            n.id === notification.id ? { ...n, is_read: true } : n
+            idsToMark.includes(n.id) ? { ...n, is_read: true } : n
+          )
+        );
+
+        // Update grouped notifications
+        setGroupedNotifications((prev) =>
+          prev.map((g) =>
+            g.id === groupedNotification.id
+              ? { ...g, is_read: true }
+              : g
           )
         );
       } catch (err) {
-        console.error("Error marking notification as read:", err);
+        console.error("Error marking notifications as read:", err);
       } finally {
-        setMarkingRead((prev) => {
-          const next = new Set(prev);
-          next.delete(notification.id);
-          return next;
-        });
+        idsToMark.forEach((id) =>
+          setMarkingRead((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          })
+        );
       }
     }
 
     // Navigate based on notification type
-    if (notification.post_id) {
-      router.push(`/posts/${notification.post_id}`);
-    } else if (notification.event_id) {
-      router.push(`/events/${notification.event_id}`);
-    } else if (notification.actor_id) {
-      router.push(`/users/${notification.actor_id}`);
-    } else if (notification.conversation_id) {
+    if (groupedNotification.post_id) {
+      router.push(`/posts/${groupedNotification.post_id}`);
+    } else if (groupedNotification.event_id) {
+      router.push(`/events/${groupedNotification.event_id}`);
+    } else if (groupedNotification.type === "new_follower" && groupedNotification.actors.length > 0) {
+      // For new followers, navigate to the first follower's profile
+      router.push(`/users/${groupedNotification.actors[0].id}`);
+    } else if (groupedNotification.conversation_id) {
       router.push(`/chats`);
     }
   };
@@ -282,6 +434,11 @@ export default function NotificationsPage() {
       // Update local state
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, is_read: true }))
+      );
+
+      // Update grouped notifications
+      setGroupedNotifications((prev) =>
+        prev.map((g) => ({ ...g, is_read: true }))
       );
     } catch (err) {
       console.error("Error marking all notifications as read:", err);
@@ -337,7 +494,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Notifications List */}
-        {notifications.length === 0 ? (
+        {groupedNotifications.length === 0 ? (
           <div className="text-center py-12 bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)]">
             <div className="text-sm text-[var(--text-secondary)] mb-2">
               No notifications yet
@@ -348,85 +505,92 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                onClick={() => handleNotificationClick(notification)}
-                className={`
-                  relative flex items-start gap-3 p-4 rounded-lg border transition-all cursor-pointer
-                  ${
-                    notification.is_read
-                      ? "bg-[var(--card-bg)] border-[var(--card-border)] hover:bg-[var(--bg-primary)]"
-                      : "bg-[var(--card-bg)] border-[var(--color-accent)]/30 hover:border-[var(--color-accent)]/50 hover:bg-[var(--bg-primary)]"
-                  }
-                `}
-              >
-                {/* Actor Avatar */}
-                <div className="relative flex-shrink-0">
-                  {!notification.is_read && (
-                    <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[var(--color-accent)] rounded-full border-2 border-[var(--card-bg)] z-10" />
-                  )}
-                  {notification.actor?.avatar_url ? (
-                    <img
-                      src={notification.actor.avatar_url}
-                      alt={notification.actor.full_name || "User"}
-                      className="h-10 w-10 rounded-full object-cover"
-                    />
-                  ) : notification.actor_id ? (
-                    <div className="h-10 w-10 rounded-full bg-[var(--bg-primary)] flex items-center justify-center">
-                      <svg className="w-6 h-6 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-accent)]">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                  )}
-                </div>
+            {groupedNotifications.map((groupedNotification) => {
+              const actorCount = groupedNotification.actors.length;
+              const hasActors = actorCount > 0;
+              const firstActor = hasActors ? groupedNotification.actors[0] : undefined;
+              const actorNames = formatActorNames(groupedNotification.actors, actorCount);
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      {/* Icon for system notifications */}
-                      {!notification.actor_id && (
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="text-[var(--color-accent)]">
-                            {getNotificationIcon(notification.type)}
+              return (
+                <div
+                  key={groupedNotification.id}
+                  onClick={() => handleNotificationClick(groupedNotification)}
+                  className={`
+                    relative flex items-start gap-3 p-4 rounded-lg border transition-all cursor-pointer
+                    ${
+                      groupedNotification.is_read
+                        ? "bg-[var(--card-bg)] border-[var(--card-border)] hover:bg-[var(--bg-primary)]"
+                        : "bg-[var(--card-bg)] border-[var(--color-accent)]/30 hover:border-[var(--color-accent)]/50 hover:bg-[var(--bg-primary)]"
+                    }
+                  `}
+                >
+                  {/* Actor Avatar */}
+                  <div className="relative flex-shrink-0">
+                    {!groupedNotification.is_read && (
+                      <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[var(--color-accent)] rounded-full border-2 border-[var(--card-bg)] z-10" />
+                    )}
+                    {hasActors && firstActor?.avatar_url ? (
+                      <img
+                        src={firstActor.avatar_url}
+                        alt={firstActor.full_name || "User"}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : hasActors ? (
+                      <div className="h-10 w-10 rounded-full bg-[var(--bg-primary)] flex items-center justify-center">
+                        <svg className="w-6 h-6 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center text-[var(--color-accent)]">
+                        {getNotificationIcon(groupedNotification.type)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        {/* Icon for system notifications */}
+                        {!hasActors && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-[var(--color-accent)]">
+                              {getNotificationIcon(groupedNotification.type)}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      
-                      <p className="text-sm text-[var(--text-primary)] leading-relaxed">
-                        {notification.actor_id && notification.actor?.full_name ? (
-                          <>
-                            <span className="font-semibold">
-                              {notification.actor.full_name}
-                            </span>{" "}
-                            {getNotificationText(notification)}
-                          </>
-                        ) : (
-                          getNotificationText(notification)
                         )}
-                      </p>
-
-                      {/* Metadata snippet for messages/comments */}
-                      {notification.metadata?.snippet && (
-                        <p className="text-xs text-[var(--text-secondary)] mt-1 italic truncate">
-                          {notification.metadata.snippet}
+                        
+                        <p className="text-sm text-[var(--text-primary)] leading-relaxed">
+                          {hasActors ? (
+                            <>
+                              <span className="font-semibold">
+                                {actorNames}
+                              </span>{" "}
+                              {getNotificationText(groupedNotification.type, groupedNotification.metadata)}
+                            </>
+                          ) : (
+                            getNotificationText(groupedNotification.type, groupedNotification.metadata)
+                          )}
                         </p>
-                      )}
-                    </div>
 
-                    {/* Time */}
-                    <span className="text-xs text-[var(--text-secondary)] shrink-0 whitespace-nowrap">
-                      {getRelativeTime(notification.created_at)}
-                    </span>
+                        {/* Metadata snippet for messages/comments */}
+                        {groupedNotification.metadata?.snippet && (
+                          <p className="text-xs text-[var(--text-secondary)] mt-1 italic truncate">
+                            {groupedNotification.metadata.snippet}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Time */}
+                      <span className="text-xs text-[var(--text-secondary)] shrink-0 whitespace-nowrap">
+                        {getRelativeTime(groupedNotification.created_at)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
