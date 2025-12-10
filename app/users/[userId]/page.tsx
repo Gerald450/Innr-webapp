@@ -248,9 +248,9 @@ export default function UserProfilePage() {
 
   if (loading) {
     return (
-      <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex justify-center items-center px-4 transition-colors">
+      <div className="bg-[var(--bg-primary)] min-h-screen flex items-center justify-center transition-colors">
         <div className="text-center">
-          <div className="text-lg text-slate-600">Loading profile...</div>
+          <div className="text-lg text-[var(--text-secondary)]">Loading profile…</div>
         </div>
       </div>
     );
@@ -278,53 +278,70 @@ export default function UserProfilePage() {
   return (
     <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex flex-col items-center px-4 transition-colors">
       <div className="w-full max-w-6xl">
-        {/* Profile Header - Centered */}
-        <div className="flex flex-col items-center mb-6">
-          {/* Avatar */}
-          <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border-2 border-white shadow-sm mb-4">
-            {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.full_name || "Profile"}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-3xl">
-                {profile.full_name?.[0]?.toUpperCase() || "?"}
+        {/* Profile Header - Well Designed */}
+        <div className="mb-8">
+          {/* Profile Card */}
+          <div className="rounded-2xl shadow-sm p-6 sm:p-8 transition-colors">
+            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
+              {/* Avatar Section */}
+              <div className="flex-shrink-0">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[var(--bg-primary)] overflow-hidden flex-shrink-0 border-3 border-[var(--card-border)] shadow-md ring-2 ring-[var(--card-border)]">
+                  {profile.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.full_name || "Profile"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-secondary)] text-4xl font-semibold">
+                      {profile.full_name?.[0]?.toUpperCase() || "?"}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Name + Grad Year */}
-          <div className="flex items-center gap-2 flex-wrap justify-center mb-2">
-            <h2 className="font-semibold text-xl text-[var(--text-primary)]">
-              {profile.full_name || "Unknown User"}
-            </h2>
-            {profile.graduation_year && (
-              <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
-                <img
-                  src="/svgs/graduate.svg"
-                  alt="Graduate"
-                  className="h-3 w-3"
-                />
-                {String(profile.graduation_year).slice(-2)}
-              </span>
-            )}
-          </div>
+              {/* Info Section */}
+              <div className="flex-1 min-w-0">
+                {/* Name + Grad Year */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
+                      {profile.full_name || "Unknown User"}
+                    </h2>
+                    {profile.graduation_year && (
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] dark:bg-slate-800 px-3 py-1 rounded-full border border-[var(--card-border)]">
+                        <img
+                          src="/svgs/graduate.svg"
+                          alt="Graduate"
+                          className="h-3.5 w-3.5 svg-icon"
+                        />
+                        {String(profile.graduation_year).slice(-2)}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-          {/* Program of Study */}
-          {profile.program_of_study && (
-            <div className="text-sm text-[var(--text-secondary)] mb-2 text-center">
-              {profile.program_of_study}
+                {/* Program of Study */}
+                {profile.program_of_study && (
+                  <div className="text-base text-[var(--text-secondary)] mb-3 font-medium">
+                    {profile.program_of_study}
+                  </div>
+                )}
+
+                {/* Connections Count */}
+                <div className="text-sm font-medium text-[var(--text-secondary)] mb-4">
+                  {connectionsCount} campus {connectionsCount === 1 ? 'connection' : 'connections'}
+                </div>
+
+                {/* Bio */}
+                {profile.bio && (
+                  <div className="text-sm sm:text-base text-[var(--text-primary)] leading-relaxed whitespace-pre-line mb-6 max-w-2xl">
+                    {profile.bio}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-
-          {/* Bio */}
-          {profile.bio && (
-            <div className="text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-line text-center max-w-2xl mb-4">
-              {profile.bio}
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Tabs Card */}
@@ -361,12 +378,15 @@ export default function UserProfilePage() {
               <div>
                 {loadingPosts ? (
                   <div className="text-center py-12">
-                    <div className="text-sm text-slate-500">Loading posts...</div>
+                    <div className="text-sm text-[var(--text-secondary)]">Loading posts...</div>
                   </div>
                 ) : userPosts.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="text-sm text-slate-500 mb-2">
+                    <div className="text-sm text-[var(--text-secondary)] mb-2">
                       No posts yet.
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)] opacity-70">
+                      This user hasn't shared anything yet.
                     </div>
                   </div>
                 ) : (

@@ -6,6 +6,7 @@ import MenuDrawer from "./MenuDrawer";
 import { usePathname } from "next/navigation";
 import ProfileSidebar from "./ProfileSideBar";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 const navTabs = [
   { id: "home", label: "Home", icon: "/svgs/home.svg", path: "/" },
@@ -31,6 +32,7 @@ export const Navbar: React.FC = () => {
   const [openProfile, setOpenProfile] = useState(false);
   const router = useRouter();
   const avatar = useUserAvatar();
+  const { unreadCount } = useUnreadNotifications();
 
   useEffect(() => {
     // set initial width on mount and subscribe to resize
@@ -166,9 +168,9 @@ export const Navbar: React.FC = () => {
                       <img src={tab.icon} alt={tab.label} className="h-6 w-6 svg-icon" />
 
                       {/* BADGE attached directly to the image */}
-                      {isNotifications && (
-                        <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
-                          3
+                      {isNotifications && unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white px-1">
+                          {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
                     </div>
@@ -211,15 +213,18 @@ export const Navbar: React.FC = () => {
             label="Notification"
             iconSrc="/svgs/notification.svg"
             className="flex md:hidden"
+            onClick={() => router.push("/notifications")}
           >
             <div
               className="relative flex h-9 w-9 items-center justify-center shrink-0 rounded-full bg-[var(--bg-primary)] transition hover:bg-[var(--card-bg)]"
               aria-label="Notifications"
             >
               <img src="/svgs/notification.svg" className="svg-icon" />
-              <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
-                3
-              </span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white px-1">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </div>
           </TooltipButton>
 
