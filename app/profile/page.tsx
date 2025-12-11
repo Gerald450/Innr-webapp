@@ -95,7 +95,7 @@ function MyProfilePageContent() {
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select(
-            "id, full_name, program_of_study, bio, avatar_url, graduation_year"
+            "id, full_name, program_of_study, bio, avatar_url, graduation_year, student_type"
           )
           .eq("id", userId)
           .single();
@@ -565,7 +565,7 @@ function MyProfilePageContent() {
 
               {/* Info Section */}
               <div className="flex-1 min-w-0">
-                {/* Name + Grad Year + Role */}
+                {/* Name + Grad Year + Student Type + Role */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
                   <div className="flex items-center gap-3 flex-wrap">
                     <h2 className="font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
@@ -579,6 +579,11 @@ function MyProfilePageContent() {
                           className="h-3.5 w-3.5 svg-icon"
                         />
                         {String(profile.graduation_year).slice(-2)}
+                      </span>
+                    )}
+                    {profile.student_type && (
+                      <span className="text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] dark:bg-slate-800 px-3 py-1 rounded-full border border-[var(--card-border)]">
+                        {profile.student_type}
                       </span>
                     )}
                   </div>
