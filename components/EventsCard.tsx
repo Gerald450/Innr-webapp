@@ -122,9 +122,9 @@ export default function EventsCard({
       className="cursor-pointer bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-md transition-colors"
     >
       {/* MOBILE: flex row | DESKTOP: block */}
-      <div className="flex md:block w-full">
+      <div className="flex md:block w-full items-stretch">
         {/* IMAGE */}
-        <div className="w-24 h-29 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)]">
+        <div className="w-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] self-stretch">
           <img
             src={event.imageSrc}
             alt={event.title}
