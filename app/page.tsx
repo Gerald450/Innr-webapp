@@ -399,9 +399,8 @@ export default function Home() {
       <div ref={postRef} className="w-full flex justify-center">
         <MakePost
           onStartPost={openCreatePost}
-          onVideoClick={() => console.log("open video upload")}
-          onPhotoClick={() => console.log("open photo upload")}
-          onArticleClick={() => console.log("open write-article editor")}
+          onVideoClick={openCreatePost}
+          onPhotoClick={openCreatePost}
         />
       </div>
       )}

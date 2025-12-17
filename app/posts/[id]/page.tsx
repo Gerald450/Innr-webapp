@@ -255,7 +255,7 @@ export default function PostDetailPage() {
               setPost((prev) => prev ? { ...prev, text: newText } : null);
             }}
             onPostDelete={() => {
-              router.push("/profile");
+              router.back();
             }}
           />
         </div>

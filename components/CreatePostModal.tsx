@@ -25,12 +25,21 @@ async function uploadPostMedia(
         data: { publicUrl },
       } = supabase.storage.from("post-media").getPublicUrl(uploadData.path);
 
+      // Derive media_type from file.type
+      let mediaType = "image"; // default
+      if (file.type.startsWith("video/")) {
+        mediaType = "video";
+      } else if (file.type.startsWith("image/")) {
+        mediaType = "image";
+      } else if (file.type === "application/pdf") {
+        mediaType = "pdf";
+      }
+
       const { data: mediaRow, error: mediaError } = await supabase
         .from("post_media")
         .insert({
           post_id: postId,
-          // TODO: derive real media_type from file.type; using "image" as default.
-          media_type: "image",
+          media_type: mediaType,
           storage_path: uploadData.path,
           url: publicUrl,
           order_index: index,
@@ -73,9 +82,10 @@ export default function CreatePostModal({
   const [gradYear, setGradYear] = useState(initialGradYear);
   const [text, setText] = useState("");
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<Array<{ url: string; type: string; id: string }>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -90,9 +100,13 @@ export default function CreatePostModal({
       setMediaPreviews([]);
       return;
     }
-    const urls = mediaFiles.map((file) => URL.createObjectURL(file));
-    setMediaPreviews(urls);
-    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+    const previews = mediaFiles.map((file, index) => ({
+      url: URL.createObjectURL(file),
+      type: file.type,
+      id: `${file.name}-${file.size}-${index}-${Date.now()}`,
+    }));
+    setMediaPreviews(previews);
+    return () => previews.forEach((preview) => URL.revokeObjectURL(preview.url));
   }, [mediaFiles]);
 
   function handleOverlayClick(e: React.MouseEvent) {
@@ -189,6 +203,10 @@ export default function CreatePostModal({
       setMediaFiles([]);
       setMediaPreviews([]);
       setIsSubmitting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       onClose();
     } catch (err) {
       console.error("Failed to create post:", err);
@@ -248,42 +266,56 @@ export default function CreatePostModal({
           {/* Media Previews */}
           {mediaPreviews.length > 0 && (
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {mediaPreviews.map((url, i) => (
-                <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--card-border)] bg-[var(--bg-primary)]">
-                  <img 
-                    src={url} 
-                    alt={`Preview ${i + 1}`} 
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    onClick={() => {
-                      const newFiles = [...mediaFiles];
-                      const newPreviews = [...mediaPreviews];
-                      newFiles.splice(i, 1);
-                      newPreviews.splice(i, 1);
-                      setMediaFiles(newFiles);
-                      setMediaPreviews(newPreviews);
-                    }}
-                    disabled={isSubmitting}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 hover:bg-black/90 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Remove media"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
+              {mediaPreviews.map((preview, i) => {
+                const isVideo = preview.type.startsWith("video/");
+                return (
+                  <div key={preview.id} className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--card-border)] bg-[var(--bg-primary)]">
+                    {isVideo ? (
+                      <video 
+                        src={preview.url} 
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
                       />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                    ) : (
+                      <img 
+                        src={preview.url} 
+                        alt={`Preview ${i + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <button
+                      onClick={() => {
+                        const newFiles = [...mediaFiles];
+                        const newPreviews = [...mediaPreviews];
+                        newFiles.splice(i, 1);
+                        newPreviews.splice(i, 1);
+                        // Revoke the object URL before removing
+                        URL.revokeObjectURL(preview.url);
+                        setMediaFiles(newFiles);
+                        setMediaPreviews(newPreviews);
+                      }}
+                      disabled={isSubmitting}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 hover:bg-black/90 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      aria-label="Remove media"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -292,6 +324,7 @@ export default function CreatePostModal({
             {/* Media Upload Button */}
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] px-4 py-2.5 text-sm text-[var(--text-secondary)] hover:bg-[var(--card-bg)] transition-colors">
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*,video/*,application/pdf"
                 onChange={handleMediaChange}
