@@ -222,24 +222,28 @@ function MyProfilePageContent() {
 
         if (!mounted) return;
 
-        // Get like counts, comment counts, repost counts, and user's interaction status
+        // Get like counts, comment counts, repost counts, and user's interaction status in parallel
         const fetchedPostIds = (postsData ?? []).map((p: any) => p.id);
 
-        const { data: likesData } = await supabase
-          .from("post_likes")
-          .select("post_id, user_id")
-          .in("post_id", fetchedPostIds);
-
-        const { data: commentsData } = await supabase
-          .from("comments")
-          .select("post_id")
-          .in("post_id", fetchedPostIds)
-          .eq("is_deleted", false);
-
-        const { data: repostsData } = await supabase
-          .from("reposts")
-          .select("post_id, user_id")
-          .in("post_id", fetchedPostIds);
+        const [
+          { data: likesData },
+          { data: commentsData },
+          { data: repostsData },
+        ] = await Promise.all([
+          supabase
+            .from("post_likes")
+            .select("post_id, user_id")
+            .in("post_id", fetchedPostIds),
+          supabase
+            .from("comments")
+            .select("post_id")
+            .in("post_id", fetchedPostIds)
+            .eq("is_deleted", false),
+          supabase
+            .from("reposts")
+            .select("post_id, user_id")
+            .in("post_id", fetchedPostIds),
+        ]);
 
         // Create maps for quick lookup
         const likeCountMap: Record<string, number> = {};
@@ -361,45 +365,57 @@ function MyProfilePageContent() {
         // Get like counts and check if current user has liked each post
         const postIds = (postsData ?? []).map((p: any) => p.id);
         
+        if (postIds.length === 0) {
+          if (!mounted) return;
+          setUserPosts([]);
+          setLoadingPosts(false);
+          return;
+        }
+
         const { data: { user } } = await supabase.auth.getUser();
         const userId = user?.id;
 
-        // Get like counts for all posts
-        const { data: likesData } = await supabase
-          .from("post_likes")
-          .select("post_id")
-          .in("post_id", postIds);
-
-        // Get user's likes
-        const { data: userLikesData } = userId
-          ? await supabase
-              .from("post_likes")
-              .select("post_id")
-              .eq("user_id", userId)
-              .in("post_id", postIds)
-          : { data: null };
-
-        // Get comment counts for all posts
-        const { data: commentsData } = await supabase
-          .from("comments")
-          .select("post_id")
-          .in("post_id", postIds)
-          .eq("is_deleted", false);
-
-        // Get repost counts for all posts
-        const { data: repostsData } = await supabase
-          .from("reposts")
-          .select("post_id")
-          .in("post_id", postIds);
-
-        // Get user's reposts
-        const { data: userRepostsData } = userId
-          ? await supabase
-              .from("reposts")
-              .select("post_id")
-              .eq("user_id", userId)
-              .in("post_id", postIds)
-          : { data: null };
+        // Execute all count queries in parallel
+        const [
+          { data: likesData },
+          { data: userLikesData },
+          { data: commentsData },
+          { data: repostsData },
+          { data: userRepostsData },
+        ] = await Promise.all([
+          // Get like counts for all posts
+          supabase
+            .from("post_likes")
+            .select("post_id")
+            .in("post_id", postIds),
+          // Get user's likes
+          userId
+            ? supabase
+                .from("post_likes")
+                .select("post_id")
+                .eq("user_id", userId)
+                .in("post_id", postIds)
+            : Promise.resolve({ data: null }),
+          // Get comment counts for all posts
+          supabase
+            .from("comments")
+            .select("post_id")
+            .in("post_id", postIds)
+            .eq("is_deleted", false),
+          // Get repost counts for all posts
+          supabase
+            .from("reposts")
+            .select("post_id")
+            .in("post_id", postIds),
+          // Get user's reposts
+          userId
+            ? supabase
+                .from("reposts")
+                .select("post_id")
+                .eq("user_id", userId)
+                .in("post_id", postIds)
+            : Promise.resolve({ data: null }),
+        ]);
 
         // Create maps for quick lookup
         const likeCountMap: Record<string, number> = {};

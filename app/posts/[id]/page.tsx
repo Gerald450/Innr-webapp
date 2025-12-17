@@ -44,28 +44,36 @@ export default function PostDetailPage() {
       setError(null);
 
       try {
-        const { data: postData, error: postErr } = await supabase
-          .from("posts")
-          .select(
+        // Get user first (can be done in parallel with post fetch)
+        const [{ data: { user } }, { data: postData, error: postErr }] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase
+            .from("posts")
+            .select(
+              `
+              id,
+              body,
+              created_at,
+              author_id,
+              profiles (
+                full_name,
+                graduation_year,
+                avatar_url
+              ),
+              post_media (
+                url,
+                order_index
+              )
             `
-            id,
-            body,
-            created_at,
-            author_id,
-            profiles (
-              full_name,
-              graduation_year,
-              avatar_url
-            ),
-            post_media (
-              url,
-              order_index
             )
-          `
-          )
-          .eq("id", postId)
-          .eq("is_deleted", false)
-          .single();
+            .eq("id", postId)
+            .eq("is_deleted", false)
+            .single(),
+        ]);
+
+        if (user && mounted) {
+          setCurrentUserId(user.id);
+        }
 
         if (postErr || !postData) {
           console.error("Error loading post:", postErr);
@@ -86,49 +94,45 @@ export default function PostDetailPage() {
         const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
         const firstMedia = sortedMedia[0] ?? null;
 
-        // Get like count and check if current user has liked
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && mounted) {
-          setCurrentUserId(user.id);
-        }
-        
         const postIdFromData = postDataTyped.id;
 
-        const { data: likesData } = await supabase
-          .from("post_likes")
-          .select("user_id")
-          .eq("post_id", postIdFromData);
+        // Execute all count queries in parallel
+        const [
+          { data: likesData },
+          { data: commentsData },
+          { data: repostsData },
+          { data: bookmarksData },
+        ] = await Promise.all([
+          supabase
+            .from("post_likes")
+            .select("user_id")
+            .eq("post_id", postIdFromData),
+          supabase
+            .from("comments")
+            .select("id")
+            .eq("post_id", postIdFromData)
+            .eq("is_deleted", false),
+          supabase
+            .from("reposts")
+            .select("user_id")
+            .eq("post_id", postIdFromData),
+          supabase
+            .from("bookmarks")
+            .select("user_id")
+            .eq("post_id", postIdFromData),
+        ]);
 
         const likeCount = likesData?.length || 0;
         const isLiked = user
           ? (likesData ?? []).some((like: any) => like.user_id === user.id)
           : false;
 
-        // Get comment count
-        const { data: commentsData } = await supabase
-          .from("comments")
-          .select("id")
-          .eq("post_id", postIdFromData)
-          .eq("is_deleted", false);
-
         const commentCount = commentsData?.length || 0;
-
-        // Get repost count and check if current user has reposted
-        const { data: repostsData } = await supabase
-          .from("reposts")
-          .select("user_id")
-          .eq("post_id", postIdFromData);
 
         const repostCount = repostsData?.length || 0;
         const isReposted = user
           ? (repostsData ?? []).some((repost: any) => repost.user_id === user.id)
           : false;
-
-        // Get bookmark count and check if current user has bookmarked
-        const { data: bookmarksData } = await supabase
-          .from("bookmarks")
-          .select("user_id")
-          .eq("post_id", postIdFromData);
 
         const bookmarkCount = bookmarksData?.length || 0;
         const isBookmarked = user

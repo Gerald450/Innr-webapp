@@ -154,7 +154,7 @@ export default function Home() {
           return;
         }
 
-        // 3) Load posts for this university, including author profile + media
+        // 3) Load posts for this university, including author profile + media (limit to 30 for initial load)
         const { data: postsData, error: postsErr } = await supabase
           .from("posts")
           .select(
@@ -176,56 +176,80 @@ export default function Home() {
           )
           .eq("university_id", universityId)
           .eq("is_deleted", false)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(30);
 
-        // 4) Get like counts and check if current user has liked each post
+        // Check for posts error immediately
+        if (postsErr) {
+          console.error("Error loading posts:", postsErr);
+          if (!mounted) return;
+          setPostsError("Unable to load posts.");
+          setLoadingPosts(false);
+          return;
+        }
+
+        if (!mounted) return;
+
+        // 4) Get all counts and user interactions in parallel for better performance
         const postIds = (postsData ?? []).map((p: any) => p.id);
         
-        // Get like counts for all posts
-        const { data: likesData } = await supabase
-          .from("post_likes")
-          .select("post_id")
-          .in("post_id", postIds);
+        // Early return if no posts
+        if (postIds.length === 0) {
+          setPosts([]);
+          setLoadingPosts(false);
+          return;
+        }
 
-        // Get user's likes
-        const { data: userLikesData } = await supabase
-          .from("post_likes")
-          .select("post_id")
-          .eq("user_id", user.id)
-          .in("post_id", postIds);
-
-        // Get comment counts for all posts
-        const { data: commentsData } = await supabase
-          .from("comments")
-          .select("post_id")
-          .in("post_id", postIds)
-          .eq("is_deleted", false);
-
-        // Get repost counts for all posts
-        const { data: repostsData } = await supabase
-          .from("reposts")
-          .select("post_id")
-          .in("post_id", postIds);
-
-        // Get user's reposts
-        const { data: userRepostsData } = await supabase
-          .from("reposts")
-          .select("post_id")
-          .eq("user_id", user.id)
-          .in("post_id", postIds);
-
-        // Get bookmark counts for all posts
-        const { data: bookmarksData } = await supabase
-          .from("bookmarks")
-          .select("post_id")
-          .in("post_id", postIds);
-
-        // Get user's bookmarks
-        const { data: userBookmarksData } = await supabase
-          .from("bookmarks")
-          .select("post_id")
-          .eq("user_id", user.id)
-          .in("post_id", postIds);
+        // Execute all queries in parallel using Promise.all
+        const [
+          { data: likesData },
+          { data: userLikesData },
+          { data: commentsData },
+          { data: repostsData },
+          { data: userRepostsData },
+          { data: bookmarksData },
+          { data: userBookmarksData },
+        ] = await Promise.all([
+          // Get like counts for all posts
+          supabase
+            .from("post_likes")
+            .select("post_id")
+            .in("post_id", postIds),
+          // Get user's likes
+          supabase
+            .from("post_likes")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .in("post_id", postIds),
+          // Get comment counts for all posts
+          supabase
+            .from("comments")
+            .select("post_id")
+            .in("post_id", postIds)
+            .eq("is_deleted", false),
+          // Get repost counts for all posts
+          supabase
+            .from("reposts")
+            .select("post_id")
+            .in("post_id", postIds),
+          // Get user's reposts
+          supabase
+            .from("reposts")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .in("post_id", postIds),
+          // Get bookmark counts for all posts
+          supabase
+            .from("bookmarks")
+            .select("post_id")
+            .in("post_id", postIds),
+          // Get user's bookmarks
+          supabase
+            .from("bookmarks")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .in("post_id", postIds),
+        ]);
 
         // Create maps for quick lookup
         const likeCountMap: Record<string, number> = {};
@@ -261,15 +285,6 @@ export default function Home() {
         (bookmarksData ?? []).forEach((bookmark: any) => {
           bookmarkCountMap[bookmark.post_id] = (bookmarkCountMap[bookmark.post_id] || 0) + 1;
         });
-
-        if (postsErr) {
-          console.error("Error loading posts:", postsErr);
-          if (!mounted) return;
-          setPostsError("Unable to load posts.");
-          return;
-        }
-
-        if (!mounted) return;
 
         const mapped: PostItem[] =
           (postsData ?? []).map((row: any) => {

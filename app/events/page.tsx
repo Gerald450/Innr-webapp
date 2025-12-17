@@ -205,7 +205,8 @@ export default function EventsClient() {
             )
           `
           )
-          .order("starts_at", { ascending: true });
+          .order("starts_at", { ascending: true })
+          .limit(50); // Limit events for better performance
 
         // Filter: Only show events from 'regular' users to other 'regular' users
         // If user is not 'regular', they won't see events from 'regular' users
@@ -231,14 +232,35 @@ export default function EventsClient() {
         // 4. Get all event IDs
         const eventIds = (eventsData ?? []).map((row: any) => row.id);
 
-        // 5. Get attendee counts for all events
-        const { data: attendeeCountsData, error: attendeeCountsError } = await supabase
-          .from("event_attendees")
-          .select("event_id")
-          .in("event_id", eventIds);
+        if (eventIds.length === 0) {
+          if (!mounted) return;
+          setEvents([]);
+          setLoading(false);
+          return;
+        }
+
+        // 5. Get attendee counts and user's attendee status in parallel
+        const [
+          { data: attendeeCountsData, error: attendeeCountsError },
+          { data: userAttendeesData, error: userAttendeesError },
+        ] = await Promise.all([
+          supabase
+            .from("event_attendees")
+            .select("event_id")
+            .in("event_id", eventIds),
+          supabase
+            .from("event_attendees")
+            .select("event_id")
+            .eq("user_id", user.id)
+            .in("event_id", eventIds),
+        ]);
 
         if (attendeeCountsError) {
           console.error("Error loading attendee counts:", attendeeCountsError);
+        }
+
+        if (userAttendeesError) {
+          console.error("Error loading user attendees:", userAttendeesError);
         }
 
         // Count attendees per event
@@ -246,17 +268,6 @@ export default function EventsClient() {
         (attendeeCountsData ?? []).forEach((row: any) => {
           countsMap[row.event_id] = (countsMap[row.event_id] || 0) + 1;
         });
-
-        // 6. Get current user's attendee status for all events
-        const { data: userAttendeesData, error: userAttendeesError } = await supabase
-          .from("event_attendees")
-          .select("event_id")
-          .eq("user_id", user.id)
-          .in("event_id", eventIds);
-
-        if (userAttendeesError) {
-          console.error("Error loading user attendees:", userAttendeesError);
-        }
 
         // Map user's attendance status
         const userJoinedSet = new Set(
