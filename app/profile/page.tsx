@@ -557,11 +557,11 @@ function MyProfilePageContent() {
         {/* Profile Header - Well Designed */}
         <div className="mb-8">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-8">My Profile</h1>
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-8 text-center sm:text-left">My Profile</h1>
 
           {/* Profile Card */}
           <div className=" rounded-2xl shadow-sm p-6 sm:p-8 transition-colors">
-            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
+            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
               {/* Avatar Section */}
               <div className="flex-shrink-0">
                 <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[var(--bg-primary)] overflow-hidden flex-shrink-0 border-3 border-[var(--card-border)] shadow-md ring-2 ring-[var(--card-border)]">
@@ -580,10 +580,10 @@ function MyProfilePageContent() {
               </div>
 
               {/* Info Section */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 w-full">
                 {/* Name + Grad Year + Student Type + Role */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
-                  <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3 items-center sm:items-start">
+                  <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-start">
                     <h2 className="font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
                       {profile.full_name || "Unknown User"}
                     </h2>
@@ -614,25 +614,25 @@ function MyProfilePageContent() {
 
                 {/* Program of Study */}
                 {profile.program_of_study && (
-                  <div className="text-base text-[var(--text-secondary)] mb-3 font-medium">
+                  <div className="text-base text-[var(--text-secondary)] mb-3 font-medium text-center sm:text-left">
                     {profile.program_of_study}
                   </div>
                 )}
 
                 {/* Connections Count */}
-                <div className="text-sm font-medium text-[var(--text-secondary)] mb-4">
+                <div className="text-sm font-medium text-[var(--text-secondary)] mb-4 text-center sm:text-left">
                   {connectionsCount} campus {connectionsCount === 1 ? 'connection' : 'connections'}
                 </div>
 
                 {/* Bio */}
                 {profile.bio && (
-                  <div className="text-sm sm:text-base text-[var(--text-primary)] leading-relaxed whitespace-pre-line mb-6 max-w-2xl">
+                  <div className="text-sm sm:text-base text-[var(--text-primary)] leading-relaxed whitespace-pre-line mb-6 max-w-2xl mx-auto sm:mx-0 text-center sm:text-left">
                     {profile.bio}
                   </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3 mt-6">
+                <div className="flex flex-wrap gap-3 mt-6 justify-center sm:justify-start">
                   <button
                     onClick={() => router.push("/profileEditor")}
                     className="px-5 py-2.5 rounded-lg bg-[var(--color-accent)] text-white font-semibold hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition shadow-sm text-sm sm:text-base"
