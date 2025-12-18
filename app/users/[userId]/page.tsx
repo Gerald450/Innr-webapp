@@ -47,10 +47,18 @@ export default function UserProfilePage() {
       setErrorMsg(null);
 
       try {
-        // Check if this is the current user's profile
-        const {
-          data: { user: currentUser },
-        } = await supabase.auth.getUser();
+        // Parallelize auth check and profile fetch
+        const [
+          { data: { user: currentUser } },
+          { data: profileData, error: profileError }
+        ] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase
+            .from("profiles")
+            .select("id, full_name, program_of_study, bio, avatar_url, graduation_year, student_type")
+            .eq("id", userId)
+            .single()
+        ]);
 
         if (currentUser?.id === userId) {
           if (!mounted) return;
@@ -58,13 +66,6 @@ export default function UserProfilePage() {
           router.push("/profile");
           return;
         }
-
-        // Fetch user profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, full_name, program_of_study, bio, avatar_url, graduation_year, student_type")
-          .eq("id", userId)
-          .single();
 
         if (profileError) {
           console.warn("Profile fetch error:", profileError);
@@ -100,28 +101,31 @@ export default function UserProfilePage() {
       setLoadingPosts(true);
 
       try {
-        const { data: postsData, error: postsErr } = await supabase
-          .from("posts")
-          .select(
+        // Get current user first (can be done in parallel with posts fetch)
+        const [
+          { data: { user } },
+          { data: postsData, error: postsErr }
+        ] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase
+            .from("posts")
+            .select(
+              `
+              id,
+              body,
+              created_at,
+              author_id,
+              post_media (
+                url,
+                order_index
+              )
             `
-            id,
-            body,
-            created_at,
-            author_id,
-            profiles (
-              full_name,
-              graduation_year,
-              avatar_url
-            ),
-            post_media (
-              url,
-              order_index
             )
-          `
-          )
-          .eq("author_id", profile.id)
-          .eq("is_deleted", false)
-          .order("created_at", { ascending: false });
+            .eq("author_id", profile.id)
+            .eq("is_deleted", false)
+            .order("created_at", { ascending: false })
+            .limit(50) // Limit initial load for better performance
+        ]);
 
         if (postsErr) {
           console.error("Error loading user posts:", postsErr);
@@ -131,7 +135,6 @@ export default function UserProfilePage() {
 
         if (!mounted) return;
 
-        // Get like counts and check if current user has liked each post
         const postIds = (postsData ?? []).map((p: any) => p.id);
 
         if (postIds.length === 0) {
@@ -141,10 +144,9 @@ export default function UserProfilePage() {
           return;
         }
 
-        const { data: { user } } = await supabase.auth.getUser();
         const currentUserId = user?.id;
 
-        // Execute all count queries in parallel
+        // Execute all count queries in parallel - only fetch post_id for minimal data transfer
         const [
           { data: likesData },
           { data: userLikesData },
@@ -152,7 +154,7 @@ export default function UserProfilePage() {
           { data: repostsData },
           { data: userRepostsData },
         ] = await Promise.all([
-          // Get like counts for all posts
+          // Get like counts - only fetch post_id for counting
           supabase
             .from("post_likes")
             .select("post_id")
@@ -165,13 +167,13 @@ export default function UserProfilePage() {
                 .eq("user_id", currentUserId)
                 .in("post_id", postIds)
             : Promise.resolve({ data: null }),
-          // Get comment counts for all posts
+          // Get comment counts - only fetch post_id
           supabase
             .from("comments")
             .select("post_id")
             .in("post_id", postIds)
             .eq("is_deleted", false),
-          // Get repost counts for all posts
+          // Get repost counts - only fetch post_id
           supabase
             .from("reposts")
             .select("post_id")
@@ -186,7 +188,7 @@ export default function UserProfilePage() {
             : Promise.resolve({ data: null }),
         ]);
 
-        // Create maps for quick lookup
+        // Create maps for quick lookup - optimized counting
         const likeCountMap: Record<string, number> = {};
         const commentCountMap: Record<string, number> = {};
         const repostCountMap: Record<string, number> = {};
@@ -212,9 +214,9 @@ export default function UserProfilePage() {
           repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
         });
 
+        // Map posts - use profile data we already have instead of joined profile
         const mapped: PostItem[] =
           (postsData ?? []).map((row: any) => {
-            const author = row.profiles as any | null;
             const media = (row.post_media as any[]) ?? [];
             const sortedMedia = media
               .slice()
@@ -224,16 +226,16 @@ export default function UserProfilePage() {
 
             return {
               id: row.id,
-              name: author?.full_name ?? "Unknown",
+              name: profile.full_name ?? "Unknown",
               text: row.body ?? "",
               created_at: row.created_at,
               gradYear:
-                author?.graduation_year != null
-                  ? String(author.graduation_year).slice(-2)
+                profile.graduation_year != null
+                  ? String(profile.graduation_year).slice(-2)
                   : "",
               image: firstMedia?.url ?? "",
               images: allImages.length > 0 ? allImages : undefined,
-              avatar: author?.avatar_url ?? undefined,
+              avatar: profile.avatar_url ?? undefined,
               authorId: row.author_id,
               likeCount: likeCountMap[row.id] || 0,
               isLiked: userLikedSet.has(row.id),
@@ -243,7 +245,7 @@ export default function UserProfilePage() {
             };
           }) as PostItem[];
 
-        setUserPosts(mapped);
+        if (mounted) setUserPosts(mapped);
       } catch (err) {
         console.error("Unexpected error loading user posts:", err);
       } finally {
@@ -256,7 +258,7 @@ export default function UserProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [activeTab, profile?.id]);
+  }, [activeTab, profile?.id, profile?.full_name, profile?.graduation_year, profile?.avatar_url]);
 
   if (loading) {
     return (
