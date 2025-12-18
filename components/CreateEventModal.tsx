@@ -8,42 +8,63 @@ async function uploadPostMedia(
   authorId: string,
   files: File[]
 ): Promise<{ url: string }[]> {
-  const uploads = await Promise.all(
-    files.map(async (file, index) => {
-      const ext = file.name.split(".").pop() || "bin";
-      const filePath = `${authorId}/${postId}/${Date.now()}-${index}.${ext}`;
+  // Upload files sequentially for large videos to prevent UI blocking
+  // Use Promise.allSettled to handle errors gracefully
+  const uploads: { url: string }[] = [];
+  
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
+    const ext = file.name.split(".").pop() || "bin";
+    const filePath = `${authorId}/${postId}/${Date.now()}-${index}.${ext}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("post-media")
-        .upload(filePath, file);
+    // Yield to event loop periodically to prevent UI freeze
+    if (index > 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
 
-      if (uploadError || !uploadData) {
-        throw uploadError || new Error("Upload failed without error details");
-      }
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("post-media")
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("post-media").getPublicUrl(uploadData.path);
+    if (uploadError || !uploadData) {
+      throw uploadError || new Error("Upload failed without error details");
+    }
 
-      const { data: mediaRow, error: mediaError } = await supabase
-        .from("post_media")
-        .insert({
-          post_id: postId,
-          media_type: "image",
-          storage_path: uploadData.path,
-          url: publicUrl,
-          order_index: index,
-        })
-        .select()
-        .single();
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("post-media").getPublicUrl(uploadData.path);
 
-      if (mediaError || !mediaRow) {
-        throw mediaError || new Error("post_media insert failed");
-      }
+    // Derive media_type from file.type
+    let mediaType = "image"; // default
+    if (file.type.startsWith("video/")) {
+      mediaType = "video";
+    } else if (file.type.startsWith("image/")) {
+      mediaType = "image";
+    } else if (file.type === "application/pdf") {
+      mediaType = "pdf";
+    }
 
-      return mediaRow as { url: string };
-    })
-  );
+    const { data: mediaRow, error: mediaError } = await supabase
+      .from("post_media")
+      .insert({
+        post_id: postId,
+        media_type: mediaType,
+        storage_path: uploadData.path,
+        url: publicUrl,
+        order_index: index,
+      })
+      .select()
+      .single();
+
+    if (mediaError || !mediaRow) {
+      throw mediaError || new Error("post_media insert failed");
+    }
+
+    uploads.push(mediaRow as { url: string });
+  }
 
   return uploads;
 }
@@ -177,7 +198,8 @@ export default function CreateEventModal({
   const [specialInterest, setSpecialInterest] = useState<string[]>([]);
   const [timeBased, setTimeBased] = useState<string[]>([]);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<Array<{ url: string; type: string; id: string }>>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
   // Options for dropdowns
@@ -251,9 +273,13 @@ export default function CreateEventModal({
       setMediaPreviews([]);
       return;
     }
-    const urls = mediaFiles.map((file) => URL.createObjectURL(file));
-    setMediaPreviews(urls);
-    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+    const previews = mediaFiles.map((file, index) => ({
+      url: URL.createObjectURL(file),
+      type: file.type,
+      id: `${file.name}-${file.size}-${index}-${Date.now()}`,
+    }));
+    setMediaPreviews(previews);
+    return () => previews.forEach((preview) => URL.revokeObjectURL(preview.url));
   }, [mediaFiles]);
 
   function handleOverlayClick(e: React.MouseEvent) {
@@ -286,6 +312,8 @@ export default function CreateEventModal({
       alert("Please upload at least one event image or media file");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       // 0. Get authenticated user and profile
@@ -385,11 +413,13 @@ export default function CreateEventModal({
       setTimeBased([]);
       setMediaFiles([]);
       setMediaPreviews([]);
+      setIsSubmitting(false);
       onClose();
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error("Failed to create event:", err);
       alert("Failed to create event. Please try again.");
+      setIsSubmitting(false);
     }
   }
 
@@ -408,6 +438,7 @@ export default function CreateEventModal({
             onClick={onClose}
             aria-label="Close"
             className="rounded-full px-2 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+            disabled={isSubmitting}
           >
             ✕
           </button>
@@ -580,30 +611,62 @@ export default function CreateEventModal({
                 onChange={handleMediaChange}
                 className="hidden"
                 multiple
+                disabled={isSubmitting}
               />
               <span className="text-sm text-[var(--text-secondary)]">Attach media</span>
             </label>
             {mediaPreviews.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-3">
-                {mediaPreviews.map((url, i) => (
-                  <div key={i} className="relative">
-                    <img
-                      src={url}
-                      alt="preview"
-                      className="max-h-32 rounded-md"
-                    />
-                    <button
-                      onClick={() => {
-                        const newFiles = [...mediaFiles];
-                        newFiles.splice(i, 1);
-                        setMediaFiles(newFiles);
-                      }}
-                      className="absolute top-0 right-0 text-sm text-red-600 bg-[var(--card-bg)] rounded-full p-1"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {mediaPreviews.map((preview, i) => {
+                  const isVideo = preview.type.startsWith("video/");
+                  return (
+                    <div key={preview.id} className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--card-border)] bg-[var(--bg-primary)]">
+                      {isVideo ? (
+                        <video 
+                          src={preview.url} 
+                          className="w-full h-full object-cover"
+                          controls
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img 
+                          src={preview.url} 
+                          alt={`Preview ${i + 1}`} 
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <button
+                        onClick={() => {
+                          const newFiles = [...mediaFiles];
+                          const newPreviews = [...mediaPreviews];
+                          newFiles.splice(i, 1);
+                          newPreviews.splice(i, 1);
+                          // Revoke the object URL before removing
+                          URL.revokeObjectURL(preview.url);
+                          setMediaFiles(newFiles);
+                          setMediaPreviews(newPreviews);
+                        }}
+                        disabled={isSubmitting}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 hover:bg-black/90 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        aria-label="Remove media"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -614,15 +677,17 @@ export default function CreateEventModal({
         <div className="flex gap-2 justify-end pt-4 border-t border-[var(--card-border)] mt-4 flex-shrink-0">
           <button
             onClick={onClose}
-            className="rounded-md border border-[var(--card-border)] px-4 py-2 text-sm hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors"
+            className="rounded-md border border-[var(--card-border)] px-4 py-2 text-sm hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)]"
+            className="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
           >
-            Create Event
+            {isSubmitting ? "Creating..." : "Create Event"}
           </button>
         </div>
       </div>

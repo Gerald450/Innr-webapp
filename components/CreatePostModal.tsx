@@ -8,52 +8,63 @@ async function uploadPostMedia(
   authorId: string,
   files: File[]
 ): Promise<{ url: string }[]> {
-  const uploads = await Promise.all(
-    files.map(async (file, index) => {
-      const ext = file.name.split(".").pop() || "bin";
-      const filePath = `${authorId}/${postId}/${Date.now()}-${index}.${ext}`;
+  // Upload files sequentially for large videos to prevent UI blocking
+  // Use sequential uploads instead of Promise.all to prevent freezing
+  const uploads: { url: string }[] = [];
+  
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
+    const ext = file.name.split(".").pop() || "bin";
+    const filePath = `${authorId}/${postId}/${Date.now()}-${index}.${ext}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("post-media")
-        .upload(filePath, file);
+    // Yield to event loop periodically to prevent UI freeze
+    if (index > 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
 
-      if (uploadError || !uploadData) {
-        throw uploadError || new Error("Upload failed without error details");
-      }
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("post-media")
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("post-media").getPublicUrl(uploadData.path);
+    if (uploadError || !uploadData) {
+      throw uploadError || new Error("Upload failed without error details");
+    }
 
-      // Derive media_type from file.type
-      let mediaType = "image"; // default
-      if (file.type.startsWith("video/")) {
-        mediaType = "video";
-      } else if (file.type.startsWith("image/")) {
-        mediaType = "image";
-      } else if (file.type === "application/pdf") {
-        mediaType = "pdf";
-      }
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("post-media").getPublicUrl(uploadData.path);
 
-      const { data: mediaRow, error: mediaError } = await supabase
-        .from("post_media")
-        .insert({
-          post_id: postId,
-          media_type: mediaType,
-          storage_path: uploadData.path,
-          url: publicUrl,
-          order_index: index,
-        })
-        .select()
-        .single();
+    // Derive media_type from file.type
+    let mediaType = "image"; // default
+    if (file.type.startsWith("video/")) {
+      mediaType = "video";
+    } else if (file.type.startsWith("image/")) {
+      mediaType = "image";
+    } else if (file.type === "application/pdf") {
+      mediaType = "pdf";
+    }
 
-      if (mediaError || !mediaRow) {
-        throw mediaError || new Error("post_media insert failed");
-      }
+    const { data: mediaRow, error: mediaError } = await supabase
+      .from("post_media")
+      .insert({
+        post_id: postId,
+        media_type: mediaType,
+        storage_path: uploadData.path,
+        url: publicUrl,
+        order_index: index,
+      })
+      .select()
+      .single();
 
-      return mediaRow as { url: string };
-    })
-  );
+    if (mediaError || !mediaRow) {
+      throw mediaError || new Error("post_media insert failed");
+    }
+
+    uploads.push(mediaRow as { url: string });
+  }
 
   return uploads;
 }
