@@ -1,29 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useQueryClient } from "@tanstack/react-query";
 import { Post } from "../components/PostsCard";
 import { MakePost } from "@/components/MakePost";
 import CreatePostModal from "@/components/CreatePostModal";
-
-type PostItem = {
-  id: number | string;
-  name: string;
-  text: string;
-  created_at: string;
-  gradYear: string;
-  image: string;
-  images?: string[];
-  avatar?: string;
-  authorId?: string;
-  likeCount?: number;
-  isLiked?: boolean;
-  commentCount?: number;
-  repostCount?: number;
-  isReposted?: boolean;
-  bookmarkCount?: number;
-  isBookmarked?: boolean;
-};
+import { usePosts, PostItem } from "@/hooks/usePosts";
+import { useProfile } from "@/hooks/useProfile";
+import { invalidatePosts } from "@/utils/cacheInvalidation";
 
 type NewPostPayload = {
   id: string;
@@ -36,14 +20,16 @@ type NewPostPayload = {
 
 export default function Home() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const postRef = useRef<HTMLDivElement | null>(null);
   const [showBubble, setShowBubble] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [loadingPosts, setLoadingPosts] = useState(true);
-  const [postsError, setPostsError] = useState<string | null>(null);
 
-  const [posts, setPosts] = useState<PostItem[]>([]);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  // Use React Query hooks for data fetching
+  const { data: profile, isLoading: profileLoading, error: profileError } = useProfile();
+  const { data: posts = [], isLoading: loadingPosts, error: postsError } = usePosts();
+
+  const userRole = profile?.role || null;
 
   useEffect(() => {
     // Only observe if user is admin and modal is not open
@@ -71,270 +57,6 @@ export default function Home() {
     };
   }, [userRole, showModal]);
 
-  // Load posts from Supabase for the current user's university
-  useEffect(() => {
-    let mounted = true;
-
-    const loadPosts = async () => {
-      setLoadingPosts(true);
-      setPostsError(null);
-
-      try {
-        // 1) Get current authenticated user
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError) {
-          console.error("Auth error while loading posts:", authError);
-          if (!mounted) return;
-          setPostsError("Error checking authentication.");
-          return;
-        }
-
-        if (!user) {
-          if (!mounted) return;
-          setPostsError("You must be signed in to see posts.");
-          return;
-        }
-
-        // 2) Fetch the user's profile to get university_id and role
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("university_id, full_name, graduation_year, avatar_url, role")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Failed to load profile for posts:", {
-            error: profileError,
-            code: profileError.code,
-            message: profileError.message,
-            details: profileError.details,
-            hint: profileError.hint,
-            userId: user.id,
-          });
-          // Check if it's a "not found" error (PGRST116) or RLS issue
-          if (profileError.code === "PGRST116" || profileError.message?.includes("No rows")) {
-            if (!mounted) return;
-            setPostsError("Profile not found. Please complete your profile setup.");
-            setLoadingPosts(false);
-            return;
-          }
-          // Check for RLS policy violation
-          if (profileError.code === "42501" || profileError.message?.includes("row-level security")) {
-            if (!mounted) return;
-            setPostsError("Access denied. Please check your account permissions.");
-            setLoadingPosts(false);
-            return;
-          }
-          if (!mounted) return;
-          setPostsError("Unable to load your profile. Please try again.");
-          setLoadingPosts(false);
-          return;
-        }
-
-        if (!profile) {
-          if (!mounted) return;
-          setPostsError("Profile not found. Please complete your profile setup.");
-          setLoadingPosts(false);
-          return;
-        }
-
-        // Set user role for conditional rendering
-        if (mounted) {
-          setUserRole((profile as any).role || null);
-        }
-
-        const universityId = (profile as any).university_id;
-        if (!universityId) {
-          if (!mounted) return;
-          setPostsError("Your profile is missing a university.");
-          return;
-        }
-
-        // 3) Load posts for this university, including author profile + media (limit to 30 for initial load)
-        const { data: postsData, error: postsErr } = await supabase
-          .from("posts")
-          .select(
-            `
-            id,
-            body,
-            created_at,
-            author_id,
-            profiles (
-              full_name,
-              graduation_year,
-              avatar_url
-            ),
-            post_media (
-              url,
-              order_index
-            )
-          `
-          )
-          .eq("university_id", universityId)
-          .eq("is_deleted", false)
-          .order("created_at", { ascending: false })
-          .limit(30);
-
-        // Check for posts error immediately
-        if (postsErr) {
-          console.error("Error loading posts:", postsErr);
-          if (!mounted) return;
-          setPostsError("Unable to load posts.");
-          setLoadingPosts(false);
-          return;
-        }
-
-        if (!mounted) return;
-
-        // 4) Get all counts and user interactions in parallel for better performance
-        const postIds = (postsData ?? []).map((p: any) => p.id);
-        
-        // Early return if no posts
-        if (postIds.length === 0) {
-          setPosts([]);
-          setLoadingPosts(false);
-          return;
-        }
-
-        // Execute all queries in parallel using Promise.all
-        const [
-          { data: likesData },
-          { data: userLikesData },
-          { data: commentsData },
-          { data: repostsData },
-          { data: userRepostsData },
-          { data: bookmarksData },
-          { data: userBookmarksData },
-        ] = await Promise.all([
-          // Get like counts for all posts
-          supabase
-            .from("post_likes")
-            .select("post_id")
-            .in("post_id", postIds),
-          // Get user's likes
-          supabase
-            .from("post_likes")
-            .select("post_id")
-            .eq("user_id", user.id)
-            .in("post_id", postIds),
-          // Get comment counts for all posts
-          supabase
-            .from("comments")
-            .select("post_id")
-            .in("post_id", postIds)
-            .eq("is_deleted", false),
-          // Get repost counts for all posts
-          supabase
-            .from("reposts")
-            .select("post_id")
-            .in("post_id", postIds),
-          // Get user's reposts
-          supabase
-            .from("reposts")
-            .select("post_id")
-            .eq("user_id", user.id)
-            .in("post_id", postIds),
-          // Get bookmark counts for all posts
-          supabase
-            .from("bookmarks")
-            .select("post_id")
-            .in("post_id", postIds),
-          // Get user's bookmarks
-          supabase
-            .from("bookmarks")
-            .select("post_id")
-            .eq("user_id", user.id)
-            .in("post_id", postIds),
-        ]);
-
-        // Create maps for quick lookup
-        const likeCountMap: Record<string, number> = {};
-        const commentCountMap: Record<string, number> = {};
-        const repostCountMap: Record<string, number> = {};
-        const bookmarkCountMap: Record<string, number> = {};
-        const userLikedSet = new Set(
-          (userLikesData ?? []).map((like: any) => like.post_id)
-        );
-        const userRepostedSet = new Set(
-          (userRepostsData ?? []).map((repost: any) => repost.post_id)
-        );
-        const userBookmarkedSet = new Set(
-          (userBookmarksData ?? []).map((bookmark: any) => bookmark.post_id)
-        );
-
-        // Count likes per post
-        (likesData ?? []).forEach((like: any) => {
-          likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
-        });
-
-        // Count comments per post
-        (commentsData ?? []).forEach((comment: any) => {
-          commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
-        });
-
-        // Count reposts per post
-        (repostsData ?? []).forEach((repost: any) => {
-          repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
-        });
-
-        // Count bookmarks per post
-        (bookmarksData ?? []).forEach((bookmark: any) => {
-          bookmarkCountMap[bookmark.post_id] = (bookmarkCountMap[bookmark.post_id] || 0) + 1;
-        });
-
-        const mapped: PostItem[] =
-          (postsData ?? []).map((row: any) => {
-            const author = row.profiles as any | null;
-            const media = (row.post_media as any[]) ?? [];
-            const sortedMedia = media
-              .slice()
-              .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-            const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
-            const firstMedia = sortedMedia[0] ?? null;
-
-            return {
-              id: row.id,
-              name: author?.full_name ?? "Unknown",
-              text: row.body ?? "",
-              created_at: row.created_at,
-              gradYear:
-                author?.graduation_year != null
-                  ? String(author.graduation_year).slice(-2)
-                  : "",
-              image: firstMedia?.url ?? "",
-              images: allImages.length > 0 ? allImages : undefined,
-              avatar: author?.avatar_url ?? undefined,
-              authorId: row.author_id,
-              likeCount: likeCountMap[row.id] || 0,
-              isLiked: userLikedSet.has(row.id),
-              commentCount: commentCountMap[row.id] || 0,
-              repostCount: repostCountMap[row.id] || 0,
-              isReposted: userRepostedSet.has(row.id),
-              bookmarkCount: bookmarkCountMap[row.id] || 0,
-              isBookmarked: userBookmarkedSet.has(row.id),
-            };
-          }) as PostItem[];
-
-        setPosts(mapped);
-      } catch (err) {
-        console.error("Unexpected error loading posts:", err);
-        if (mounted) setPostsError("Unexpected error loading posts.");
-      } finally {
-        if (mounted) setLoadingPosts(false);
-      }
-    };
-
-    loadPosts();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   const openCreatePost = () => {
     if (userRole === "admin") {
       setShowModal(true);
@@ -342,54 +64,46 @@ export default function Home() {
   };
 
   const handleCreatePost = (newPost: NewPostPayload) => {
-    const postWithId: PostItem = {
-      id:
-        typeof newPost.id === "number" ? (newPost.id as any as number) : Date.now(),
-      name: newPost.name,
-      text: newPost.text,
-      created_at: newPost.created_at ?? new Date().toISOString(),
-      gradYear: newPost.gradYear,
-      image: newPost.images[0] ?? "",
-      avatar: undefined,
-      likeCount: 0,
-      isLiked: false,
-      repostCount: 0,
-      isReposted: false,
-      bookmarkCount: 0,
-      isBookmarked: false,
-    };
-
-    setPosts((prev) => [postWithId, ...prev]);
+    // Invalidate posts cache to refetch with new post
+    if (profile?.university_id) {
+      invalidatePosts(queryClient, profile.university_id);
+    }
   };
 
   const handleLikeChange = (postId: string | number, newLikeCount: number, isLiked: boolean) => {
-    setPosts((prev) =>
-      prev.map((post) =>
+    // Optimistically update the cache
+    queryClient.setQueryData<PostItem[]>(["posts", profile?.university_id], (old) => {
+      if (!old) return old;
+      return old.map((post) =>
         post.id === postId
           ? { ...post, likeCount: newLikeCount, isLiked }
           : post
-      )
-    );
+      );
+    });
   };
 
   const handleRepostChange = (postId: string | number, newRepostCount: number, isReposted: boolean) => {
-    setPosts((prev) =>
-      prev.map((post) =>
+    // Optimistically update the cache
+    queryClient.setQueryData<PostItem[]>(["posts", profile?.university_id], (old) => {
+      if (!old) return old;
+      return old.map((post) =>
         post.id === postId
           ? { ...post, repostCount: newRepostCount, isReposted }
           : post
-      )
-    );
+      );
+    });
   };
 
   const handleBookmarkChange = (postId: string | number, newBookmarkCount: number, isBookmarked: boolean) => {
-    setPosts((prev) =>
-      prev.map((post) =>
+    // Optimistically update the cache
+    queryClient.setQueryData<PostItem[]>(["posts", profile?.university_id], (old) => {
+      if (!old) return old;
+      return old.map((post) =>
         post.id === postId
           ? { ...post, bookmarkCount: newBookmarkCount, isBookmarked }
           : post
-      )
-    );
+      );
+    });
   };
 
   return (
@@ -403,6 +117,27 @@ export default function Home() {
           onPhotoClick={openCreatePost}
         />
       </div>
+      )}
+
+      {/* Error states */}
+      {profileError && (
+        <div className="w-full max-w-2xl text-center text-red-500 p-4">
+          {profileError instanceof Error
+            ? profileError.message
+            : "Error loading profile. Please try again."}
+        </div>
+      )}
+      {postsError && (
+        <div className="w-full max-w-2xl text-center text-red-500 p-4">
+          {postsError instanceof Error
+            ? postsError.message
+            : "Error loading posts. Please try again."}
+        </div>
+      )}
+
+      {/* Loading state */}
+      {(loadingPosts || profileLoading) && (
+        <div className="w-full max-w-2xl text-center p-4">Loading posts...</div>
       )}
 
       {/* Posts list */}

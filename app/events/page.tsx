@@ -1,44 +1,49 @@
 // app/events/EventsClient.tsx
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import CreateEventModal from "@/components/CreateEventModal";
 import EventsCard from "@/components/EventsCard";
 import EventsCalendar from "@/components/EventsCalendar";
-
-type EventItem = {
-  id: string;
-  post_id: string;
-  title: string;
-  datetime: string;
-  location: string;
-  imageSrc?: string;
-  organizer?: string;
-  attendees?: number;
-  description?: string;
-  starts_at: string;
-  ends_at?: string;
-  location_name?: string;
-  location_address?: string;
-  external_url?: string;
-  event_type?: string[] | null;
-  audience?: string[] | null;
-  logistics?: string[] | null;
-  special_interests?: string[] | null;
-  time_based?: string[] | null;
-};
+import { useEvents, EventItem } from "@/hooks/useEvents";
+import { useProfile } from "@/hooks/useProfile";
+import { invalidateEvents } from "@/utils/cacheInvalidation";
 
 export default function EventsClient() {
-  const [activeTab, setActiveTab] = useState<"events" | "calendar">("events");
-  const [joinedMap, setJoinedMap] = useState<Record<string, boolean>>({});
-  const [attendeeCounts, setAttendeeCounts] = useState<Record<string, number>>({});
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [togglingAttend, setTogglingAttend] = useState<Record<string, boolean>>({});
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"events" | "calendar">("events");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [togglingAttend, setTogglingAttend] = useState<Record<string, boolean>>({});
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Get profile for query key
+  const { data: profile } = useProfile();
+
+  // Use React Query hook for events
+  const {
+    data,
+    isLoading: loading,
+    isFetchingNextPage: loadingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+    error: eventsError,
+  } = useEvents();
+
+  // Flatten all pages of events into a single array
+  const events: EventItem[] = data?.pages.flatMap((page) => page.events) ?? [];
+  
+  // Combine attendee counts and joined status from all pages
+  const attendeeCounts: Record<string, number> = {};
+  const joinedMap: Record<string, boolean> = {};
+  
+  data?.pages.forEach((page) => {
+    Object.assign(attendeeCounts, page.attendeeCounts);
+    Object.assign(joinedMap, page.joinedMap);
+  });
 
   const handleToggleAttend = async (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation();
@@ -48,6 +53,31 @@ export default function EventsClient() {
     
     setTogglingAttend((prev) => ({ ...prev, [eventId]: true }));
 
+    const currentlyJoined = joinedMap[eventId];
+    const currentCount = attendeeCounts[eventId] || 0;
+
+    // Optimistically update the cache
+    const queryKey = ["events", profile?.role];
+    queryClient.setQueryData(queryKey, (old: any) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page: any) => ({
+          ...page,
+          attendeeCounts: {
+            ...page.attendeeCounts,
+            [eventId]: currentlyJoined
+              ? Math.max(0, currentCount - 1)
+              : currentCount + 1,
+          },
+          joinedMap: {
+            ...page.joinedMap,
+            [eventId]: !currentlyJoined,
+          },
+        })),
+      };
+    });
+
     try {
       const {
         data: { user },
@@ -55,27 +85,30 @@ export default function EventsClient() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
+        // Revert optimistic update
+        queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
         alert("You must be signed in to attend events.");
         setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
         return;
       }
 
       // Get user's profile ID
-      const { data: profile, error: profileError } = await supabase
+      const { data: userProfile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
         .eq("id", user.id)
         .single();
 
-      if (profileError || !profile) {
+      if (profileError || !userProfile) {
+        // Revert optimistic update
+        queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
         console.error("Error getting profile:", profileError);
         alert("Failed to get your profile.");
         setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
         return;
       }
 
-      const userId = profile.id;
-      const currentlyJoined = joinedMap[eventId];
+      const userId = userProfile.id;
 
       if (currentlyJoined) {
         // Unattend: Delete from event_attendees
@@ -86,18 +119,13 @@ export default function EventsClient() {
           .eq("user_id", userId);
 
         if (deleteError) {
+          // Revert optimistic update
+          queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
           console.error("Error un-attending event:", deleteError);
           alert("Failed to un-attend event. Please try again.");
           setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
           return;
         }
-
-        // Update local state
-        setJoinedMap((prev) => ({ ...prev, [eventId]: false }));
-        setAttendeeCounts((prev) => ({
-          ...prev,
-          [eventId]: Math.max(0, (prev[eventId] || 0) - 1),
-        }));
       } else {
         // Attend: Insert into event_attendees
         const { error: insertError } = await supabase
@@ -111,24 +139,20 @@ export default function EventsClient() {
         if (insertError) {
           // If it's a unique constraint error, the user is already attending
           if (insertError.code === "23505") {
-            // Already attending, just update local state
-            setJoinedMap((prev) => ({ ...prev, [eventId]: true }));
+            // Already attending, cache is already updated optimistically
           } else {
+            // Revert optimistic update
+            queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
             console.error("Error attending event:", insertError);
             alert("Failed to attend event. Please try again.");
             setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
             return;
           }
-        } else {
-          // Successfully inserted
-          setJoinedMap((prev) => ({ ...prev, [eventId]: true }));
-          setAttendeeCounts((prev) => ({
-            ...prev,
-            [eventId]: (prev[eventId] || 0) + 1,
-          }));
         }
       }
     } catch (err) {
+      // Revert optimistic update
+      queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
       console.error("Unexpected error toggling attend:", err);
       alert("An unexpected error occurred. Please try again.");
     } finally {
@@ -136,220 +160,36 @@ export default function EventsClient() {
     }
   };
 
-  // Load events from Supabase
+  // Load more events function
+  const loadMoreEvents = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    fetchNextPage();
+  }, [loadingMore, hasMore, fetchNextPage]);
+
+  // Infinite scroll with intersection observer
   useEffect(() => {
-    let mounted = true;
+    if (activeTab !== "events" || !hasMore || loadingMore) return;
 
-    const loadEvents = async () => {
-      setLoading(true);
-
-      try {
-        // 1. Get current authenticated user
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-          console.error("Auth error:", authError);
-          if (!mounted) return;
-          setLoading(false);
-          return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMoreEvents();
         }
+      },
+      { threshold: 0.1 }
+    );
 
-        // 2. Get user's profile to check role
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, role")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Failed to load profile:", profileError);
-          if (!mounted) return;
-          setLoading(false);
-          return;
-        }
-
-        // 3. Build query - only show events from 'regular' users to other 'regular' users
-        let query = supabase
-          .from("events")
-          .select(
-            `
-            id,
-            post_id,
-            starts_at,
-            ends_at,
-            location_name,
-            location_address,
-            external_url,
-            event_type,
-            audience,
-            logistics,
-            special_interests,
-            time_based,
-            posts!inner (
-              id,
-              title,
-              body,
-              created_at,
-              profiles!inner (
-                id,
-                full_name,
-                role
-              ),
-              post_media (
-                url,
-                order_index
-              )
-            )
-          `
-          )
-          .order("starts_at", { ascending: true })
-          .limit(50); // Limit events for better performance
-
-        // Filter: Only show events from 'regular' users to other 'regular' users
-        // If user is not 'regular', they won't see events from 'regular' users
-        const userRole = (profile as any)?.role;
-        if (userRole === "regular") {
-          // Regular users can only see events from other regular users
-          // This filtering happens at the database level via RLS or we filter in the query
-          // For now, we'll load all events and filter client-side
-          // TODO: Implement proper RLS policy for this
-        }
-
-        const { data: eventsData, error: eventsError } = await query;
-
-        if (eventsError) {
-          console.error("Error loading events:", eventsError);
-          if (!mounted) return;
-          setLoading(false);
-          return;
-        }
-
-        if (!mounted) return;
-
-        // 4. Get all event IDs
-        const eventIds = (eventsData ?? []).map((row: any) => row.id);
-
-        if (eventIds.length === 0) {
-          if (!mounted) return;
-          setEvents([]);
-          setLoading(false);
-          return;
-        }
-
-        // 5. Get attendee counts and user's attendee status in parallel
-        const [
-          { data: attendeeCountsData, error: attendeeCountsError },
-          { data: userAttendeesData, error: userAttendeesError },
-        ] = await Promise.all([
-          supabase
-            .from("event_attendees")
-            .select("event_id")
-            .in("event_id", eventIds),
-          supabase
-            .from("event_attendees")
-            .select("event_id")
-            .eq("user_id", user.id)
-            .in("event_id", eventIds),
-        ]);
-
-        if (attendeeCountsError) {
-          console.error("Error loading attendee counts:", attendeeCountsError);
-        }
-
-        if (userAttendeesError) {
-          console.error("Error loading user attendees:", userAttendeesError);
-        }
-
-        // Count attendees per event
-        const countsMap: Record<string, number> = {};
-        (attendeeCountsData ?? []).forEach((row: any) => {
-          countsMap[row.event_id] = (countsMap[row.event_id] || 0) + 1;
-        });
-
-        // Map user's attendance status
-        const userJoinedSet = new Set(
-          (userAttendeesData ?? []).map((row: any) => row.event_id)
-        );
-
-        // 7. Map events data
-        const mapped: EventItem[] = (eventsData ?? [])
-          .map((row: any) => {
-            const post = row.posts as any;
-            const author = post?.profiles as any;
-            const media = (post?.post_media as any[]) ?? [];
-            const firstMedia =
-              media
-                .slice()
-                .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ??
-              null;
-
-            // Filter: Only show events from 'regular' users to other 'regular' users
-            const authorRole = author?.role;
-            if (userRole === "regular" && authorRole !== "regular") {
-              return null; // Skip this event
-            }
-            if (userRole !== "regular" && authorRole === "regular") {
-              return null; // Skip this event
-            }
-
-            const startDate = new Date(row.starts_at);
-            const formattedDate = startDate.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-            });
-
-            return {
-              id: row.id,
-              post_id: row.post_id,
-              title: post?.title || "Untitled Event",
-              description: post?.body || "",
-              datetime: formattedDate,
-              location: row.location_name || row.location_address || "Location TBD",
-              imageSrc: firstMedia?.url,
-              organizer: author?.full_name || "Unknown",
-              attendees: countsMap[row.id] || 0,
-              starts_at: row.starts_at,
-              ends_at: row.ends_at,
-              location_name: row.location_name,
-              location_address: row.location_address,
-              external_url: row.external_url,
-              event_type: row.event_type,
-              audience: row.audience,
-              logistics: row.logistics,
-              special_interests: row.special_interests,
-              time_based: row.time_based,
-            };
-          })
-          .filter((e: EventItem | null) => e !== null) as EventItem[];
-
-        setEvents(mapped);
-        
-        // Set attendee counts and joined status
-        setAttendeeCounts(countsMap);
-        const joinedStatus: Record<string, boolean> = {};
-        eventIds.forEach((eventId: string) => {
-          joinedStatus[eventId] = userJoinedSet.has(eventId);
-        });
-        setJoinedMap(joinedStatus);
-      } catch (err) {
-        console.error("Unexpected error loading events:", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    loadEvents();
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
 
     return () => {
-      mounted = false;
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
     };
-  }, []);
+  }, [hasMore, loadingMore, activeTab, loadMoreEvents]);
 
   const handleShare = async (e: React.MouseEvent, ev: EventItem) => {
     e.stopPropagation();
@@ -374,10 +214,11 @@ export default function EventsClient() {
     }
   };
 
-  const handleEventCreated = () => {
-    // Reload events after creation
-    window.location.reload();
-  };
+  const handleEventCreated = useCallback(() => {
+    // Invalidate events cache to refetch with new event
+    invalidateEvents(queryClient);
+    setShowCreateModal(false);
+  }, [queryClient]);
 
   return (
     <main className="flex justify-center p-4 md:p-6 lg:p-8 bg-[var(--bg-primary)] min-h-screen transition-colors">
@@ -430,41 +271,70 @@ export default function EventsClient() {
 
         {/* Content based on active tab */}
         {activeTab === "events" ? (
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
-            {loading ? (
-              <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
-                Loading events...
-              </div>
-            ) : events.length === 0 ? (
-              <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
-                No events found. Create one to get started!
-              </div>
-            ) : (
-              events.map((ev) => {
-                const joined = !!joinedMap[ev.id];
-                const attendeeCount = attendeeCounts[ev.id] ?? ev.attendees ?? 0;
-                const isToggling = togglingAttend[ev.id] || false;
-                
-                // Create event object with updated attendee count
-                const eventWithCount = {
-                  ...ev,
-                  attendees: attendeeCount,
-                };
+          <>
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mx-auto">
+              {eventsError ? (
+                <div className="col-span-full text-center py-8 text-red-500">
+                  {eventsError instanceof Error
+                    ? eventsError.message
+                    : "Error loading events. Please try again."}
+                </div>
+              ) : loading ? (
+                <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
+                  Loading events...
+                </div>
+              ) : events.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
+                  No events found. Create one to get started!
+                </div>
+              ) : (
+                events.map((ev) => {
+                  const joined = !!joinedMap[ev.id];
+                  const attendeeCount = attendeeCounts[ev.id] ?? ev.attendees ?? 0;
+                  const isToggling = togglingAttend[ev.id] || false;
+                  
+                  // Create event object with updated attendee count
+                  const eventWithCount = {
+                    ...ev,
+                    attendees: attendeeCount,
+                  };
 
-                return (
-                  <EventsCard
-                    key={ev.id}
-                    event={eventWithCount}
-                    joined={joined}
-                    onToggleAttend={handleToggleAttend}
-                    onShare={handleShare}
-                    onClick={() => router.push(`/events/${ev.id}`)}
-                    isToggling={isToggling}
-                  />
-                );
-              })
+                  return (
+                    <EventsCard
+                      key={ev.id}
+                      event={eventWithCount}
+                      joined={joined}
+                      onToggleAttend={handleToggleAttend}
+                      onShare={handleShare}
+                      onClick={() => router.push(`/events/${ev.id}`)}
+                      isToggling={isToggling}
+                    />
+                  );
+                })
+              )}
+            </section>
+            
+            {/* Load More Section */}
+            {!loading && events.length > 0 && (
+              <div className="mt-8 flex justify-center">
+                {hasMore ? (
+                  <div ref={loadMoreRef} className="w-full">
+                    <button
+                      onClick={loadMoreEvents}
+                      disabled={loadingMore}
+                      className="w-full max-w-xs mx-auto px-6 py-3 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loadingMore ? "Loading..." : "Load More Events"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center text-sm text-[var(--text-secondary)] py-4">
+                    No more events to load
+                  </div>
+                )}
+              </div>
             )}
-          </section>
+          </>
         ) : (
           <EventsCalendar />
         )}
