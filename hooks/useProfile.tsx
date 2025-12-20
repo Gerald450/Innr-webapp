@@ -7,6 +7,7 @@ import { getCachedProfile, setCachedProfile, setCachedUniversityId, setCachedUse
 type Profile = {
   id: string;
   full_name: string | null;
+  username: string | null;
   graduation_year: number | null;
   avatar_url: string | null;
   role: string | null;
@@ -36,7 +37,7 @@ export function useProfile() {
       // Fetch profile from Supabase
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("id, full_name, graduation_year, avatar_url, role, university_id, program_of_study, bio, student_type")
+        .select("id, full_name, username, graduation_year, avatar_url, role, university_id, program_of_study, bio, student_type")
         .eq("id", user.id)
         .single();
 

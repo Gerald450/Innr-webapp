@@ -2,18 +2,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
+import { useProfile } from "@/hooks/useProfile";
 import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
 
 type NavItem = {
   label: string;
   icon: string;
   path: string;
-};
-
-type Profile = {
-  full_name?: string | null;
-  username?: string | null;
 };
 
 type Props = {
@@ -29,11 +24,13 @@ const navItems: NavItem[] = [
 ];
 
 export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
-  const [profile, setProfile] = useState<Profile | null>(null);
   const avatar = useUserAvatar();
   const router = useRouter();
   const [clickedIndex, setClickedIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
+  
+  // Use React Query hook for cached profile data
+  const { data: profile, isLoading: profileLoading } = useProfile();
 
   // Close when clicking outside or pressing Escape
   useEffect(() => {
@@ -59,51 +56,6 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
     };
   }, [isOpen, setIsOpen]);
 
-  // Fetch profile when the sidebar opens
-  useEffect(() => {
-    if (!isOpen) return;
-    let mounted = true;
-
-    async function fetchProfile(): Promise<void> {
-      try {
-        const {
-          data: { user: authUser },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError) {
-          console.error("Error getting auth user:", authError);
-          return;
-        }
-        if (!authUser) return;
-
-        const { data, error: profileError } = await supabase
-          .from("profiles")
-          .select("full_name, username")
-          .eq("id", (authUser as User).id)
-          .single();
-
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          return;
-        }
-
-        if (mounted && data) {
-          setProfile({
-            full_name: data.full_name ?? null,
-            username: data.username ?? null,
-          });
-        }
-      } catch (err) {
-        console.error("Unexpected error:", err);
-      }
-    }
-
-    fetchProfile();
-    return () => {
-      mounted = false;
-    };
-  }, [isOpen]);
 
   // Click handler with animation + optional logout logic
   async function handleClick(i: number, item: NavItem): Promise<void> {
@@ -174,12 +126,25 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
             className="w-16 h-16 rounded-full bg-black shrink-0 object-cover"
           />
           <div>
-            <div className="text-lg font-semibold leading-5 text-[var(--text-primary)]">
-              {profile?.full_name ?? "Not Logged in"}
-            </div>
-            <div className="text-sm text-[var(--text-secondary)] mt-1">
-              {profile?.username ? `@${profile.username}` : "No username"}
-            </div>
+            {profileLoading ? (
+              <>
+                <div className="text-lg font-semibold leading-5 text-[var(--text-primary)]">
+                  Loading...
+                </div>
+                <div className="text-sm text-[var(--text-secondary)] mt-1">
+                  &nbsp;
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-lg font-semibold leading-5 text-[var(--text-primary)]">
+                  {profile?.full_name ?? "Not Logged in"}
+                </div>
+                <div className="text-sm text-[var(--text-secondary)] mt-1">
+                  {profile?.username ? `@${profile.username}` : "No username"}
+                </div>
+              </>
+            )}
           </div>
         </div>
 

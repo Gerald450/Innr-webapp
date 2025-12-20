@@ -293,7 +293,7 @@ export default function UserProfilePage() {
     <div className="bg-[var(--bg-primary)] min-h-screen py-6 sm:py-10 flex flex-col items-center px-4 sm:px-6 transition-colors">
       <div className="w-full max-w-6xl">
         {/* Profile Header - Well Designed */}
-        <div className="mb-8">
+        <div className="mb-8 flex flex-col items-center justify-center">
           {/* Profile Card */}
           <div className="rounded-2xl shadow-sm p-6 sm:p-8 transition-colors">
             <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
@@ -342,19 +342,19 @@ export default function UserProfilePage() {
 
                 {/* Program of Study */}
                 {profile.program_of_study && (
-                  <div className="text-base text-[var(--text-secondary)] mb-3 font-medium">
+                  <div className="text-base text-[var(--text-secondary)] mb-3 font-medium text-center sm:text-left">
                     {profile.program_of_study}
                   </div>
                 )}
 
                 {/* Connections Count */}
-                <div className="text-sm font-medium text-[var(--text-secondary)] mb-4">
+                <div className="text-sm font-medium text-[var(--text-secondary)] mb-4 text-center sm:text-left">
                   {connectionsCount} campus {connectionsCount === 1 ? 'connection' : 'connections'}
                 </div>
 
                 {/* Bio */}
                 {profile.bio && (
-                  <div className="text-sm sm:text-base text-[var(--text-primary)] leading-relaxed whitespace-pre-line mb-6 max-w-2xl">
+                  <div className="text-sm sm:text-base text-[var(--text-primary)] leading-relaxed whitespace-pre-line mb-6 max-w-2xl text-center sm:text-left">
                     {profile.bio}
                   </div>
                 )}
