@@ -58,7 +58,9 @@ export const Navbar: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (searchExpanded && inputRef.current) inputRef.current.focus();
+    if (searchExpanded && inputRef.current) {
+      inputRef.current.focus();
+    }
   }, [searchExpanded]);
 
   // Debounced search function
@@ -251,7 +253,11 @@ export const Navbar: React.FC = () => {
                       placeholder="Search users..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="ml-2 w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none"
+                      onBlur={() => {
+                        // Blur handler - font-size 16px prevents zoom, this ensures clean state
+                      }}
+                      style={{ fontSize: '16px' }}
+                      className="ml-2 w-full bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none"
                       aria-label="Search users"
                     />
                   </div>

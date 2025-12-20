@@ -290,13 +290,13 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex flex-col items-center px-4 transition-colors">
+    <div className="bg-[var(--bg-primary)] min-h-screen py-6 sm:py-10 flex flex-col items-center px-4 sm:px-6 transition-colors">
       <div className="w-full max-w-6xl">
         {/* Profile Header - Well Designed */}
         <div className="mb-8">
           {/* Profile Card */}
           <div className="rounded-2xl shadow-sm p-6 sm:p-8 transition-colors">
-            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
+            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
               {/* Avatar Section */}
               <div className="flex-shrink-0">
                 <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[var(--bg-primary)] overflow-hidden flex-shrink-0 border-3 border-[var(--card-border)] shadow-md ring-2 ring-[var(--card-border)]">
@@ -315,10 +315,10 @@ export default function UserProfilePage() {
               </div>
 
               {/* Info Section */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 w-full">
                 {/* Name + Grad Year + Student Type */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
-                  <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3 items-center sm:items-start">
+                  <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-start">
                     <h2 className="font-bold text-2xl sm:text-3xl text-[var(--text-primary)]">
                       {profile.full_name || "Unknown User"}
                     </h2>
@@ -409,14 +409,14 @@ export default function UserProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-0.5 sm:gap-2 lg:gap-4">
+                  <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-4">
                     {userPosts.map((post) => {
                       const hasMedia = post.image || (post.images && post.images.length > 0);
                       return (
                         <div
                           key={post.id}
                           onClick={() => router.push(`/posts/${post.id}`)}
-                          className={`cursor-pointer group relative overflow-hidden sm:rounded-lg border-0 sm:border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
+                          className={`cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
                             hasMedia 
                               ? "aspect-square bg-gray-100 dark:bg-gray-800" 
                               : "bg-[var(--card-bg)] min-h-[120px] max-h-[200px]"

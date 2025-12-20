@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect } from "react";
-import Image from "next/image";
 
 type NavTab = { id: string; label: string; icon: string; path: string };
 
@@ -71,9 +70,10 @@ export default function MenuDrawer({
                 <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <input
-                className="bg-transparent outline-none w-full text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+                className="bg-transparent outline-none w-full text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
                 placeholder="Search menu"
                 aria-label="Search menu"
+                style={{ fontSize: '16px' }}
               />
             </div>
           </div>
@@ -91,8 +91,7 @@ export default function MenuDrawer({
                 onClick={onClose}
               >
                 <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-[var(--bg-primary)] shadow flex items-center justify-center">
-                  {/* If you use next/image keep using it, or replace with <img> if icons are static */}
-                  <Image src={t.icon} alt={`${t.label} icon`} width={36} height={36} />
+                  <img src={t.icon} alt={`${t.label} icon`} className="h-9 w-9 svg-icon" />
                 </div>
 
                 <div>
@@ -104,6 +103,7 @@ export default function MenuDrawer({
                     {t.id === "pages" && "Discover and connect with businesses and public Pages."}
                     {t.id === "gaming" && "Play games, watch streams, and connect with players."}
                     {t.id === "home" && "See relevant posts from people and Pages you follow."}
+                    {t.id === "notifications" && "View and manage your notifications and updates."}
                   </div>
                 </div>
               </a>

@@ -552,7 +552,7 @@ function MyProfilePageContent() {
 
   // Normal authenticated + profile present render
   return (
-    <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex flex-col items-center px-4 transition-colors">
+    <div className="bg-[var(--bg-primary)] min-h-screen py-6 sm:py-10 flex flex-col items-center px-4 sm:px-6 transition-colors">
       <div className="w-full max-w-6xl">
         {/* Profile Header - Well Designed */}
         <div className="mb-8">
@@ -707,14 +707,14 @@ function MyProfilePageContent() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-0.5 sm:gap-2 lg:gap-4">
+                  <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-4">
                     {userPosts.map((post) => {
                       const hasMedia = post.image || (post.images && post.images.length > 0);
                       return (
                         <div
                           key={post.id}
                           onClick={() => router.push(`/posts/${post.id}`)}
-                          className={`cursor-pointer group relative overflow-hidden sm:rounded-lg border-0 sm:border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
+                          className={`cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
                             hasMedia 
                               ? "aspect-square bg-gray-100 dark:bg-gray-800" 
                               : "bg-[var(--card-bg)] min-h-[120px] max-h-[200px]"

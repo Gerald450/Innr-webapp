@@ -1,6 +1,6 @@
 // TooltipButton.tsx
 "use client";
-import React, { useState, useRef, FC, ReactNode } from "react";
+import React, { useState, useRef, useEffect, FC, ReactNode } from "react";
 
 interface TooltipButtonProps extends React.HTMLAttributes<HTMLElement> {
   label: string;
@@ -28,9 +28,23 @@ const TooltipButton: FC<TooltipButtonProps> = ({
   ...rest
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const timeoutRef = useRef<number | undefined>(undefined);
 
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const handleMouseEnter = () => {
+    // Only show tooltips on desktop (non-mobile)
+    if (isMobile) return;
     // show after 1s
     timeoutRef.current = window.setTimeout(() => setShowTooltip(true), 1000);
   };
@@ -43,6 +57,20 @@ const TooltipButton: FC<TooltipButtonProps> = ({
     setShowTooltip(false);
   };
 
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    // Hide tooltip on click/touch (mobile)
+    if (showTooltip) {
+      setShowTooltip(false);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
+    }
+    if (onClick && !disabled) {
+      onClick(e);
+    }
+  };
+
   const Tag = as as any;
 
   return (
@@ -52,7 +80,7 @@ const TooltipButton: FC<TooltipButtonProps> = ({
       } items-center justify-center`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={disabled ? undefined : onClick}
+      onClick={handleClick}
       disabled={disabled}
       {...rest}
     >
