@@ -238,9 +238,9 @@ export default function EventsClient() {
           {activeTab === "events" && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-md text-sm font-medium hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"
+              className="px-2 py-1.5 sm:px-4 sm:py-2 bg-[var(--color-accent)] text-white rounded-md text-xs sm:text-sm font-medium hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"
             >
-              + Create Event
+              <span className="hidden sm:inline"> + </span>Create Event
             </button>
           )}
         </header>
