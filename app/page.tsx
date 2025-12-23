@@ -24,10 +24,16 @@ export default function Home() {
   const postRef = useRef<HTMLDivElement | null>(null);
   const [showBubble, setShowBubble] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Use React Query hooks for data fetching
   const { data: profile, isLoading: profileLoading, error: profileError } = useProfile();
   const { data: posts = [], isLoading: loadingPosts, error: postsError } = usePosts();
+
+  // Prevent hydration mismatch by only showing content after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const userRole = profile?.role || null;
 
@@ -109,7 +115,7 @@ export default function Home() {
   return (
     <div className="bg-[var(--bg-primary)] min-h-screen py-10 flex flex-col items-center gap-6 transition-colors">
       {/* MakePost with ref observed by IntersectionObserver - Only show for admin users */}
-      {userRole === "admin" && (
+      {mounted && userRole === "admin" && (
       <div ref={postRef} className="w-full flex justify-center">
         <MakePost
           onStartPost={openCreatePost}
@@ -136,11 +142,12 @@ export default function Home() {
       )}
 
       {/* Loading state */}
-      {(loadingPosts || profileLoading) && (
+      {(!mounted || loadingPosts || profileLoading) && (
         <div className="w-full max-w-2xl text-center p-4">Loading posts...</div>
       )}
 
       {/* Posts list */}
+      {mounted && (
       <div className="w-full max-w-2xl flex flex-col gap-1">
         {posts.map((p) => (
           <div
@@ -172,9 +179,10 @@ export default function Home() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Floating circular bubble (appears only when MakePost is out of view, modal is closed, and user is admin) */}
-      {showBubble && userRole === "admin" && !showModal && (
+      {mounted && showBubble && userRole === "admin" && !showModal && (
         <button
           onClick={openCreatePost}
           aria-label="Start a post"

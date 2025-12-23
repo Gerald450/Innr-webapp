@@ -99,9 +99,7 @@ export default function MenuDrawer({
                   <div className="text-sm text-[var(--text-secondary)] max-w-[260px] leading-5">
                     {/* Basic descriptions — replace or localize per tab */}
                     {t.id === "events" && "Organize or find events and other things to do online and nearby."}
-                    {t.id === "chats" && "Message your friends and groups in private or group chats."}
                     {t.id === "pages" && "Discover and connect with businesses and public Pages."}
-                    {t.id === "gaming" && "Play games, watch streams, and connect with players."}
                     {t.id === "home" && "See relevant posts from people and Pages you follow."}
                     {t.id === "notifications" && "View and manage your notifications and updates."}
                   </div>

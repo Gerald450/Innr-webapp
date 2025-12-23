@@ -11,7 +11,6 @@ import { supabase } from "@/lib/supabaseClient";
 
 const navTabs = [
   { id: "home", label: "Home", icon: "/svgs/home.svg", path: "/" },
-  { id: "chats", label: "Chats", icon: "/svgs/chat.svg", path: "/chats" },
   { id: "events", label: "Events", icon: "/svgs/events.svg", path: "/events" },
   {
     id: "notifications",
@@ -19,7 +18,6 @@ const navTabs = [
     icon: "/svgs/notification.svg",
     path: "/notifications",
   },
-  { id: "gaming", label: "Gaming", icon: "/svgs/gaming.svg", path: "/gaming" },
 ];
 
 type ProfileSearchResult = {
