@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 type EventItem = {
@@ -124,12 +125,22 @@ export default function EventsCard({
       {/* MOBILE: flex row | DESKTOP: block */}
       <div className="flex md:block w-full items-stretch">
         {/* IMAGE */}
-        <div className="w-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] self-stretch">
-          <img
-            src={event.imageSrc}
-            alt={event.title}
-            className="w-full h-full object-cover"
-          />
+        <div className="w-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] self-stretch relative">
+          {event.imageSrc ? (
+            <Image
+              src={event.imageSrc}
+              alt={event.title}
+              width={400}
+              height={224}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full bg-[var(--bg-primary)] flex items-center justify-center">
+              <span className="text-[var(--text-secondary)] text-xs">No image</span>
+            </div>
+          )}
         </div>
 
         {/* CONTENT + BUTTONS */}

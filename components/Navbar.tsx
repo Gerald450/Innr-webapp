@@ -283,6 +283,7 @@ export const Navbar: React.FC = () => {
                                 src={profile.avatar_url || "/images/default-avatar.png"}
                                 alt={profile.full_name || "User"}
                                 className="h-10 w-10 rounded-full object-cover flex-shrink-0"
+                                loading="lazy"
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium text-[var(--text-primary)] truncate">

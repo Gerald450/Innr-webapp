@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getRelativeTime } from "@/utils/relativeTime";
@@ -530,10 +531,14 @@ export default function NotificationsPage() {
                       <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[var(--color-accent)] rounded-full border-2 border-[var(--card-bg)] z-10" />
                     )}
                     {hasActors && firstActor?.avatar_url ? (
-                      <img
+                      <Image
                         src={firstActor.avatar_url}
                         alt={firstActor.full_name || "User"}
+                        width={40}
+                        height={40}
                         className="h-10 w-10 rounded-full object-cover"
+                        loading="lazy"
+                        unoptimized
                       />
                     ) : hasActors ? (
                       <div className="h-10 w-10 rounded-full bg-[var(--bg-primary)] flex items-center justify-center">

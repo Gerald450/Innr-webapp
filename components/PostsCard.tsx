@@ -1,6 +1,7 @@
 // app/components/Post.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import TooltipButton from "./TooltipButton";
 import { getRelativeTime } from "@/utils/relativeTime";
@@ -371,19 +372,27 @@ export const Post: React.FC<PostProps> = ({
               e.stopPropagation();
               router.push(`/users/${authorId}`);
             }}
-            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full overflow-hidden bg-[var(--bg-primary)] flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all"
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full overflow-hidden bg-[var(--bg-primary)] flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all relative"
           >
-            <img
+            <Image
               src={avatar || "/images/avatar_placeholder.png"}
-              className="h-full w-full object-cover"
               alt={`${name} avatar`}
+              width={40}
+              height={40}
+              className="object-cover"
+              priority
+              unoptimized={!avatar || avatar.startsWith("/images/")}
             />
           </button>
         ) : (
-          <img
+          <Image
             src={avatar || "/images/avatar_placeholder.png"}
-            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-[var(--bg-primary)] flex-shrink-0"
             alt={`${name} avatar`}
+            width={40}
+            height={40}
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-[var(--bg-primary)] flex-shrink-0"
+            priority
+            unoptimized={!avatar || avatar.startsWith("/images/")}
           />
         )}
 
@@ -530,11 +539,15 @@ export const Post: React.FC<PostProps> = ({
                     index === currentImageIndex ? "opacity-100 relative" : "opacity-0 absolute inset-0"
                   }`}
                 >
-                  <img
+                  <Image
                     src={img}
                     alt={`Post Media ${index + 1}`}
+                    width={1200}
+                    height={800}
                     className="w-full h-auto object-cover"
                     style={{ display: "block" }}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    unoptimized
                   />
                 </div>
               ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
@@ -422,10 +423,14 @@ export default function EventDetail() {
       <div className="max-w-4xl mx-auto px-4 mb-6">
         <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-2xl overflow-hidden bg-[var(--card-bg)]">
           {event.imageSrc ? (
-            <img
+            <Image
               src={event.imageSrc}
               alt={event.title}
+              width={1200}
+              height={600}
               className="w-full h-full object-cover"
+              priority
+              unoptimized
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-accent)]/5">

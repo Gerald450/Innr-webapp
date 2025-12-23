@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Post } from "@/components/PostsCard";
@@ -564,12 +565,16 @@ function MyProfilePageContent() {
             <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
               {/* Avatar Section */}
               <div className="flex-shrink-0">
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[var(--bg-primary)] overflow-hidden flex-shrink-0 border-3 border-[var(--card-border)] shadow-md ring-2 ring-[var(--card-border)]">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[var(--bg-primary)] overflow-hidden flex-shrink-0 border-3 border-[var(--card-border)] shadow-md ring-2 ring-[var(--card-border)] relative">
                   {profile.avatar_url ? (
-                    <img
+                    <Image
                       src={profile.avatar_url}
                       alt={profile.full_name || "Profile"}
+                      width={128}
+                      height={128}
                       className="w-full h-full object-cover"
+                      priority
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-secondary)] text-4xl font-semibold">
@@ -652,7 +657,7 @@ function MyProfilePageContent() {
         </div>
 
         {/* Tabs Card */}
-        <div className="bg-[var(--card-bg)] rounded-2xl shadow-sm border border-[var(--card-border)] overflow-hidden transition-colors">
+        <div className="w-full bg-[var(--card-bg)] rounded-2xl shadow-sm border border-[var(--card-border)] overflow-hidden transition-colors">
           {/* Tabs */}
           <div className="border-b border-[var(--card-border)]">
             <div className="flex text-sm font-medium">
@@ -690,7 +695,7 @@ function MyProfilePageContent() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-0 sm:p-6">
+          <div className="px-4 py-0 sm:p-6">
             {activeTab === "posts" && (
               <div>
                 {loadingPosts ? (
@@ -722,10 +727,14 @@ function MyProfilePageContent() {
                         >
                           {hasMedia ? (
                             <>
-                              <img
+                              <Image
                                 src={post.image || post.images?.[0] || ""}
                                 alt={post.text || "Post"}
+                                width={400}
+                                height={400}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                                unoptimized
                               />
                               {/* Overlay on hover */}
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -917,10 +926,14 @@ function MyProfilePageContent() {
                         >
                           {hasMedia ? (
                             <>
-                              <img
+                              <Image
                                 src={post.image || post.images?.[0] || ""}
                                 alt={post.text || "Post"}
+                                width={400}
+                                height={400}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                                unoptimized
                               />
                               {/* Activity Badge */}
                               <div className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${

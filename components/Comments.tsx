@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, memo, useCallback } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getRelativeTime } from "@/utils/relativeTime";
@@ -680,17 +681,25 @@ export default function Comments({ postId }: CommentsProps) {
               }}
               className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all"
             >
-              <img
+              <Image
                 src={comment.author.avatar_url || "/images/avatar_placeholder.png"}
                 alt={comment.author.full_name || "User"}
+                width={32}
+                height={32}
                 className="h-full w-full object-cover"
+                loading="lazy"
+                unoptimized={!comment.author.avatar_url || comment.author.avatar_url.startsWith("/images/")}
               />
             </button>
           ) : (
-            <img
+            <Image
               src={comment.author.avatar_url || "/images/avatar_placeholder.png"}
               alt={comment.author.full_name || "User"}
+              width={32}
+              height={32}
               className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+              loading="lazy"
+              unoptimized={!comment.author.avatar_url || comment.author.avatar_url.startsWith("/images/")}
             />
           )}
           <div className="flex-1 min-w-0">

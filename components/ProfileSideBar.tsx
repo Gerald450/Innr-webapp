@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
 import { useProfile } from "@/hooks/useProfile";
@@ -28,9 +29,15 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
   const router = useRouter();
   const [clickedIndex, setClickedIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
+  const [mounted, setMounted] = useState(false);
   
   // Use React Query hook for cached profile data
   const { data: profile, isLoading: profileLoading } = useProfile();
+
+  // Prevent hydration mismatch by only showing profile data after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Close when clicking outside or pressing Escape
   useEffect(() => {
@@ -120,13 +127,17 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
       >
         {/* Header */}
         <div className="flex items-center gap-4">
-          <img
-            src={avatar}
+          <Image
+            src={avatar || "/images/avatar_placeholder.png"}
             alt="avatar"
+            width={64}
+            height={64}
             className="w-16 h-16 rounded-full bg-black shrink-0 object-cover"
+            priority
+            unoptimized={!avatar || avatar.startsWith("/images/")}
           />
           <div>
-            {profileLoading ? (
+            {!mounted || profileLoading ? (
               <>
                 <div className="text-lg font-semibold leading-5 text-[var(--text-primary)]">
                   Loading...
