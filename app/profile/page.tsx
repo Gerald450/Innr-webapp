@@ -1020,7 +1020,7 @@ function MyProfilePageContent() {
                                   </svg>
                                 )}
                               </div>
-                              <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed">
+                              <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed pt-8">
                                 {post.text || "No content"}
                               </p>
                               <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--card-border)] text-xs text-[var(--text-secondary)]">
