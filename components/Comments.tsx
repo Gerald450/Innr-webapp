@@ -3,11 +3,96 @@
 import { useEffect, useState, useRef, memo, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { getRelativeTime } from "@/utils/relativeTime";
 
 const COMMENTS_PER_PAGE = 10;
 const REPLIES_PER_PAGE = 10;
+
+// Component to render comment body with clickable mentions
+const CommentBodyWithMentions = ({ 
+  body, 
+  mentionedUserId, 
+  mentionedUser 
+}: { 
+  body: string; 
+  mentionedUserId?: string | null; 
+  mentionedUser?: { id: string; username: string; full_name: string | null };
+}) => {
+  // Parse @username mentions and render them as links
+  const parseMentions = (text: string) => {
+    // Pattern to match @username (alphanumeric and underscore)
+    const mentionPattern = /@(\w+)/g;
+    const parts: Array<{ text: string; isMention: boolean; userId?: string; username?: string }> = [];
+    let lastIndex = 0;
+    let match;
+    let isFirstMention = true;
+
+    while ((match = mentionPattern.exec(text)) !== null) {
+      // Add text before the mention
+      if (match.index > lastIndex) {
+        parts.push({ text: text.slice(lastIndex, match.index), isMention: false });
+      }
+
+      const mentionedUsername = match[1];
+      
+      // If we have a mentioned_user_id and mentionedUser, make the FIRST @mention clickable
+      // This handles the case where we're replying to a reply (the @username at the start)
+      // Handles username changes by using mentioned_user_id instead of text matching
+      if (isFirstMention && mentionedUserId && mentionedUser && mentionedUser.id === mentionedUserId) {
+        // Use the stored user info (current username, even if text has old username)
+        parts.push({ 
+          text: `@${mentionedUsername}`, 
+          isMention: true, 
+          userId: mentionedUser.id,
+          username: mentionedUser.username || mentionedUsername // Use current username
+        });
+        isFirstMention = false;
+      } else {
+        // Other @mentions in text - render as plain text (not clickable)
+        // In future, could resolve these by querying username, but for now keep simple
+        parts.push({ text: `@${mentionedUsername}`, isMention: false });
+        isFirstMention = false;
+      }
+
+      lastIndex = mentionPattern.lastIndex;
+    }
+
+    // Add remaining text after last mention
+    if (lastIndex < text.length) {
+      parts.push({ text: text.slice(lastIndex), isMention: false });
+    }
+
+    // If no mentions found, return original text as single part
+    if (parts.length === 0) {
+      parts.push({ text, isMention: false });
+    }
+
+    return parts;
+  };
+
+  const parts = parseMentions(body);
+
+  return (
+    <p className="text-sm text-[var(--text-primary)] mb-2 whitespace-pre-line">
+      {parts.map((part, index) => {
+        if (part.isMention && part.userId) {
+          return (
+            <Link
+              key={index}
+              href={`/users/${part.userId}`}
+              className="text-[var(--color-accent)] font-semibold hover:underline"
+            >
+              @{part.username || part.text.replace("@", "")}
+            </Link>
+          );
+        }
+        return <span key={index}>{part.text}</span>;
+      })}
+    </p>
+  );
+};
 
 type Comment = {
   id: string;
@@ -15,10 +100,17 @@ type Comment = {
   created_at: string;
   author_id: string;
   parent_comment_id: string | null;
+  mentioned_user_id?: string | null;
   author: {
     full_name: string | null;
+    username: string | null;
     avatar_url: string | null;
     graduation_year: number | null;
+  };
+  mentioned_user?: {
+    id: string;
+    username: string;
+    full_name: string | null;
   };
   likeCount?: number;
   isLiked?: boolean;
@@ -93,8 +185,10 @@ export default function Comments({ postId }: CommentsProps) {
           created_at,
           author_id,
           parent_comment_id,
+          mentioned_user_id,
           profiles (
             full_name,
+            username,
             avatar_url,
             graduation_year
           )
@@ -195,9 +289,11 @@ export default function Comments({ postId }: CommentsProps) {
           parent_comment_id: row.parent_comment_id,
           author: {
             full_name: row.profiles?.full_name || null,
+            username: row.profiles?.username || null,
             avatar_url: row.profiles?.avatar_url || null,
             graduation_year: row.profiles?.graduation_year || null,
           },
+          mentioned_user_id: row.mentioned_user_id || null,
           likeCount: likeCountMap[row.id] || 0,
           isLiked: userLikedSet.has(row.id),
           replies: existingComment?.replies || [],
@@ -269,7 +365,7 @@ export default function Comments({ postId }: CommentsProps) {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name, avatar_url, graduation_year")
+          .select("full_name, username, avatar_url, graduation_year")
           .eq("id", user.id)
           .single();
 
@@ -279,8 +375,10 @@ export default function Comments({ postId }: CommentsProps) {
           created_at: new Date().toISOString(),
           author_id: user.id,
           parent_comment_id: null,
+          mentioned_user_id: null,
           author: {
             full_name: profile?.full_name || null,
+            username: profile?.username || null,
             avatar_url: profile?.avatar_url || null,
             graduation_year: profile?.graduation_year || null,
           },
@@ -308,7 +406,12 @@ export default function Comments({ postId }: CommentsProps) {
     }
   };
 
-  const handleSubmitReply = async (parentId: string, replyText: string, onSuccess: () => void) => {
+  const handleSubmitReply = async (
+    topLevelCommentId: string, 
+    replyText: string, 
+    mentionedUserId: string | null,
+    onSuccess: () => void
+  ) => {
     if (!replyText.trim()) return;
 
     setSubmitting(true);
@@ -323,7 +426,8 @@ export default function Comments({ postId }: CommentsProps) {
         post_id: postId,
         author_id: user.id,
         body: replyText.trim(),
-        parent_comment_id: parentId,
+        parent_comment_id: topLevelCommentId, // Always point to top-level comment
+        mentioned_user_id: mentionedUserId, // Set if replying to a reply
       });
 
       if (error) {
@@ -337,24 +441,42 @@ export default function Comments({ postId }: CommentsProps) {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name, avatar_url, graduation_year")
+          .select("full_name, username, avatar_url, graduation_year")
           .eq("id", user.id)
           .single();
 
+        // Fetch mentioned user profile if mentioned
+        let mentionedUserProfile = null;
+        if (mentionedUserId) {
+          const { data } = await supabase
+            .from("profiles")
+            .select("id, username, full_name")
+            .eq("id", mentionedUserId)
+            .single();
+          mentionedUserProfile = data;
+        }
+
         setComments((prev) =>
           prev.map((comment) => {
-            if (comment.id === parentId && comment.isRepliesExpanded) {
+            if (comment.id === topLevelCommentId && comment.isRepliesExpanded) {
               const optimisticReply: Comment = {
                 id: `temp-${Date.now()}`,
                 body: replyText.trim(),
                 created_at: new Date().toISOString(),
                 author_id: user.id,
-                parent_comment_id: parentId,
+                parent_comment_id: topLevelCommentId,
+                mentioned_user_id: mentionedUserId,
                 author: {
                   full_name: profile?.full_name || null,
+                  username: profile?.username || null,
                   avatar_url: profile?.avatar_url || null,
                   graduation_year: profile?.graduation_year || null,
                 },
+                mentioned_user: mentionedUserProfile ? {
+                  id: mentionedUserProfile.id,
+                  username: mentionedUserProfile.username,
+                  full_name: mentionedUserProfile.full_name,
+                } : undefined,
                 likeCount: 0,
                 isLiked: false,
                 replies: [],
@@ -371,9 +493,9 @@ export default function Comments({ postId }: CommentsProps) {
         );
       }
 
-      // Reload replies for the parent comment to get the real reply
-      if (expandedComments.has(parentId)) {
-        loadReplies(parentId, null, true);
+      // Reload replies for the top-level comment to get the real reply
+      if (expandedComments.has(topLevelCommentId)) {
+        loadReplies(topLevelCommentId, null, true);
       }
     } catch (err) {
       console.error("Unexpected error creating reply:", err);
@@ -480,10 +602,17 @@ export default function Comments({ postId }: CommentsProps) {
           created_at,
           author_id,
           parent_comment_id,
+          mentioned_user_id,
           profiles (
             full_name,
+            username,
             avatar_url,
             graduation_year
+          ),
+          mentioned_user:profiles!comments_mentioned_user_id_fkey (
+            id,
+            username,
+            full_name
           )
         `
         )
@@ -554,11 +683,18 @@ export default function Comments({ postId }: CommentsProps) {
         created_at: row.created_at,
         author_id: row.author_id,
         parent_comment_id: row.parent_comment_id,
+        mentioned_user_id: row.mentioned_user_id || null,
         author: {
           full_name: row.profiles?.full_name || null,
+          username: row.profiles?.username || null,
           avatar_url: row.profiles?.avatar_url || null,
           graduation_year: row.profiles?.graduation_year || null,
         },
+        mentioned_user: row.mentioned_user ? {
+          id: row.mentioned_user.id,
+          username: row.mentioned_user.username,
+          full_name: row.mentioned_user.full_name,
+        } : undefined,
         likeCount: likeCountMap[row.id] || 0,
         isLiked: userLikedSet.has(row.id),
         replies: [],
@@ -627,40 +763,194 @@ export default function Comments({ postId }: CommentsProps) {
     );
   }, [comments, expandedComments, loadReplies]);
 
-  const CommentItem = memo(({ comment, depth = 0, onToggleReplies, onLoadMoreReplies }: { 
+  const CommentItem = memo(({ comment, depth = 0, onToggleReplies, onLoadMoreReplies, topLevelCommentId }: { 
     comment: Comment; 
     depth?: number;
     onToggleReplies?: (commentId: string) => void;
     onLoadMoreReplies?: (commentId: string, cursor: string) => void;
+    topLevelCommentId?: string; // The top-level comment ID (same as comment.id if depth=0)
   }) => {
     const commentRouter = useRouter();
     const [isReplying, setIsReplying] = useState(false);
     const [replyText, setReplyText] = useState("");
     const [isLiking, setIsLiking] = useState(false);
+    const [mentionedUserId, setMentionedUserId] = useState<string | null>(null);
+    const [autocompleteQuery, setAutocompleteQuery] = useState("");
+    const [autocompleteResults, setAutocompleteResults] = useState<Array<{ id: string; username: string; full_name: string | null }>>([]);
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
+    const [autocompleteCursor, setAutocompleteCursor] = useState(0);
     const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
-    const maxDepth = 3; // Limit nesting depth
+    const autocompleteRef = useRef<HTMLDivElement>(null);
+    const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Determine top-level comment ID
+    const effectiveTopLevelId = topLevelCommentId || comment.id;
+
+    // Check if this is a reply (has parent_comment_id)
+    const isReply = !!comment.parent_comment_id;
 
     // Focus reply textarea when it becomes visible
     useEffect(() => {
       if (isReplying && replyTextareaRef.current) {
         // Small delay to ensure the textarea is rendered
         const timeoutId = setTimeout(() => {
-          replyTextareaRef.current?.focus();
+          const textarea = replyTextareaRef.current;
+          if (textarea) {
+            textarea.focus();
+            // Move cursor to end if text is prefilled
+            if (replyText) {
+              textarea.setSelectionRange(replyText.length, replyText.length);
+            }
+          }
         }, 0);
         return () => clearTimeout(timeoutId);
       }
-    }, [isReplying]);
+    }, [isReplying, replyText]);
 
-    const handleReplySubmit = () => {
-      handleSubmitReply(comment.id, replyText, () => {
+    // Handle autocomplete search
+    useEffect(() => {
+      if (autocompleteTimeoutRef.current) {
+        clearTimeout(autocompleteTimeoutRef.current);
+      }
+
+      if (!showAutocomplete || !autocompleteQuery.trim()) {
+        setAutocompleteResults([]);
+        return;
+      }
+
+      autocompleteTimeoutRef.current = setTimeout(async () => {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("id, username, full_name")
+            .ilike("username", `${autocompleteQuery}%`)
+            .limit(5);
+
+          if (error) {
+            console.error("Autocomplete error:", error);
+            setAutocompleteResults([]);
+          } else {
+            setAutocompleteResults(data || []);
+          }
+        } catch (err) {
+          console.error("Autocomplete failed:", err);
+          setAutocompleteResults([]);
+        }
+      }, 300); // Debounce 300ms
+
+      return () => {
+        if (autocompleteTimeoutRef.current) {
+          clearTimeout(autocompleteTimeoutRef.current);
+        }
+      };
+    }, [autocompleteQuery, showAutocomplete]);
+
+    // Handle textarea input changes for @mention detection
+    const handleReplyTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const text = e.target.value;
+      setReplyText(text);
+
+      const cursorPos = e.target.selectionStart;
+      const textBeforeCursor = text.slice(0, cursorPos);
+      const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+
+      if (lastAtIndex !== -1) {
+        const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+        // Check if there's a space after @, meaning mention ended
+        if (textAfterAt.includes(" ") || textAfterAt.includes("\n")) {
+          setShowAutocomplete(false);
+          setAutocompleteQuery("");
+        } else {
+          // Extract query after @
+          setAutocompleteQuery(textAfterAt);
+          setShowAutocomplete(true);
+          setAutocompleteCursor(lastAtIndex);
+        }
+      } else {
+        setShowAutocomplete(false);
+        setAutocompleteQuery("");
+      }
+    };
+
+    // Handle autocomplete selection
+    const handleAutocompleteSelect = (user: { id: string; username: string }) => {
+      const textBeforeCursor = replyText.slice(0, autocompleteCursor + 1);
+      const textAfterMention = replyText.slice(autocompleteCursor + 1 + autocompleteQuery.length);
+      const newText = `${textBeforeCursor}${user.username} ${textAfterMention}`;
+      setReplyText(newText);
+      setShowAutocomplete(false);
+      setAutocompleteQuery("");
+      
+      // Focus back to textarea and position cursor after the inserted username
+      setTimeout(() => {
+        if (replyTextareaRef.current) {
+          const newCursorPos = autocompleteCursor + 1 + user.username.length + 1;
+          replyTextareaRef.current.focus();
+          replyTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      }, 0);
+    };
+
+    // Handle click outside to close autocomplete
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          showAutocomplete &&
+          autocompleteRef.current &&
+          replyTextareaRef.current &&
+          !autocompleteRef.current.contains(event.target as Node) &&
+          !replyTextareaRef.current.contains(event.target as Node)
+        ) {
+          setShowAutocomplete(false);
+        }
+      };
+
+      if (showAutocomplete) {
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+          document.removeEventListener("mousedown", handleClickOutside);
+        };
+      }
+    }, [showAutocomplete]);
+
+    // Handle clicking Reply button
+    const handleReplyClick = () => {
+      if (isReplying) {
+        // Cancel reply
         setReplyText("");
         setIsReplying(false);
+        setMentionedUserId(null);
+        setShowAutocomplete(false);
+      } else {
+        // Start reply
+        setIsReplying(true);
+        if (isReply) {
+          // Replying to a reply: prefill @username
+          const usernameToMention = comment.author.username || comment.author.full_name?.replace(/\s+/g, "_").toLowerCase() || "user";
+          setReplyText(`@${usernameToMention} `);
+          setMentionedUserId(comment.author_id);
+        } else {
+          // Replying to top-level comment: empty input
+          setReplyText("");
+          setMentionedUserId(null);
+        }
+      }
+    };
+
+    const handleReplySubmit = () => {
+      handleSubmitReply(effectiveTopLevelId, replyText, mentionedUserId, () => {
+        setReplyText("");
+        setIsReplying(false);
+        setMentionedUserId(null);
+        setShowAutocomplete(false);
       });
     };
 
     const handleCancelReply = () => {
       setReplyText("");
       setIsReplying(false);
+      setMentionedUserId(null);
+      setShowAutocomplete(false);
     };
 
     const handleLike = async () => {
@@ -723,9 +1013,11 @@ export default function Comments({ postId }: CommentsProps) {
                 {getRelativeTime(comment.created_at)}
               </span>
             </div>
-            <p className="text-sm text-[var(--text-primary)] mb-2 whitespace-pre-line">
-              {comment.body}
-            </p>
+            <CommentBodyWithMentions 
+              body={comment.body}
+              mentionedUserId={comment.mentioned_user_id}
+              mentionedUser={comment.mentioned_user}
+            />
             <div className="flex items-center gap-4 mb-2">
               <button
                 onClick={handleLike}
@@ -753,25 +1045,47 @@ export default function Comments({ postId }: CommentsProps) {
                   <span>{comment.likeCount}</span>
                 )}
               </button>
-              {depth < maxDepth && (
-                <button
-                  onClick={() => setIsReplying(!isReplying)}
-                  className="text-xs text-[var(--color-accent)] hover:underline"
-                >
-                  {isReplying ? "Cancel" : "Reply"}
-                </button>
-              )}
+              <button
+                onClick={handleReplyClick}
+                className="text-xs text-[var(--color-accent)] hover:underline"
+              >
+                {isReplying ? "Cancel" : "Reply"}
+              </button>
             </div>
             {isReplying && (
-              <div className="mt-2 mb-3">
+              <div className="mt-2 mb-3 relative">
                 <textarea
                   ref={replyTextareaRef}
                   value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
+                  onChange={handleReplyTextChange}
                   placeholder="Write a reply..."
                   rows={2}
                   className="w-full p-2 border border-[var(--card-border)] rounded-md text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors"
                 />
+                {/* Autocomplete dropdown */}
+                {showAutocomplete && autocompleteResults.length > 0 && (
+                  <div
+                    ref={autocompleteRef}
+                    className="absolute z-50 mt-1 w-full max-w-md bg-[var(--card-bg)] border border-[var(--card-border)] rounded-md shadow-lg max-h-48 overflow-y-auto"
+                  >
+                    {autocompleteResults.map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => handleAutocompleteSelect(user)}
+                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[var(--bg-primary)] text-left transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                            {user.full_name || user.username}
+                          </div>
+                          <div className="text-xs text-[var(--text-secondary)] truncate">
+                            @{user.username}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={handleReplySubmit}
@@ -810,7 +1124,8 @@ export default function Comments({ postId }: CommentsProps) {
                       <CommentItem 
                         key={reply.id} 
                         comment={reply} 
-                        depth={depth + 1}
+                        depth={1}
+                        topLevelCommentId={effectiveTopLevelId}
                         onToggleReplies={onToggleReplies}
                         onLoadMoreReplies={onLoadMoreReplies}
                       />
@@ -891,6 +1206,8 @@ export default function Comments({ postId }: CommentsProps) {
               <CommentItem 
                 key={comment.id} 
                 comment={comment}
+                depth={0}
+                topLevelCommentId={comment.id}
                 onToggleReplies={toggleReplies}
                 onLoadMoreReplies={(commentId, cursor) => loadReplies(commentId, cursor, true)}
               />
