@@ -291,10 +291,10 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="bg-[var(--bg-primary)] min-h-screen py-6 sm:py-10 flex flex-col items-center px-4 sm:px-6 transition-colors">
+    <div className="bg-[var(--bg-primary)] min-h-screen py-6 sm:py-10 flex flex-col items-start sm:items-center px-4 sm:px-6 transition-colors">
       <div className="w-full max-w-6xl">
         {/* Profile Header - Well Designed */}
-        <div className="mb-8 flex flex-col items-center justify-center">
+        <div className="mb-8">
           {/* Profile Card */}
           <div className="rounded-2xl shadow-sm p-6 sm:p-8 transition-colors">
             <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
