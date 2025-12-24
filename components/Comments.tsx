@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { getRelativeTime } from "@/utils/relativeTime";
 
 const COMMENTS_PER_PAGE = 10;
-const REPLIES_PER_PAGE = 10;
+const REPLIES_PER_PAGE = 5;
 
 // Component to render comment body with clickable mentions
 const CommentBodyWithMentions = ({ 
@@ -446,7 +446,11 @@ export default function Comments({ postId, onCommentCountChange }: CommentsProps
       }
 
       onSuccess();
-      // Optimistic update: add reply immediately if parent is expanded (user already fetched above)
+      
+      // Ensure the comment is marked as expanded
+      setExpandedComments((prev) => new Set([...prev, topLevelCommentId]));
+      
+      // Optimistic update: add reply immediately (user already fetched above)
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -467,7 +471,7 @@ export default function Comments({ postId, onCommentCountChange }: CommentsProps
 
         setComments((prev) =>
           prev.map((comment) => {
-            if (comment.id === topLevelCommentId && comment.isRepliesExpanded) {
+            if (comment.id === topLevelCommentId) {
               const optimisticReply: Comment = {
                 id: `temp-${Date.now()}`,
                 body: replyText.trim(),
@@ -495,6 +499,7 @@ export default function Comments({ postId, onCommentCountChange }: CommentsProps
                 ...comment,
                 replies: [...(comment.replies || []), optimisticReply],
                 totalReplies: (comment.totalReplies || 0) + 1,
+                isRepliesExpanded: true, // Ensure it's marked as expanded
               };
             }
             return comment;
@@ -503,9 +508,10 @@ export default function Comments({ postId, onCommentCountChange }: CommentsProps
       }
 
       // Reload replies for the top-level comment to get the real reply
-      if (expandedComments.has(topLevelCommentId)) {
-        loadReplies(topLevelCommentId, null, true);
-      }
+      // Use a small delay to ensure state is updated, then reload and replace temp replies
+      setTimeout(() => {
+        loadReplies(topLevelCommentId, null, false); // Replace, don't append, to avoid duplicates
+      }, 100);
     } catch (err) {
       console.error("Unexpected error creating reply:", err);
       alert("Failed to post reply. Please try again.");
@@ -718,19 +724,34 @@ export default function Comments({ postId, onCommentCountChange }: CommentsProps
       setComments((prev) =>
         prev.map((comment) => {
           if (comment.id === parentCommentId) {
-            const existingReplies = append ? (comment.replies || []) : [];
-            // Filter out duplicates by ID to prevent duplicate keys
-            const existingIds = new Set(existingReplies.map(r => r.id));
-            const uniqueNewReplies = newReplies.filter(r => !existingIds.has(r.id));
-            const updatedReplies = [...existingReplies, ...uniqueNewReplies];
-            
-            return {
-              ...comment,
-              replies: updatedReplies,
-              repliesCursor: nextCursor,
-              hasMoreReplies: hasMoreRepliesData,
-              isLoadingReplies: false,
-            };
+            if (append) {
+              // When appending (pagination), merge with existing replies
+              const existingReplies = comment.replies || [];
+              // Filter out duplicates by ID AND filter out temp IDs (optimistic updates)
+              const existingIds = new Set(existingReplies.map(r => r.id));
+              const uniqueNewReplies = newReplies.filter(r => !existingIds.has(r.id));
+              const updatedReplies = [...existingReplies, ...uniqueNewReplies];
+              
+              return {
+                ...comment,
+                replies: updatedReplies,
+                repliesCursor: nextCursor,
+                hasMoreReplies: hasMoreRepliesData,
+                isLoadingReplies: false,
+              };
+            } else {
+              // When replacing (after new reply), filter out temp IDs and use only real replies
+              const realReplies = newReplies.filter(r => !r.id.startsWith("temp-"));
+              
+              return {
+                ...comment,
+                replies: realReplies,
+                totalReplies: realReplies.length, // Update total based on loaded replies
+                repliesCursor: nextCursor,
+                hasMoreReplies: hasMoreRepliesData,
+                isLoadingReplies: false,
+              };
+            }
           }
           return comment;
         })
