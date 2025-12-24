@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Post } from "@/components/PostsCard";
@@ -177,6 +177,15 @@ export default function PostDetailPage() {
     };
   }, [postId]);
 
+  // Memoize callbacks to prevent infinite loops
+  const handleLikeChange = useCallback((postId: string | number, newLikeCount: number, isLiked: boolean) => {
+    setPost((prev) => prev ? { ...prev, likeCount: newLikeCount, isLiked } : null);
+  }, []);
+
+  const handleCommentCountChange = useCallback((count: number) => {
+    setPost((prev) => prev ? { ...prev, comments: count } : null);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center transition-colors">
@@ -251,9 +260,7 @@ export default function PostDetailPage() {
             isReposted={post.isReposted}
             isAuthor={currentUserId === post.authorId}
             showMenu={true}
-            onLikeChange={(postId, newLikeCount, isLiked) => {
-              setPost((prev) => prev ? { ...prev, likeCount: newLikeCount, isLiked } : null);
-            }}
+            onLikeChange={handleLikeChange}
             onPostUpdate={(postId, newText) => {
               setPost((prev) => prev ? { ...prev, text: newText } : null);
             }}
@@ -282,9 +289,7 @@ export default function PostDetailPage() {
           <h2 className="font-semibold text-[var(--text-primary)] mb-4">Comments</h2>
           <Comments 
             postId={postId} 
-            onCommentCountChange={(count) => {
-              setPost((prev) => prev ? { ...prev, comments: count } : null);
-            }}
+            onCommentCountChange={handleCommentCountChange}
           />
         </div>
       </div>
