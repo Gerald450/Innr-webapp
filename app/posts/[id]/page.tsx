@@ -251,6 +251,9 @@ export default function PostDetailPage() {
             isReposted={post.isReposted}
             isAuthor={currentUserId === post.authorId}
             showMenu={true}
+            onLikeChange={(postId, newLikeCount, isLiked) => {
+              setPost((prev) => prev ? { ...prev, likeCount: newLikeCount, isLiked } : null);
+            }}
             onPostUpdate={(postId, newText) => {
               setPost((prev) => prev ? { ...prev, text: newText } : null);
             }}
@@ -277,7 +280,12 @@ export default function PostDetailPage() {
         {/* Comments Section */}
         <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] p-4 transition-colors">
           <h2 className="font-semibold text-[var(--text-primary)] mb-4">Comments</h2>
-          <Comments postId={postId} />
+          <Comments 
+            postId={postId} 
+            onCommentCountChange={(count) => {
+              setPost((prev) => prev ? { ...prev, comments: count } : null);
+            }}
+          />
         </div>
       </div>
     </div>

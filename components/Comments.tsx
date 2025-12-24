@@ -124,9 +124,10 @@ type Comment = {
 
 type CommentsProps = {
   postId: string;
+  onCommentCountChange?: (count: number) => void;
 };
 
-export default function Comments({ postId }: CommentsProps) {
+export default function Comments({ postId, onCommentCountChange }: CommentsProps) {
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +138,14 @@ export default function Comments({ postId }: CommentsProps) {
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Calculate and notify comment count whenever comments change
+  useEffect(() => {
+    const totalCount = comments.reduce((total, comment) => {
+      return total + 1 + (comment.totalReplies || 0);
+    }, 0);
+    onCommentCountChange?.(totalCount);
+  }, [comments, onCommentCountChange]);
 
   useEffect(() => {
     // Reset pagination when postId changes
@@ -1041,12 +1050,12 @@ export default function Comments({ postId }: CommentsProps) {
                   <span>{comment.likeCount}</span>
                 )}
               </button>
-              <button
+                <button
                 onClick={handleReplyClick}
-                className="text-xs text-[var(--color-accent)] hover:underline"
-              >
-                {isReplying ? "Cancel" : "Reply"}
-              </button>
+                  className="text-xs text-[var(--color-accent)] hover:underline"
+                >
+                  {isReplying ? "Cancel" : "Reply"}
+                </button>
             </div>
             {isReplying && (
               <div className="mt-2 mb-3 relative">
