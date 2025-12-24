@@ -705,7 +705,10 @@ export default function Comments({ postId }: CommentsProps) {
         prev.map((comment) => {
           if (comment.id === parentCommentId) {
             const existingReplies = append ? (comment.replies || []) : [];
-            const updatedReplies = [...existingReplies, ...newReplies];
+            // Filter out duplicates by ID to prevent duplicate keys
+            const existingIds = new Set(existingReplies.map(r => r.id));
+            const uniqueNewReplies = newReplies.filter(r => !existingIds.has(r.id));
+            const updatedReplies = [...existingReplies, ...uniqueNewReplies];
             
             return {
               ...comment,
