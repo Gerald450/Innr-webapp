@@ -186,7 +186,7 @@ export default function Comments({ postId }: CommentsProps) {
           author_id,
           parent_comment_id,
           mentioned_user_id,
-          profiles (
+          profiles!comments_author_id_fkey (
             full_name,
             username,
             avatar_url,
@@ -603,7 +603,7 @@ export default function Comments({ postId }: CommentsProps) {
           author_id,
           parent_comment_id,
           mentioned_user_id,
-          profiles (
+          profiles!comments_author_id_fkey (
             full_name,
             username,
             avatar_url,
