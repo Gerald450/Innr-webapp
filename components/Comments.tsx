@@ -515,6 +515,11 @@ export default function Comments({ postId, onCommentCountChange }: CommentsProps
   };
 
   const handleCommentLike = async (commentId: string, currentlyLiked: boolean) => {
+    // Don't allow liking comments with temporary IDs (optimistic updates)
+    if (commentId.startsWith("temp-")) {
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
