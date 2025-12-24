@@ -925,18 +925,11 @@ export default function Comments({ postId }: CommentsProps) {
         setMentionedUserId(null);
         setShowAutocomplete(false);
       } else {
-        // Start reply
+        // Start reply - always prefill @username (whether replying to comment or reply)
         setIsReplying(true);
-        if (isReply) {
-          // Replying to a reply: prefill @username
-          const usernameToMention = comment.author.username || comment.author.full_name?.replace(/\s+/g, "_").toLowerCase() || "user";
-          setReplyText(`@${usernameToMention} `);
-          setMentionedUserId(comment.author_id);
-        } else {
-          // Replying to top-level comment: empty input
-          setReplyText("");
-          setMentionedUserId(null);
-        }
+        const usernameToMention = comment.author.username || comment.author.full_name?.replace(/\s+/g, "_").toLowerCase() || "user";
+        setReplyText(`@${usernameToMention} `);
+        setMentionedUserId(comment.author_id);
       }
     };
 
