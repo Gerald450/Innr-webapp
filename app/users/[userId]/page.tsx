@@ -38,6 +38,8 @@ export default function UserProfilePage() {
   const [activityPosts, setActivityPosts] = useState<PostItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState<boolean>(false);
   const [isOwnProfile, setIsOwnProfile] = useState<boolean>(false);
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [isTogglingFollow, setIsTogglingFollow] = useState<boolean>(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -261,6 +263,100 @@ export default function UserProfilePage() {
     };
   }, [activeTab, profile?.id, profile?.full_name, profile?.graduation_year, profile?.avatar_url]);
 
+  // Check follow status when profile loads
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    let mounted = true;
+
+    const checkFollowStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          if (mounted) setIsFollowing(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("follows")
+          .select("id")
+          .eq("follower_id", user.id)
+          .eq("following_id", profile.id)
+          .single();
+
+        if (error && error.code !== "PGRST116") {
+          // PGRST116 is "not found" which is fine
+          console.error("Error checking follow status:", error);
+          if (mounted) setIsFollowing(false);
+        } else {
+          if (mounted) setIsFollowing(!!data);
+        }
+      } catch (err) {
+        console.error("Unexpected error checking follow status:", err);
+        if (mounted) setIsFollowing(false);
+      }
+    };
+
+    checkFollowStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, [profile?.id]);
+
+  // Handle follow/unfollow toggle
+  const handleToggleFollow = async () => {
+    if (!profile?.id || isTogglingFollow) return;
+
+    try {
+      setIsTogglingFollow(true);
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error("Not authenticated");
+        router.push("/signin");
+        return;
+      }
+
+      if (isFollowing) {
+        // Unfollow: DELETE
+        const { error } = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("following_id", profile.id);
+
+        if (error) {
+          console.error("Error unfollowing user:", error);
+          return;
+        }
+
+        setIsFollowing(false);
+      } else {
+        // Follow: INSERT
+        const { error } = await supabase
+          .from("follows")
+          .insert({ follower_id: user.id, following_id: profile.id });
+
+        if (error) {
+          // Handle unique constraint violation (already following)
+          if (error.code === "23505") {
+            setIsFollowing(true);
+          } else {
+            console.error("Error following user:", error);
+          }
+          return;
+        }
+
+        setIsFollowing(true);
+      }
+    } catch (err) {
+      console.error("Unexpected error toggling follow:", err);
+    } finally {
+      setIsTogglingFollow(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-[var(--bg-primary)] min-h-screen flex items-center justify-center transition-colors">
@@ -363,6 +459,21 @@ export default function UserProfilePage() {
                     {profile.bio}
                   </div>
                 )}
+
+                {/* Connect Button */}
+                <div className="flex justify-center sm:justify-start mt-6">
+                  <button
+                    onClick={handleToggleFollow}
+                    disabled={isTogglingFollow}
+                    className={`px-5 py-2.5 rounded-lg font-semibold transition shadow-sm text-sm sm:text-base ${
+                      isFollowing
+                        ? "border border-[var(--card-border)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        : "bg-[var(--color-accent)] text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)]"
+                    } ${isTogglingFollow ? "opacity-60 cursor-not-allowed" : ""}`}
+                  >
+                    {isTogglingFollow ? "..." : isFollowing ? "Connected" : "Connect"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
