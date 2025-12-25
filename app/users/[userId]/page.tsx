@@ -263,41 +263,54 @@ export default function UserProfilePage() {
     };
   }, [activeTab, profile?.id, profile?.full_name, profile?.graduation_year, profile?.avatar_url]);
 
-  // Check follow status when profile loads
+  // Check follow status and load connections count when profile loads
   useEffect(() => {
     if (!profile?.id) return;
 
     let mounted = true;
 
-    const checkFollowStatus = async () => {
+    const checkFollowStatusAndConnections = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        
+        // Check if current user is following this profile
+        if (user) {
+          const { data, error } = await supabase
+            .from("follows")
+            .select("id")
+            .eq("follower_id", user.id)
+            .eq("following_id", profile.id)
+            .single();
+
+          if (error && error.code !== "PGRST116") {
+            // PGRST116 is "not found" which is fine
+            console.error("Error checking follow status:", error);
+            if (mounted) setIsFollowing(false);
+          } else {
+            if (mounted) setIsFollowing(!!data);
+          }
+        } else {
           if (mounted) setIsFollowing(false);
-          return;
         }
 
-        const { data, error } = await supabase
+        // Get connections count (number of people following this user)
+        const { count, error: countError } = await supabase
           .from("follows")
-          .select("id")
-          .eq("follower_id", user.id)
-          .eq("following_id", profile.id)
-          .single();
+          .select("*", { count: "exact", head: true })
+          .eq("following_id", profile.id);
 
-        if (error && error.code !== "PGRST116") {
-          // PGRST116 is "not found" which is fine
-          console.error("Error checking follow status:", error);
-          if (mounted) setIsFollowing(false);
+        if (countError) {
+          console.error("Error loading connections count:", countError);
         } else {
-          if (mounted) setIsFollowing(!!data);
+          if (mounted) setConnectionsCount(count ?? 0);
         }
       } catch (err) {
-        console.error("Unexpected error checking follow status:", err);
+        console.error("Unexpected error checking follow status and connections:", err);
         if (mounted) setIsFollowing(false);
       }
     };
 
-    checkFollowStatus();
+    checkFollowStatusAndConnections();
 
     return () => {
       mounted = false;
@@ -332,6 +345,8 @@ export default function UserProfilePage() {
         }
 
         setIsFollowing(false);
+        // Update connections count optimistically
+        setConnectionsCount((prev) => Math.max(0, prev - 1));
       } else {
         // Follow: INSERT
         const { error } = await supabase
@@ -349,6 +364,8 @@ export default function UserProfilePage() {
         }
 
         setIsFollowing(true);
+        // Update connections count optimistically
+        setConnectionsCount((prev) => prev + 1);
       }
     } catch (err) {
       console.error("Unexpected error toggling follow:", err);
