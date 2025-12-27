@@ -113,8 +113,6 @@ function MyProfilePageContent() {
           setProfile(profileData ?? null);
         }
 
-      
-
         if (mounted) setAuthChecked(true);
       } catch (err) {
         console.error("Unexpected load error:", err);
@@ -129,6 +127,37 @@ function MyProfilePageContent() {
       mounted = false;
     };
   }, [router]);
+
+  // Load connections count when profile loads
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    let mounted = true;
+
+    const loadConnectionsCount = async () => {
+      try {
+        // Get connections count (number of people following this user)
+        const { count, error: countError } = await supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("following_id", profile.id);
+
+        if (countError) {
+          console.error("Error loading connections count:", countError);
+        } else {
+          if (mounted) setConnectionsCount(count ?? 0);
+        }
+      } catch (err) {
+        console.error("Unexpected error loading connections count:", err);
+      }
+    };
+
+    loadConnectionsCount();
+
+    return () => {
+      mounted = false;
+    };
+  }, [profile?.id]);
 
   // Load activity posts when Activity tab is active
   useEffect(() => {

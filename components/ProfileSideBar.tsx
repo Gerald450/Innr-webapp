@@ -4,7 +4,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
 import { useProfile } from "@/hooks/useProfile";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 type NavItem = {
   label: string;
@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
 export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
   const avatar = useUserAvatar();
   const router = useRouter();
+  const pathname = usePathname();
   const [clickedIndex, setClickedIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -38,6 +39,18 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Reset clickedIndex when sidebar closes
+  useEffect(() => {
+    if (!isOpen) {
+      setClickedIndex(null);
+    }
+  }, [isOpen]);
+
+  // Reset clickedIndex when route changes
+  useEffect(() => {
+    setClickedIndex(null);
+  }, [pathname]);
 
   // Close when clicking outside or pressing Escape
   useEffect(() => {
