@@ -734,21 +734,20 @@ function MyProfilePageContent() {
                     </div>
                   </div>
                 ) : (
+                  <div className="space-y-8">
+                    {/* Media Posts Section */}
+                    {userPosts.filter(post => post.image || (post.images && post.images.length > 0)).length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Media Posts</h3>
                   <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-4">
-                    {userPosts.map((post) => {
-                      const hasMedia = post.image || (post.images && post.images.length > 0);
-                      return (
+                          {userPosts
+                            .filter(post => post.image || (post.images && post.images.length > 0))
+                            .map((post) => (
                         <div
                           key={post.id}
                           onClick={() => router.push(`/posts/${post.id}`)}
-                          className={`cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
-                            hasMedia 
-                              ? "aspect-square bg-gray-100 dark:bg-gray-800" 
-                              : "bg-[var(--card-bg)] min-h-[120px] max-h-[200px]"
-                          }`}
-                        >
-                          {hasMedia ? (
-                            <>
+                                className="cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
+                              >
                               <Image
                                 src={post.image || post.images?.[0] || ""}
                                 alt={post.text || "Post"}
@@ -784,8 +783,25 @@ function MyProfilePageContent() {
                                   {post.images.length}
                                 </div>
                               )}
-                            </>
-                          ) : (
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Text Posts Section */}
+                    {userPosts.filter(post => !post.image && (!post.images || post.images.length === 0)).length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Text Posts</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {userPosts
+                            .filter(post => !post.image && (!post.images || post.images.length === 0))
+                            .map((post) => (
+                              <div
+                                key={post.id}
+                                onClick={() => router.push(`/posts/${post.id}`)}
+                                className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
+                              >
                             <div className="w-full h-full flex flex-col justify-between p-4">
                               <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed">
                                 {post.text || "No content"}
@@ -805,10 +821,11 @@ function MyProfilePageContent() {
                                 </div>
                               </div>
                             </div>
-                          )}
                         </div>
-                      );
-                    })}
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -933,21 +950,20 @@ function MyProfilePageContent() {
                     </div>
                   </div>
                 ) : (
+                  <div className="space-y-8">
+                    {/* Media Posts Section */}
+                    {activityPosts.filter(post => post.image || (post.images && post.images.length > 0)).length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Media Posts</h3>
                   <div className="grid grid-cols-3 gap-0.5 sm:gap-2 lg:gap-4">
-                    {activityPosts.map((post) => {
-                      const hasMedia = post.image || (post.images && post.images.length > 0);
-                      return (
+                          {activityPosts
+                            .filter(post => post.image || (post.images && post.images.length > 0))
+                            .map((post) => (
                         <div
                           key={post.id}
                           onClick={() => router.push(`/posts/${post.id}`)}
-                          className={`cursor-pointer group relative overflow-hidden sm:rounded-lg border-0 sm:border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
-                            hasMedia 
-                              ? "aspect-square bg-gray-100 dark:bg-gray-800" 
-                              : "bg-[var(--card-bg)] min-h-[120px] max-h-[200px]"
-                          }`}
-                        >
-                          {hasMedia ? (
-                            <>
+                                className="cursor-pointer group relative overflow-hidden sm:rounded-lg border-0 sm:border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
+                              >
                               <Image
                                 src={post.image || post.images?.[0] || ""}
                                 alt={post.text || "Post"}
@@ -1011,8 +1027,25 @@ function MyProfilePageContent() {
                                   {post.images.length}
                                 </div>
                               )}
-                            </>
-                          ) : (
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Text Posts Section */}
+                    {activityPosts.filter(post => !post.image && (!post.images || post.images.length === 0)).length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Text Posts</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {activityPosts
+                            .filter(post => !post.image && (!post.images || post.images.length === 0))
+                            .map((post) => (
+                              <div
+                                key={post.id}
+                                onClick={() => router.push(`/posts/${post.id}`)}
+                                className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
+                              >
                             <div className="w-full h-full flex flex-col justify-between p-4 relative">
                               {/* Activity Badge */}
                               <div className={`absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
@@ -1060,10 +1093,11 @@ function MyProfilePageContent() {
                                 </div>
                               </div>
                             </div>
-                          )}
                         </div>
-                      );
-                    })}
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

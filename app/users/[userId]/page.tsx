@@ -32,6 +32,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"posts" | "activity" | "about">("posts");
+  const [postFilter, setPostFilter] = useState<"all" | "media" | "text">("all");
   const [userPosts, setUserPosts] = useState<PostItem[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
   const [activityType, setActivityType] = useState<"liked" | "commented" | "reposted">("liked");
@@ -542,81 +543,98 @@ export default function UserProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-4">
-                    {userPosts.map((post) => {
-                      const hasMedia = post.image || (post.images && post.images.length > 0);
-                      return (
-                        <div
-                          key={post.id}
-                          onClick={() => router.push(`/posts/${post.id}`)}
-                          className={`cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg ${
-                            hasMedia 
-                              ? "aspect-square bg-gray-100 dark:bg-gray-800" 
-                              : "bg-[var(--card-bg)] min-h-[120px] max-h-[200px]"
-                          }`}
-                        >
-                          {hasMedia ? (
-                            <>
-                              <Image
-                                src={post.image || post.images?.[0] || ""}
-                                alt={post.text || "Post"}
-                                width={400}
-                                height={400}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                loading="lazy"
-                                unoptimized
-                              />
-                              {/* Overlay on hover */}
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-4 text-white">
-                                  <div className="flex items-center gap-1">
-                                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                    <span className="font-semibold">{post.likeCount || 0}</span>
+                  <div className="space-y-8">
+                    {/* Media Posts Section */}
+                    {userPosts.filter(post => post.image || (post.images && post.images.length > 0)).length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Media Posts</h3>
+                        <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-4">
+                          {userPosts
+                            .filter(post => post.image || (post.images && post.images.length > 0))
+                            .map((post) => (
+                              <div
+                                key={post.id}
+                                onClick={() => router.push(`/posts/${post.id}`)}
+                                className="cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
+                              >
+                                <Image
+                                  src={post.image || post.images?.[0] || ""}
+                                  alt={post.text || "Post"}
+                                  width={400}
+                                  height={400}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  loading="lazy"
+                                  unoptimized
+                                />
+                                {/* Overlay on hover */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-4 text-white">
+                                    <div className="flex items-center gap-1">
+                                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                        <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                      </svg>
+                                      <span className="font-semibold">{post.likeCount || 0}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                      </svg>
+                                      <span className="font-semibold">{post.commentCount || 0}</span>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </div>
+                                {/* Multiple images indicator */}
+                                {post.images && post.images.length > 1 && (
+                                  <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    <span className="font-semibold">{post.commentCount || 0}</span>
+                                    {post.images.length}
                                   </div>
-                                </div>
+                                )}
                               </div>
-                              {/* Multiple images indicator */}
-                              {post.images && post.images.length > 1 && (
-                                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                  {post.images.length}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="w-full h-full flex flex-col justify-between p-4">
-                              <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed">
-                                {post.text || "No content"}
-                              </p>
-                              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--card-border)] text-xs text-[var(--text-secondary)]">
-                                <div className="flex items-center gap-1">
-                                  <svg className="w-4 h-4 fill-current text-[var(--color-accent)]" viewBox="0 0 24 24">
-                                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                  </svg>
-                                  <span>{post.likeCount || 0}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                  </svg>
-                                  <span>{post.commentCount || 0}</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                            ))}
                         </div>
-                      );
-                    })}
+                      </div>
+                    )}
+
+                    {/* Text Posts Section */}
+                    {userPosts.filter(post => !post.image && (!post.images || post.images.length === 0)).length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Text Posts</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {userPosts
+                            .filter(post => !post.image && (!post.images || post.images.length === 0))
+                            .map((post) => (
+                              <div
+                                key={post.id}
+                                onClick={() => router.push(`/posts/${post.id}`)}
+                                className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
+                              >
+                                <div className="w-full h-full flex flex-col justify-between p-4">
+                                  <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed">
+                                    {post.text || "No content"}
+                                  </p>
+                                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--card-border)] text-xs text-[var(--text-secondary)]">
+                                    <div className="flex items-center gap-1">
+                                      <svg className="w-4 h-4 fill-current text-[var(--color-accent)]" viewBox="0 0 24 24">
+                                        <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                      </svg>
+                                      <span>{post.likeCount || 0}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                      </svg>
+                                      <span>{post.commentCount || 0}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
