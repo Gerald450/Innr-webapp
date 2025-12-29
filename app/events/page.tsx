@@ -11,6 +11,64 @@ import EventsCalendar from "@/components/EventsCalendar";
 import { useEvents, EventItem } from "@/hooks/useEvents";
 import { useProfile } from "@/hooks/useProfile";
 import { invalidateEvents } from "@/utils/cacheInvalidation";
+import { EventCreationResult } from "@/components/CreateEventModal";
+
+/**
+ * Transforms event creation data to EventItem format
+ * Returns null if the event should be filtered out based on role
+ */
+function transformEventToEventItem(
+  eventData: EventCreationResult,
+  userRole: string | null
+): EventItem | null {
+  const { event, post, profile, media } = eventData;
+
+  // Role filtering: Only show events from 'regular' users to other 'regular' users
+  const authorRole = profile.role;
+  if (userRole === "regular" && authorRole !== "regular") {
+    return null; // Skip this event
+  }
+  if (userRole !== "regular" && authorRole === "regular") {
+    return null; // Skip this event
+  }
+
+  // Format date using the same logic as fetchEventsPage
+  const startDate = new Date(event.starts_at);
+  const formattedDate = startDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  // Get first media (sorted by order_index)
+  const firstMedia = media
+    .slice()
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ?? null;
+
+  return {
+    id: event.id,
+    post_id: event.post_id,
+    title: post?.title || "Untitled Event",
+    description: post?.body || "",
+    datetime: formattedDate,
+    location: event.location_name || event.location_address || "Location TBD",
+    imageSrc: firstMedia?.url,
+    organizer: profile.full_name || "Unknown",
+    attendees: 0, // New event has 0 attendees
+    starts_at: event.starts_at,
+    ends_at: event.ends_at,
+    location_name: event.location_name,
+    location_address: event.location_address,
+    external_url: event.external_url,
+    event_type: event.event_type,
+    audience: event.audience,
+    logistics: event.logistics,
+    special_interests: event.special_interests,
+    time_based: event.time_based,
+  };
+}
 
 export default function EventsClient() {
   const router = useRouter();
@@ -214,11 +272,53 @@ export default function EventsClient() {
     }
   };
 
-  const handleEventCreated = useCallback(() => {
-    // Invalidate events cache to refetch with new event
-    invalidateEvents(queryClient);
-    setShowCreateModal(false);
-  }, [queryClient]);
+  const handleEventCreated = useCallback(
+    (eventData: EventCreationResult) => {
+      setShowCreateModal(false);
+
+      // Transform the event data to EventItem format
+      const newEventItem = transformEventToEventItem(eventData, profile?.role || null);
+
+      // If event is filtered out (returns null), fall back to refetch
+      if (!newEventItem) {
+        invalidateEvents(queryClient);
+        return;
+      }
+
+      // Optimistically update the cache by prepending to the first page
+      const queryKey = ["events", profile?.role];
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old || !old.pages || old.pages.length === 0) {
+          // If cache structure doesn't match, fall back to invalidation
+          invalidateEvents(queryClient);
+          return old;
+        }
+
+        // Create updated pages array
+        const updatedPages = [...old.pages];
+        
+        // Update the first page
+        const firstPage = { ...updatedPages[0] };
+        firstPage.events = [newEventItem, ...firstPage.events];
+        firstPage.attendeeCounts = {
+          ...firstPage.attendeeCounts,
+          [newEventItem.id]: 0, // New event has 0 attendees
+        };
+        firstPage.joinedMap = {
+          ...firstPage.joinedMap,
+          [newEventItem.id]: false, // User hasn't joined their own event yet
+        };
+        
+        updatedPages[0] = firstPage;
+
+        return {
+          ...old,
+          pages: updatedPages,
+        };
+      });
+    },
+    [queryClient, profile?.role]
+  );
 
   return (
     <main className="flex justify-center p-4 md:p-6 lg:p-8 bg-[var(--bg-primary)] min-h-screen transition-colors">

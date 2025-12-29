@@ -7,7 +7,7 @@ async function uploadPostMedia(
   postId: string,
   authorId: string,
   files: File[]
-): Promise<{ url: string }[]> {
+): Promise<Array<{ url: string; order_index: number; [key: string]: any }>> {
   // Upload files sequentially for large videos to prevent UI blocking
   // Use Promise.allSettled to handle errors gracefully
   const uploads: { url: string }[] = [];
@@ -63,15 +63,28 @@ async function uploadPostMedia(
       throw mediaError || new Error("post_media insert failed");
     }
 
-    uploads.push(mediaRow as { url: string });
+    uploads.push(mediaRow);
   }
 
   return uploads;
 }
 
+export type EventCreationResult = {
+  event: any; // Event record from database
+  post: any; // Post record from database
+  profile: {
+    full_name: string | null;
+    role: string | null;
+  };
+  media: Array<{
+    url: string;
+    order_index: number;
+  }>;
+};
+
 type CreateEventModalProps = {
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (eventData: EventCreationResult) => void;
 };
 
 // Multi-select dropdown component
@@ -332,7 +345,7 @@ export default function CreateEventModal({
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("full_name, graduation_year, university_id")
+        .select("full_name, graduation_year, university_id, role")
         .eq("id", authorId)
         .single();
 
@@ -367,9 +380,13 @@ export default function CreateEventModal({
       }
 
       // 2. Upload media (if any) and create post_media rows
-      let uploadedMedia: { url: string }[] = [];
+      let uploadedMedia: Array<{ url: string; order_index: number }> = [];
       if (mediaFiles.length) {
-        uploadedMedia = await uploadPostMedia(post.id, authorId, mediaFiles);
+        const mediaResults = await uploadPostMedia(post.id, authorId, mediaFiles);
+        uploadedMedia = mediaResults.map((mediaRow: any) => ({
+          url: mediaRow.url,
+          order_index: mediaRow.order_index,
+        }));
       }
 
       // 3. Create the event record linked to the post
@@ -415,7 +432,17 @@ export default function CreateEventModal({
       setMediaPreviews([]);
       setIsSubmitting(false);
       onClose();
-      if (onSuccess) onSuccess();
+      if (onSuccess) {
+        onSuccess({
+          event,
+          post,
+          profile: {
+            full_name: (profile as any)?.full_name || null,
+            role: (profile as any)?.role || null,
+          },
+          media: uploadedMedia,
+        });
+      }
     } catch (err) {
       console.error("Failed to create event:", err);
       alert("Failed to create event. Please try again.");
