@@ -79,7 +79,7 @@ export default function EventsClient() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Get profile for query key
-  const { data: profile } = useProfile();
+  const { data: profile, isLoading: profileLoading } = useProfile();
 
   // Use React Query hook for events
   const {
@@ -90,6 +90,9 @@ export default function EventsClient() {
     fetchNextPage,
     error: eventsError,
   } = useEvents();
+
+  // Consider loading if profile is loading OR events are loading
+  const isLoading = profileLoading || loading;
 
   // Flatten all pages of events into a single array
   const events: EventItem[] = data?.pages.flatMap((page) => page.events) ?? [];
@@ -379,7 +382,7 @@ export default function EventsClient() {
                     ? eventsError.message
                     : "Error loading events. Please try again."}
                 </div>
-              ) : loading ? (
+              ) : isLoading ? (
                 <div className="col-span-full text-center py-8 text-[var(--text-secondary)]">
                   Loading events...
                 </div>
