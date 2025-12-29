@@ -30,6 +30,8 @@ interface PostProps {
   showMenu?: boolean; // Whether to show the three-dot menu (only on detail page)
   onPostUpdate?: (postId: string | number, newText: string) => void; // Callback when post is updated
   onPostDelete?: (postId: string | number) => void; // Callback when post is deleted
+  postType?: string; // Post type: 'event', 'media', 'text'
+  eventId?: string; // Event ID if postType is 'event'
 }
 
 export const Post: React.FC<PostProps> = ({
@@ -56,6 +58,8 @@ export const Post: React.FC<PostProps> = ({
   showMenu = false,
   onPostUpdate,
   onPostDelete,
+  postType = "text",
+  eventId,
 }) => {
   const router = useRouter();
   const [liked, setLiked] = useState(initialIsLiked);

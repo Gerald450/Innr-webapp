@@ -21,10 +21,12 @@ export type PostItem = {
   isReposted?: boolean;
   bookmarkCount?: number;
   isBookmarked?: boolean;
+  postType?: string;
+  eventId?: string;
 };
 
 async function fetchPosts(universityId: string, userId: string): Promise<PostItem[]> {
-  // 1) Load posts for this university, including author profile + media
+  // 1) Load posts for this university, including author profile + media + post_type
   const { data: postsData, error: postsErr } = await supabase
     .from("posts")
     .select(
@@ -33,6 +35,7 @@ async function fetchPosts(universityId: string, userId: string): Promise<PostIte
       body,
       created_at,
       author_id,
+      post_type,
       profiles (
         full_name,
         graduation_year,
@@ -145,6 +148,25 @@ async function fetchPosts(universityId: string, userId: string): Promise<PostIte
     bookmarkCountMap[bookmark.post_id] = (bookmarkCountMap[bookmark.post_id] || 0) + 1;
   });
 
+  // Get event IDs for event posts
+  const eventPostIds = postsData
+    .filter((row: any) => row.post_type === "event")
+    .map((row: any) => row.id);
+
+  let eventIdMap: Record<string, string> = {};
+  if (eventPostIds.length > 0) {
+    const { data: eventsData } = await supabase
+      .from("events")
+      .select("id, post_id")
+      .in("post_id", eventPostIds);
+
+    if (eventsData) {
+      eventsData.forEach((event: any) => {
+        eventIdMap[event.post_id] = event.id;
+      });
+    }
+  }
+
   // Map posts to PostItem format
   const mapped: PostItem[] = postsData.map((row: any) => {
     const author = row.profiles as any | null;
@@ -175,6 +197,8 @@ async function fetchPosts(universityId: string, userId: string): Promise<PostIte
       isReposted: userRepostedSet.has(row.id),
       bookmarkCount: bookmarkCountMap[row.id] || 0,
       isBookmarked: userBookmarkedSet.has(row.id),
+      postType: row.post_type || "text",
+      eventId: row.post_type === "event" ? eventIdMap[row.id] : undefined,
     };
   });
 
