@@ -365,7 +365,7 @@ export const Post: React.FC<PostProps> = ({
     }
   };
 
-  // Render post type badge
+  // Render post type badge with timestamp below
   const renderPostTypeBadge = () => {
     // Default to 'text' if postType is not provided
     const type = postType || "text";
@@ -404,9 +404,15 @@ export const Post: React.FC<PostProps> = ({
     if (!config) return null;
 
     return (
-      <div className={`absolute top-3 right-3 z-10 ${config.bgColor} text-white px-2 py-1 rounded-md flex items-center gap-1.5 text-xs font-medium shadow-lg`}>
-        {config.icon}
-        <span>{config.text}</span>
+      <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5">
+        <div className={`${config.bgColor} text-white px-2 py-1 rounded-md flex items-center gap-1.5 text-xs font-medium shadow-lg`}>
+          {config.icon}
+          <span>{config.text}</span>
+        </div>
+        {/* Timestamp below badge */}
+        <span className="text-xs text-[var(--text-secondary)] bg-[var(--card-bg)]/80 backdrop-blur-sm px-2 py-0.5 rounded shadow-sm">
+          {created_at ? getRelativeTime(created_at) : "just now"}
+        </span>
       </div>
     );
   };
@@ -489,10 +495,6 @@ export const Post: React.FC<PostProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--text-secondary)] ml-1 shrink-0">
-                {created_at ? getRelativeTime(created_at) : "just now"}
-              </span>
-              
               {/* Three-dot menu - only show on detail page for author */}
               {showMenu && isAuthor && (
                 <div className="relative" ref={menuRef}>
@@ -573,7 +575,11 @@ export const Post: React.FC<PostProps> = ({
 
       {/* TEXT */}
       <div className="px-3 sm:px-4 pb-3 border-b border-[var(--card-border)]">
-        <p className="text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-line">
+        <p className={`text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-line ${
+          postType === "event" 
+            ? "line-clamp-2" 
+            : ""
+        }`}>
           {text}
         </p>
       </div>
