@@ -152,7 +152,14 @@ export default function Home() {
         {posts.map((p) => (
           <div
             key={p.id}
-            onClick={() => router.push(`/posts/${p.id}`)}
+            onClick={() => {
+              // Navigate to event page if it's an event post, otherwise to post page
+              if (p.postType === "event" && p.eventId) {
+                router.push(`/events/${p.eventId}`);
+              } else {
+                router.push(`/posts/${p.id}`);
+              }
+            }}
             className="cursor-pointer"
           >
             <Post
@@ -175,6 +182,8 @@ export default function Home() {
               onLikeChange={handleLikeChange}
               onRepostChange={handleRepostChange}
               onBookmarkChange={handleBookmarkChange}
+              postType={p.postType}
+              eventId={p.eventId}
             />
           </div>
         ))}
