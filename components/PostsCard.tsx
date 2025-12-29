@@ -32,6 +32,7 @@ interface PostProps {
   onPostDelete?: (postId: string | number) => void; // Callback when post is deleted
   postType?: string; // Post type: 'event', 'media', 'text'
   eventId?: string; // Event ID if postType is 'event'
+  onClick?: () => void; // Optional click handler for the entire post
 }
 
 export const Post: React.FC<PostProps> = ({
@@ -60,6 +61,7 @@ export const Post: React.FC<PostProps> = ({
   onPostDelete,
   postType = "text",
   eventId,
+  onClick,
 }) => {
   const router = useRouter();
   const [liked, setLiked] = useState(initialIsLiked);
@@ -418,7 +420,10 @@ export const Post: React.FC<PostProps> = ({
   };
 
   return (
-    <article className="relative w-full max-w-xl md:max-w-2xl mx-auto bg-[var(--card-bg)] rounded-lg shadow-sm border border-[var(--card-border)] mb-[10px] transition-colors">
+    <article 
+      onClick={onClick}
+      className={`relative w-full max-w-xl md:max-w-2xl mx-auto bg-[var(--card-bg)] rounded-lg shadow-sm border border-[var(--card-border)] mb-[10px] transition-colors ${onClick ? 'cursor-pointer' : ''}`}
+    >
       {/* Post Type Badge */}
       {renderPostTypeBadge()}
 

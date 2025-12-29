@@ -21,6 +21,8 @@ type PostItem = {
   commentCount?: number;
   repostCount?: number;
   isReposted?: boolean;
+  postType?: string;
+  eventId?: string;
 };
 
 function MyProfilePageContent() {
@@ -231,6 +233,7 @@ function MyProfilePageContent() {
             body,
             created_at,
             author_id,
+            post_type,
             profiles (
               full_name,
               graduation_year,
@@ -302,6 +305,25 @@ function MyProfilePageContent() {
           }
         });
 
+        // Get event IDs for event posts
+        const eventPostIds = (postsData ?? [])
+          .filter((row: any) => row.post_type === "event")
+          .map((row: any) => row.id);
+
+        let eventIdMap: Record<string, string> = {};
+        if (eventPostIds.length > 0) {
+          const { data: eventsData } = await supabase
+            .from("events")
+            .select("id, post_id")
+            .in("post_id", eventPostIds);
+
+          if (eventsData) {
+            eventsData.forEach((event: any) => {
+              eventIdMap[event.post_id] = event.id;
+            });
+          }
+        }
+
         // Maintain original order from postIds
         const postMap = new Map();
         (postsData ?? []).forEach((row: any) => {
@@ -331,6 +353,8 @@ function MyProfilePageContent() {
             commentCount: commentCountMap[row.id] || 0,
             repostCount: repostCountMap[row.id] || 0,
             isReposted: userRepostedSet.has(row.id),
+            postType: row.post_type || "text",
+            eventId: row.post_type === "event" ? eventIdMap[row.id] : undefined,
           });
         });
 
@@ -371,6 +395,7 @@ function MyProfilePageContent() {
             id,
             body,
             created_at,
+            post_type,
             profiles (
               full_name,
               graduation_year,
@@ -830,7 +855,13 @@ function MyProfilePageContent() {
                               .map((post) => (
                                 <div
                                   key={post.id}
-                                  onClick={() => router.push(`/posts/${post.id}`)}
+                                  onClick={() => {
+                                    if (post.postType === "event" && post.eventId) {
+                                      router.push(`/events/${post.eventId}`);
+                                    } else {
+                                      router.push(`/posts/${post.id}`);
+                                    }
+                                  }}
                                   className="cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
                                 >
                                   <Image
@@ -886,7 +917,13 @@ function MyProfilePageContent() {
                               .map((post) => (
                                 <div
                                   key={post.id}
-                                  onClick={() => router.push(`/posts/${post.id}`)}
+                                  onClick={() => {
+                                    if (post.postType === "event" && post.eventId) {
+                                      router.push(`/events/${post.eventId}`);
+                                    } else {
+                                      router.push(`/posts/${post.id}`);
+                                    }
+                                  }}
                                   className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
                                 >
                                   <div className="w-full h-full flex flex-col justify-between p-4">
@@ -1113,7 +1150,13 @@ function MyProfilePageContent() {
                               .map((post) => (
                         <div
                           key={post.id}
-                          onClick={() => router.push(`/posts/${post.id}`)}
+                          onClick={() => {
+                            if (post.postType === "event" && post.eventId) {
+                              router.push(`/events/${post.eventId}`);
+                            } else {
+                              router.push(`/posts/${post.id}`);
+                            }
+                          }}
                                 className="cursor-pointer group relative overflow-hidden sm:rounded-lg border-0 sm:border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
                               >
                               <Image
@@ -1197,7 +1240,13 @@ function MyProfilePageContent() {
                               .map((post) => (
                               <div
                                 key={post.id}
-                                onClick={() => router.push(`/posts/${post.id}`)}
+                                onClick={() => {
+                                  if (post.postType === "event" && post.eventId) {
+                                    router.push(`/events/${post.eventId}`);
+                                  } else {
+                                    router.push(`/posts/${post.id}`);
+                                  }
+                                }}
                                 className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
                               >
                             <div className="w-full h-full flex flex-col justify-between p-4 relative">

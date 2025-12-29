@@ -21,6 +21,8 @@ type PostItem = {
   commentCount?: number;
   repostCount?: number;
   isReposted?: boolean;
+  postType?: string;
+  eventId?: string;
 };
 
 export default function UserProfilePage() {
@@ -119,6 +121,7 @@ export default function UserProfilePage() {
               body,
               created_at,
               author_id,
+              post_type,
               post_media (
                 url,
                 order_index
@@ -218,6 +221,25 @@ export default function UserProfilePage() {
           repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
         });
 
+        // Get event IDs for event posts
+        const eventPostIds = (postsData ?? [])
+          .filter((row: any) => row.post_type === "event")
+          .map((row: any) => row.id);
+
+        let eventIdMap: Record<string, string> = {};
+        if (eventPostIds.length > 0) {
+          const { data: eventsData } = await supabase
+            .from("events")
+            .select("id, post_id")
+            .in("post_id", eventPostIds);
+
+          if (eventsData) {
+            eventsData.forEach((event: any) => {
+              eventIdMap[event.post_id] = event.id;
+            });
+          }
+        }
+
         // Map posts - use profile data we already have instead of joined profile
         const mapped: PostItem[] =
           (postsData ?? []).map((row: any) => {
@@ -246,6 +268,8 @@ export default function UserProfilePage() {
               commentCount: commentCountMap[row.id] || 0,
               repostCount: repostCountMap[row.id] || 0,
               isReposted: userRepostedSet.has(row.id),
+              postType: row.post_type || "text",
+              eventId: row.post_type === "event" ? eventIdMap[row.id] : undefined,
             };
           }) as PostItem[];
 
@@ -608,7 +632,13 @@ export default function UserProfilePage() {
                               .map((post) => (
                                 <div
                                   key={post.id}
-                                  onClick={() => router.push(`/posts/${post.id}`)}
+                                  onClick={() => {
+                                    if (post.postType === "event" && post.eventId) {
+                                      router.push(`/events/${post.eventId}`);
+                                    } else {
+                                      router.push(`/posts/${post.id}`);
+                                    }
+                                  }}
                                   className="cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
                                 >
                                   <Image
@@ -662,11 +692,17 @@ export default function UserProfilePage() {
                             {filteredPosts
                               .filter(post => !post.image && (!post.images || post.images.length === 0))
                               .map((post) => (
-                                <div
-                                  key={post.id}
-                                  onClick={() => router.push(`/posts/${post.id}`)}
-                                  className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
-                                >
+                              <div
+                                key={post.id}
+                                onClick={() => {
+                                  if (post.postType === "event" && post.eventId) {
+                                    router.push(`/events/${post.eventId}`);
+                                  } else {
+                                    router.push(`/posts/${post.id}`);
+                                  }
+                                }}
+                                className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
+                              >
                                   <div className="w-full h-full flex flex-col justify-between p-4">
                                     <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed">
                                       {post.text || "No content"}

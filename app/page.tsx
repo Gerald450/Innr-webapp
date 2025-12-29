@@ -150,8 +150,29 @@ export default function Home() {
       {mounted && (
       <div className="w-full max-w-2xl flex flex-col gap-1">
         {posts.map((p) => (
-          <div
+          <Post
             key={p.id}
+            id={p.id}
+            name={p.name}
+            text={p.text}
+            created_at={p.created_at}
+            gradYear={p.gradYear}
+            image={p.image}
+            images={p.images}
+            avatar={p.avatar}
+            authorId={p.authorId}
+            likeCount={p.likeCount}
+            isLiked={p.isLiked}
+            commentCount={p.commentCount}
+            repostCount={p.repostCount}
+            isReposted={p.isReposted}
+            bookmarkCount={p.bookmarkCount}
+            isBookmarked={p.isBookmarked}
+            onLikeChange={handleLikeChange}
+            onRepostChange={handleRepostChange}
+            onBookmarkChange={handleBookmarkChange}
+            postType={p.postType}
+            eventId={p.eventId}
             onClick={() => {
               // Navigate to event page if it's an event post, otherwise to post page
               if (p.postType === "event" && p.eventId) {
@@ -160,32 +181,7 @@ export default function Home() {
                 router.push(`/posts/${p.id}`);
               }
             }}
-            className="cursor-pointer"
-          >
-            <Post
-              id={p.id}
-              name={p.name}
-              text={p.text}
-              created_at={p.created_at}
-              gradYear={p.gradYear}
-              image={p.image}
-              images={p.images}
-              avatar={p.avatar}
-              authorId={p.authorId}
-              likeCount={p.likeCount}
-              isLiked={p.isLiked}
-              commentCount={p.commentCount}
-              repostCount={p.repostCount}
-              isReposted={p.isReposted}
-              bookmarkCount={p.bookmarkCount}
-              isBookmarked={p.isBookmarked}
-              onLikeChange={handleLikeChange}
-              onRepostChange={handleRepostChange}
-              onBookmarkChange={handleBookmarkChange}
-              postType={p.postType}
-              eventId={p.eventId}
-            />
-          </div>
+          />
         ))}
       </div>
       )}
