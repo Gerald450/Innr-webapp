@@ -10,7 +10,7 @@ async function uploadPostMedia(
 ): Promise<Array<{ url: string; order_index: number; [key: string]: any }>> {
   // Upload files sequentially for large videos to prevent UI blocking
   // Use Promise.allSettled to handle errors gracefully
-  const uploads: { url: string }[] = [];
+  const uploads: Array<{ url: string; order_index: number; [key: string]: any }> = [];
   
   for (let index = 0; index < files.length; index++) {
     const file = files[index];
