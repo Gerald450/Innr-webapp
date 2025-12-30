@@ -709,18 +709,26 @@ export const Post: React.FC<PostProps> = ({
             onClick={handleLike}
             disabled={isLiking}
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
-              liked
+              liked || likeCount >= 1
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95 disabled:opacity-50`}
           >
-            <img
-              src="/svgs/like.svg"
-              alt="Like"
-              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 svg-icon ${
-                liked ? "scale-125 rotate-12" : ""
+            <svg
+              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
+                liked || likeCount >= 1 ? "fill-current scale-125 rotate-12" : ""
               }`}
-            />
+              fill={liked || likeCount >= 1 ? "currentColor" : "none"}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M8 10V20M8 10L4 9.99998V20L8 20M8 10L13.1956 3.93847C13.6886 3.3633 14.4642 3.11604 15.1992 3.29977L15.2467 3.31166C16.5885 3.64711 17.1929 5.21057 16.4258 6.36135L14 9.99998H18.5604C19.8225 9.99998 20.7691 11.1546 20.5216 12.3922L19.3216 18.3922C19.1346 19.3271 18.3138 20 17.3604 20L8 20"
+              />
+            </svg>
             {likeCount > 0 && (
               <span className="text-xs font-medium">{likeCount}</span>
             )}
@@ -734,18 +742,26 @@ export const Post: React.FC<PostProps> = ({
               router.push(`/posts/${id}#comments`);
             }}
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
-              commented
+              commented || commentCount >= 1
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95`}
           >
-            <img
-              src="/svgs/comment.svg"
-              alt="Comment"
-              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 svg-icon ${
-                commented ? "scale-125" : ""
+            <svg
+              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
+                commented || commentCount >= 1 ? "fill-current scale-125" : ""
               }`}
-            />
+              fill={commented || commentCount >= 1 ? "currentColor" : "none"}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
             {commentCount > 0 && (
               <span className="text-xs font-medium">{commentCount}</span>
             )}
@@ -757,18 +773,44 @@ export const Post: React.FC<PostProps> = ({
             onClick={handleRepost}
             disabled={isReposting}
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
-              reposted
+              reposted || repostCount >= 1
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95 disabled:opacity-50`}
           >
-            <img
-              src="/svgs/repost.svg"
-              alt="Repost"
-              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 svg-icon ${
-                reposted ? "scale-125 rotate-180" : ""
+            <svg
+              className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
+                reposted || repostCount >= 1 ? "fill-current scale-125 rotate-180" : ""
               }`}
-            />
+              fill={reposted || repostCount >= 1 ? "currentColor" : "none"}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6,14V9A6,6,0,0,1,16.89,5.54"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M18,10v5A6,6,0,0,1,7.11,18.46"
+              />
+              <polyline
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                points="8 12 6 14 4 12"
+              />
+              <polyline
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                points="16 12 18 10 20 12"
+              />
+            </svg>
             {repostCount > 0 && (
               <span className="text-xs font-medium">{repostCount}</span>
             )}
