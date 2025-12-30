@@ -319,7 +319,8 @@ function MyProfilePageContent() {
 
           if (eventsData) {
             eventsData.forEach((event: any) => {
-              eventIdMap[event.post_id] = event.id;
+              eventIdMap[String(event.post_id)] = String(event.id);
+              eventIdMap[event.post_id] = String(event.id);
             });
           }
         }
@@ -354,7 +355,7 @@ function MyProfilePageContent() {
             repostCount: repostCountMap[row.id] || 0,
             isReposted: userRepostedSet.has(row.id),
             postType: row.post_type || "text",
-            eventId: row.post_type === "event" ? eventIdMap[row.id] : undefined,
+            eventId: row.post_type === "event" ? (eventIdMap[String(row.id)] || eventIdMap[row.id] || undefined) : undefined,
           });
         });
 
@@ -500,6 +501,26 @@ function MyProfilePageContent() {
           repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
         });
 
+        // Get event IDs for event posts
+        const eventPostIds = (postsData ?? [])
+          .filter((row: any) => row.post_type === "event")
+          .map((row: any) => row.id);
+
+        let eventIdMap: Record<string, string> = {};
+        if (eventPostIds.length > 0) {
+          const { data: eventsData } = await supabase
+            .from("events")
+            .select("id, post_id")
+            .in("post_id", eventPostIds);
+
+          if (eventsData) {
+            eventsData.forEach((event: any) => {
+              eventIdMap[String(event.post_id)] = String(event.id);
+              eventIdMap[event.post_id] = String(event.id);
+            });
+          }
+        }
+
         const mapped: PostItem[] =
           (postsData ?? []).map((row: any) => {
             const author = row.profiles as any | null;
@@ -528,6 +549,8 @@ function MyProfilePageContent() {
               commentCount: commentCountMap[row.id] || 0,
               repostCount: repostCountMap[row.id] || 0,
               isReposted: userRepostedSet.has(row.id),
+              postType: row.post_type || "text",
+              eventId: row.post_type === "event" ? (eventIdMap[String(row.id)] || eventIdMap[row.id] || undefined) : undefined,
             };
           }) as PostItem[];
 
