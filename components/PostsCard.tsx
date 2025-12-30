@@ -431,7 +431,7 @@ export const Post: React.FC<PostProps> = ({
       <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
         {authorId ? (
           <button
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
               router.push(`/users/${authorId}`);
             }}
