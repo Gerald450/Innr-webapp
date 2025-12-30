@@ -162,7 +162,8 @@ const TooltipButton: FC<TooltipButtonProps> = ({
             color: 'var(--card-bg)',
             top: `${tooltipPosition.top}px`,
             left: `${tooltipPosition.left}px`,
-            transform: 'translateX(-50%)'
+            transform: 'translateX(-50%)',
+            opacity: 0.5
           }}
         >
           {label}
