@@ -422,7 +422,7 @@ export const Post: React.FC<PostProps> = ({
   return (
     <article 
       onClick={onClick}
-      className={`relative w-full max-w-xl md:max-w-2xl mx-auto bg-[var(--card-bg)] rounded-lg shadow-sm border border-[var(--card-border)] mb-[10px] transition-colors ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative w-full max-w-xl md:max-w-2xl mx-auto bg-[var(--card-bg)] rounded-lg shadow-sm border border-[var(--card-border)] mb-[10px] transition-colors overflow-visible ${onClick ? 'cursor-pointer' : ''}`}
     >
       {/* Post Type Badge */}
       {renderPostTypeBadge()}
@@ -700,8 +700,8 @@ export const Post: React.FC<PostProps> = ({
       )}
 
       {/* ACTION BAR */}
-      <div className="flex justify-between items-center py-2 text-[var(--text-secondary)] border-t border-[var(--card-border)] px-3 sm:px-4">
-        <div className="flex w-full justify-between">
+      <div className="flex justify-between items-center py-2 text-[var(--text-secondary)] border-t border-[var(--card-border)] px-3 sm:px-4 overflow-visible">
+        <div className="flex w-full justify-between overflow-visible">
 
           <TooltipButton
             label="Like"
