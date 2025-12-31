@@ -25,43 +25,78 @@ export default function Home() {
   const [showBubble, setShowBubble] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [mounted, setMounted] = useState(false);
-
+  
   // Use React Query hooks for data fetching
   const { data: profile, isLoading: profileLoading, error: profileError } = useProfile();
   const { data: posts = [], isLoading: loadingPosts, error: postsError } = usePosts();
+
+  const userRole = profile?.role || null;
+  const showModalRef = useRef(showModal);
+  const userRoleRef = useRef(userRole);
 
   // Prevent hydration mismatch by only showing content after mount
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const userRole = profile?.role || null;
+  // Keep refs in sync with state
+  useEffect(() => {
+    showModalRef.current = showModal;
+  }, [showModal]);
 
   useEffect(() => {
-    // Hide bubble if user is not admin or modal is open
-    if (userRole !== "admin" || showModal) {
+    userRoleRef.current = userRole;
+  }, [userRole]);
+
+  useEffect(() => {
+    // Hide bubble if user is not admin or modal is open or not mounted
+    if (!mounted || userRole !== "admin" || showModal) {
       setShowBubble(false);
       return;
     }
 
-    // Only set up observer if user is admin and modal is closed
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        // Show bubble when MakePost is out of view (not intersecting)
-        // Since we already checked showModal in the effect, we know it's false here
-        setShowBubble(!entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
+    let observer: IntersectionObserver | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
 
-    const el = postRef.current;
-    if (el) observer.observe(el);
+    // Wait for the element to be rendered before setting up observer
+    const setupObserver = () => {
+      const el = postRef.current;
+      if (!el) {
+        // If element doesn't exist yet, try again after a short delay
+        timeoutId = setTimeout(setupObserver, 100);
+        return;
+      }
 
-    return () => {
-      if (el) observer.unobserve(el);
-      observer.disconnect();
+      // Only set up observer if user is admin, modal is closed, and element exists
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          // Show bubble when MakePost is out of view (not intersecting)
+          // Use refs to get the latest values
+          if (!showModalRef.current && userRoleRef.current === "admin") {
+            setShowBubble(!entry.isIntersecting);
+          }
+        },
+        { threshold: 0.1 }
+      );
+
+      observer.observe(el);
     };
-  }, [userRole, showModal]);
+
+    setupObserver();
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (observer) {
+        const el = postRef.current;
+        if (el) {
+          observer.unobserve(el);
+        }
+        observer.disconnect();
+      }
+    };
+  }, [mounted, userRole, showModal]);
 
   const openCreatePost = () => {
     if (userRole === "admin") {
