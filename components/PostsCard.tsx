@@ -380,7 +380,7 @@ export const Post: React.FC<PostProps> = ({
           </svg>
         ),
         text: "Event",
-        bgColor: "bg-blue-500/90",
+        className: "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-[var(--color-accent)]/20",
       },
       media: {
         icon: (
@@ -389,7 +389,7 @@ export const Post: React.FC<PostProps> = ({
           </svg>
         ),
         text: "Media",
-        bgColor: "bg-purple-500/90",
+        className: "bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--card-border)]",
       },
       text: {
         icon: (
@@ -398,7 +398,7 @@ export const Post: React.FC<PostProps> = ({
           </svg>
         ),
         text: "Text",
-        bgColor: "bg-gray-500/90",
+        className: "bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--card-border)]",
       },
     };
 
@@ -407,12 +407,12 @@ export const Post: React.FC<PostProps> = ({
 
     return (
       <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5">
-        <div className={`${config.bgColor} text-white px-2 py-1 rounded-md flex items-center gap-1.5 text-xs font-medium shadow-lg`}>
+        <div className={`${config.className} border px-2.5 py-1 rounded-full flex items-center gap-1.5 text-xs font-medium shadow-sm backdrop-blur-sm`}>
           {config.icon}
           <span>{config.text}</span>
         </div>
         {/* Timestamp below badge */}
-        <span className="text-xs text-[var(--text-secondary)] bg-[var(--card-bg)]/80 backdrop-blur-sm px-2 py-0.5 rounded shadow-sm">
+        <span className="text-xs text-[var(--text-secondary)] bg-[var(--card-bg)]/80 backdrop-blur-sm px-2 py-0.5 rounded-full border border-[var(--card-border)] shadow-sm">
           {created_at ? getRelativeTime(created_at) : "just now"}
         </span>
       </div>
