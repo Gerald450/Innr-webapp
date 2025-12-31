@@ -38,18 +38,18 @@ export default function Home() {
   const userRole = profile?.role || null;
 
   useEffect(() => {
-    // Only observe if user is admin and modal is not open
+    // Hide bubble if user is not admin or modal is open
     if (userRole !== "admin" || showModal) {
       setShowBubble(false);
       return;
     }
 
+    // Only set up observer if user is admin and modal is closed
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // Only show bubble when MakePost is out of view and modal is closed
-        if (!showModal) {
-          setShowBubble(!entry.isIntersecting);
-        }
+        // Show bubble when MakePost is out of view (not intersecting)
+        // Since we already checked showModal in the effect, we know it's false here
+        setShowBubble(!entry.isIntersecting);
       },
       { threshold: 0.1 }
     );
