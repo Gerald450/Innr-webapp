@@ -367,9 +367,8 @@ export const Post: React.FC<PostProps> = ({
     }
   };
 
-  // Render post type badge with timestamp below
-  const renderPostTypeBadge = () => {
-    // Default to 'text' if postType is not provided
+  // Get post type badge config
+  const getPostTypeBadgeConfig = () => {
     const type = postType || "text";
 
     const badgeConfig = {
@@ -402,16 +401,13 @@ export const Post: React.FC<PostProps> = ({
       },
     };
 
-    const config = badgeConfig[type as keyof typeof badgeConfig];
-    if (!config) return null;
+    return badgeConfig[type as keyof typeof badgeConfig] || null;
+  };
 
+  // Render timestamp in top-right corner
+  const renderTimestamp = () => {
     return (
-      <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5">
-        <div className={`${config.className} border px-2.5 py-1 rounded-full flex items-center gap-1.5 text-xs font-medium shadow-sm backdrop-blur-sm`}>
-          {config.icon}
-          <span>{config.text}</span>
-        </div>
-        {/* Timestamp below badge */}
+      <div className="absolute top-3 right-3 z-10">
         <span className="text-xs text-[var(--text-secondary)] bg-[var(--card-bg)]/80 backdrop-blur-sm px-2 py-0.5 rounded-full border border-[var(--card-border)] shadow-sm">
           {created_at ? getRelativeTime(created_at) : "just now"}
         </span>
@@ -419,45 +415,56 @@ export const Post: React.FC<PostProps> = ({
     );
   };
 
+  const badgeConfig = getPostTypeBadgeConfig();
+
   return (
     <article 
       onClick={onClick}
       className={`relative w-full max-w-xl md:max-w-2xl mx-auto bg-[var(--card-bg)] rounded-lg shadow-sm border border-[var(--card-border)] mb-[10px] transition-colors overflow-visible ${onClick ? 'cursor-pointer' : ''}`}
     >
-      {/* Post Type Badge */}
-      {renderPostTypeBadge()}
+      {/* Timestamp in top-right */}
+      {renderTimestamp()}
 
       {/* TOP ROW */}
       <header className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
-        {authorId ? (
-          <button
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation();
-              router.push(`/users/${authorId}`);
-            }}
-            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full overflow-hidden bg-[var(--bg-primary)] flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all relative"
-          >
+        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+          {authorId ? (
+            <button
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                router.push(`/users/${authorId}`);
+              }}
+              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full overflow-hidden bg-[var(--bg-primary)] flex-shrink-0 hover:ring-2 hover:ring-[var(--color-accent)] transition-all relative"
+            >
+              <Image
+                src={avatar || "/images/avatar_placeholder.png"}
+                alt={`${name} avatar`}
+                width={40}
+                height={40}
+                className="object-cover"
+                priority
+                unoptimized={!avatar || avatar.startsWith("/images/")}
+              />
+            </button>
+          ) : (
             <Image
               src={avatar || "/images/avatar_placeholder.png"}
               alt={`${name} avatar`}
               width={40}
               height={40}
-              className="object-cover"
+              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-[var(--bg-primary)] flex-shrink-0"
               priority
               unoptimized={!avatar || avatar.startsWith("/images/")}
             />
-          </button>
-        ) : (
-          <Image
-            src={avatar || "/images/avatar_placeholder.png"}
-            alt={`${name} avatar`}
-            width={40}
-            height={40}
-            className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-[var(--bg-primary)] flex-shrink-0"
-            priority
-            unoptimized={!avatar || avatar.startsWith("/images/")}
-          />
-        )}
+          )}
+          {/* Post Type Badge below profile picture */}
+          {badgeConfig && (
+            <div className={`${badgeConfig.className} border px-2 py-0.5 rounded-full flex items-center gap-1 text-xs font-medium shadow-sm backdrop-blur-sm`}>
+              {badgeConfig.icon}
+              <span>{badgeConfig.text}</span>
+            </div>
+          )}
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
