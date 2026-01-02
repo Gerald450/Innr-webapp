@@ -33,10 +33,12 @@ export default function UserProfilePage() {
   const [connectionsCount, setConnectionsCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"posts" | "activity" | "about">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "reposted" | "about">("posts");
   const [postFilter, setPostFilter] = useState<"all" | "media" | "text">("all");
   const [userPosts, setUserPosts] = useState<PostItem[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
+  const [repostedPosts, setRepostedPosts] = useState<PostItem[]>([]);
+  const [loadingReposted, setLoadingReposted] = useState<boolean>(false);
   const [activityType, setActivityType] = useState<"liked" | "commented" | "reposted">("liked");
   const [activityPosts, setActivityPosts] = useState<PostItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState<boolean>(false);
@@ -288,6 +290,230 @@ export default function UserProfilePage() {
     };
   }, [activeTab, profile?.id, profile?.full_name, profile?.graduation_year, profile?.avatar_url]);
 
+  // Load user's reposted posts when Reposted tab is active
+  useEffect(() => {
+    if (activeTab !== "reposted" || !profile?.id) return;
+
+    let mounted = true;
+
+    const loadRepostedPosts = async () => {
+      setLoadingReposted(true);
+
+      try {
+        // Get current user first (for checking if they've liked/reposted these posts)
+        const [
+          { data: { user: currentUser } },
+          { data: repostsData, error: repostsErr }
+        ] = await Promise.all([
+          supabase.auth.getUser(),
+          supabase
+            .from("reposts")
+            .select("post_id, created_at")
+            .eq("user_id", profile.id)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        ]);
+
+        if (repostsErr) {
+          console.error("Error loading reposts:", repostsErr);
+          if (!mounted) return;
+          return;
+        }
+
+        if (!mounted) return;
+
+        const postIds = (repostsData ?? []).map((r: any) => r.post_id);
+
+        if (postIds.length === 0) {
+          if (!mounted) return;
+          setRepostedPosts([]);
+          setLoadingReposted(false);
+          return;
+        }
+
+        // Fetch the actual posts
+        const { data: postsData, error: postsErr } = await supabase
+          .from("posts")
+          .select(
+            `
+            id,
+            body,
+            created_at,
+            author_id,
+            post_type,
+            profiles (
+              full_name,
+              graduation_year,
+              avatar_url
+            ),
+            post_media (
+              url,
+              order_index
+            )
+          `
+          )
+          .in("id", postIds)
+          .eq("is_deleted", false);
+
+        if (postsErr) {
+          console.error("Error loading reposted posts:", postsErr);
+          if (!mounted) return;
+          return;
+        }
+
+        if (!mounted) return;
+
+        const currentUserId = currentUser?.id;
+        const fetchedPostIds = (postsData ?? []).map((p: any) => p.id);
+
+        // Execute all count queries in parallel
+        const [
+          { data: likesData },
+          { data: userLikesData },
+          { data: commentsData },
+          { data: allRepostsData },
+          { data: userRepostsData },
+        ] = await Promise.all([
+          // Get like counts
+          supabase
+            .from("post_likes")
+            .select("post_id")
+            .in("post_id", fetchedPostIds),
+          // Get user's likes
+          currentUserId
+            ? supabase
+                .from("post_likes")
+                .select("post_id")
+                .eq("user_id", currentUserId)
+                .in("post_id", fetchedPostIds)
+            : Promise.resolve({ data: null }),
+          // Get comment counts
+          supabase
+            .from("comments")
+            .select("post_id")
+            .in("post_id", fetchedPostIds)
+            .eq("is_deleted", false),
+          // Get repost counts
+          supabase
+            .from("reposts")
+            .select("post_id")
+            .in("post_id", fetchedPostIds),
+          // Get user's reposts
+          currentUserId
+            ? supabase
+                .from("reposts")
+                .select("post_id")
+                .eq("user_id", currentUserId)
+                .in("post_id", fetchedPostIds)
+            : Promise.resolve({ data: null }),
+        ]);
+
+        // Create maps for quick lookup
+        const likeCountMap: Record<string, number> = {};
+        const commentCountMap: Record<string, number> = {};
+        const repostCountMap: Record<string, number> = {};
+        const userLikedSet = new Set(
+          (userLikesData ?? []).map((like: any) => like.post_id)
+        );
+        const userRepostedSet = new Set(
+          (userRepostsData ?? []).map((repost: any) => repost.post_id)
+        );
+
+        // Count likes per post
+        (likesData ?? []).forEach((like: any) => {
+          likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
+        });
+
+        // Count comments per post
+        (commentsData ?? []).forEach((comment: any) => {
+          commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
+        });
+
+        // Count reposts per post
+        (allRepostsData ?? []).forEach((repost: any) => {
+          repostCountMap[repost.post_id] = (repostCountMap[repost.post_id] || 0) + 1;
+        });
+
+        // Get event IDs for event posts
+        const eventPostIds = (postsData ?? [])
+          .filter((row: any) => row.post_type === "event")
+          .map((row: any) => row.id);
+
+        let eventIdMap: Record<string, string> = {};
+        if (eventPostIds.length > 0) {
+          const { data: eventsData } = await supabase
+            .from("events")
+            .select("id, post_id")
+            .in("post_id", eventPostIds);
+
+          if (eventsData) {
+            eventsData.forEach((event: any) => {
+              eventIdMap[event.post_id] = event.id;
+            });
+          }
+        }
+
+        // Create a map to maintain order from repostsData
+        const repostOrderMap = new Map();
+        (repostsData ?? []).forEach((r: any, index: number) => {
+          repostOrderMap.set(r.post_id, index);
+        });
+
+        // Map posts with author info from joined profiles
+        const mapped: PostItem[] = (postsData ?? [])
+          .map((row: any) => {
+            const author = row.profiles as any | null;
+            const media = (row.post_media as any[]) ?? [];
+            const sortedMedia = media
+              .slice()
+              .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+            const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
+            const firstMedia = sortedMedia[0] ?? null;
+
+            return {
+              id: row.id,
+              name: author?.full_name ?? "Unknown",
+              text: row.body ?? "",
+              created_at: row.created_at,
+              gradYear:
+                author?.graduation_year != null
+                  ? String(author.graduation_year).slice(-2)
+                  : "",
+              image: firstMedia?.url ?? "",
+              images: allImages.length > 0 ? allImages : undefined,
+              avatar: author?.avatar_url ?? undefined,
+              authorId: row.author_id,
+              likeCount: likeCountMap[row.id] || 0,
+              isLiked: userLikedSet.has(row.id),
+              commentCount: commentCountMap[row.id] || 0,
+              repostCount: repostCountMap[row.id] || 0,
+              isReposted: userRepostedSet.has(row.id),
+              postType: row.post_type || "text",
+              eventId: row.post_type === "event" ? eventIdMap[row.id] : undefined,
+            };
+          })
+          .sort((a, b) => {
+            // Sort by repost order (most recent repost first)
+            const orderA = repostOrderMap.get(a.id) ?? Infinity;
+            const orderB = repostOrderMap.get(b.id) ?? Infinity;
+            return orderA - orderB;
+          }) as PostItem[];
+
+        if (mounted) setRepostedPosts(mapped);
+      } catch (err) {
+        console.error("Unexpected error loading reposted posts:", err);
+      } finally {
+        if (mounted) setLoadingReposted(false);
+      }
+    };
+
+    loadRepostedPosts();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab, profile?.id]);
+
   // Check follow status and load connections count when profile loads
   useEffect(() => {
     if (!profile?.id) return;
@@ -537,6 +763,16 @@ export default function UserProfilePage() {
                 Posts
               </button>
               <button
+                onClick={() => setActiveTab("reposted")}
+                className={`flex-1 text-center py-4 border-b-2 transition-colors ${
+                  activeTab === "reposted"
+                    ? "text-[var(--text-primary)] border-[var(--color-accent)] font-semibold"
+                    : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
+                }`}
+              >
+                Reposted
+              </button>
+              <button
                 onClick={() => setActiveTab("about")}
                 className={`flex-1 text-center py-4 border-b-2 transition-colors ${
                   activeTab === "about"
@@ -729,6 +965,206 @@ export default function UserProfilePage() {
                                     </div>
                                   </div>
                                 </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {activeTab === "reposted" && (
+              <div>
+                {/* Post Filter Tabs */}
+                <div className="flex gap-2 border-b border-[var(--card-border)] mb-6 -mx-6 px-6 pb-4 overflow-x-auto">
+                  <button
+                    onClick={() => setPostFilter("all")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                      postFilter === "all"
+                        ? "bg-[var(--color-accent)] text-white"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setPostFilter("media")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                      postFilter === "media"
+                        ? "bg-[var(--color-accent)] text-white"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"
+                    }`}
+                  >
+                    Media
+                  </button>
+                  <button
+                    onClick={() => setPostFilter("text")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                      postFilter === "text"
+                        ? "bg-[var(--color-accent)] text-white"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"
+                    }`}
+                  >
+                    Text
+                  </button>
+                </div>
+
+                {loadingReposted ? (
+                  <div className="text-center py-12">
+                    <div className="text-sm text-[var(--text-secondary)]">Loading reposted posts...</div>
+                  </div>
+                ) : (() => {
+                  const filteredPosts = postFilter === "all" 
+                    ? repostedPosts 
+                    : postFilter === "media"
+                    ? repostedPosts.filter(post => post.image || (post.images && post.images.length > 0))
+                    : repostedPosts.filter(post => !post.image && (!post.images || post.images.length === 0));
+
+                  if (filteredPosts.length === 0) {
+                    return (
+                      <div className="text-center py-12">
+                        <div className="text-sm text-[var(--text-secondary)] mb-2">
+                          {postFilter === "all" && "No reposted posts yet."}
+                          {postFilter === "media" && "No reposted media posts yet."}
+                          {postFilter === "text" && "No reposted text posts yet."}
+                        </div>
+                        <div className="text-xs text-[var(--text-secondary)] opacity-70">
+                          {postFilter === "all" && "This user hasn't reposted anything yet."}
+                          {postFilter === "media" && "This user hasn't reposted any media posts yet."}
+                          {postFilter === "text" && "This user hasn't reposted any text posts yet."}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const hasMedia = filteredPosts.some(post => post.image || (post.images && post.images.length > 0));
+                  const hasText = filteredPosts.some(post => !post.image && (!post.images || post.images.length === 0));
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Media Posts */}
+                      {(postFilter === "all" || postFilter === "media") && hasMedia && (
+                        <div>
+                          {postFilter === "all" && (
+                            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Media Posts</h3>
+                          )}
+                          <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-4">
+                            {filteredPosts
+                              .filter(post => post.image || (post.images && post.images.length > 0))
+                              .map((post) => (
+                                <div
+                                  key={post.id}
+                                  onClick={() => {
+                                    if (post.postType === "event" && post.eventId) {
+                                      router.push(`/events/${post.eventId}`);
+                                    } else {
+                                      router.push(`/posts/${post.id}`);
+                                    }
+                                  }}
+                                  className="cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
+                                >
+                                  <Image
+                                    src={post.image || post.images?.[0] || ""}
+                                    alt={post.text || "Post"}
+                                    width={400}
+                                    height={400}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    loading="lazy"
+                                    unoptimized
+                                  />
+                                  {/* Repost badge */}
+                                  <div className="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-green-500/90 text-white">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                  </div>
+                                  {/* Overlay on hover */}
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-4 text-white">
+                                      <div className="flex items-center gap-1">
+                                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                        <span className="font-semibold">{post.likeCount || 0}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                        <span className="font-semibold">{post.commentCount || 0}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {/* Multiple images indicator */}
+                                  {post.images && post.images.length > 1 && (
+                                    <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      {post.images.length}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Text Posts */}
+                      {(postFilter === "all" || postFilter === "text") && hasText && (
+                        <div>
+                          {postFilter === "all" && (
+                            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Text Posts</h3>
+                          )}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {filteredPosts
+                              .filter(post => !post.image && (!post.images || post.images.length === 0))
+                              .map((post) => (
+                              <div
+                                key={post.id}
+                                onClick={() => {
+                                  if (post.postType === "event" && post.eventId) {
+                                    router.push(`/events/${post.eventId}`);
+                                  } else {
+                                    router.push(`/posts/${post.id}`);
+                                  }
+                                }}
+                                className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
+                              >
+                                <div className="w-full h-full flex flex-col justify-between p-4 relative">
+                                  {/* Repost badge */}
+                                  <div className="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-green-500/90 text-white">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                  </div>
+                                  <p className="text-sm text-[var(--text-primary)] line-clamp-4 leading-relaxed pt-8">
+                                    {post.text || "No content"}
+                                  </p>
+                                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--card-border)] text-xs text-[var(--text-secondary)]">
+                                    <div className="flex items-center gap-1">
+                                      {(post.likeCount || 0) > 0 ? (
+                                        <svg className="w-4 h-4 fill-current text-[var(--color-accent)]" viewBox="0 0 24 24">
+                                          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                      )}
+                                      <span>{post.likeCount || 0}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                      </svg>
+                                      <span>{post.commentCount || 0}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
                               ))}
                           </div>
                         </div>
