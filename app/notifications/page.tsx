@@ -158,6 +158,142 @@ const formatActorNames = (actors: Array<{ full_name: string | null }>, count: nu
   }
 };
 
+// Validates notifications by checking if the underlying action still exists
+const validateNotifications = async (
+  notifications: Notification[],
+  userId: string
+): Promise<Notification[]> => {
+  if (notifications.length === 0) return notifications;
+
+  const validNotifications: Notification[] = [];
+  const notificationIdsToDelete: string[] = [];
+
+  // Separate notifications by type for batch validation
+  const postLikedNotifications = notifications.filter((n) => n.type === "post_liked");
+  const commentNotifications = notifications.filter((n) => 
+    n.type === "comment_added" || n.type === "comment_replied"
+  );
+  const followerNotifications = notifications.filter((n) => n.type === "new_follower");
+  const otherNotifications = notifications.filter(
+    (n) => 
+      n.type !== "post_liked" && 
+      n.type !== "comment_added" && 
+      n.type !== "comment_replied" && 
+      n.type !== "new_follower"
+  );
+
+  // Validate post_liked notifications
+  if (postLikedNotifications.length > 0) {
+    const postLikeMap = new Map<string, Notification>();
+    const postIds = new Set<string>();
+    const actorIds = new Set<string>();
+
+    postLikedNotifications.forEach((n) => {
+      if (n.post_id && n.actor_id) {
+        const key = `${n.actor_id}:${n.post_id}`;
+        postLikeMap.set(key, n);
+        postIds.add(n.post_id);
+        actorIds.add(n.actor_id);
+      }
+    });
+
+    if (postIds.size > 0 && actorIds.size > 0) {
+      const { data: likesData } = await supabase
+        .from("post_likes")
+        .select("post_id, user_id")
+        .in("post_id", Array.from(postIds))
+        .in("user_id", Array.from(actorIds));
+
+      const existingLikes = new Set(
+        (likesData || []).map((like: any) => `${like.user_id}:${like.post_id}`)
+      );
+
+      postLikeMap.forEach((notification, key) => {
+        if (existingLikes.has(key)) {
+          validNotifications.push(notification);
+        } else {
+          notificationIdsToDelete.push(notification.id);
+        }
+      });
+    }
+  }
+
+  // Validate comment notifications
+  if (commentNotifications.length > 0) {
+    const commentIds = commentNotifications
+      .map((n) => n.comment_id)
+      .filter((id): id is string => !!id);
+
+    if (commentIds.length > 0) {
+      const { data: commentsData } = await supabase
+        .from("comments")
+        .select("id")
+        .in("id", commentIds)
+        .eq("is_deleted", false);
+
+      const existingCommentIds = new Set((commentsData || []).map((c: any) => c.id));
+
+      commentNotifications.forEach((notification) => {
+        if (notification.comment_id && existingCommentIds.has(notification.comment_id)) {
+          validNotifications.push(notification);
+        } else if (notification.comment_id) {
+          notificationIdsToDelete.push(notification.id);
+        } else {
+          // If no comment_id, keep it (shouldn't happen but be safe)
+          validNotifications.push(notification);
+        }
+      });
+    }
+  }
+
+  // Validate follower notifications
+  if (followerNotifications.length > 0) {
+    const followerIds = new Set<string>();
+
+    followerNotifications.forEach((n) => {
+      if (n.actor_id) {
+        followerIds.add(n.actor_id);
+      }
+    });
+
+    if (followerIds.size > 0) {
+      const { data: followsData } = await supabase
+        .from("follows")
+        .select("follower_id")
+        .eq("following_id", userId)
+        .in("follower_id", Array.from(followerIds));
+
+      const existingFollowerIds = new Set(
+        (followsData || []).map((f: any) => f.follower_id)
+      );
+
+      followerNotifications.forEach((notification) => {
+        if (notification.actor_id && existingFollowerIds.has(notification.actor_id)) {
+          validNotifications.push(notification);
+        } else if (notification.actor_id) {
+          notificationIdsToDelete.push(notification.id);
+        } else {
+          // If no actor_id, keep it (shouldn't happen but be safe)
+          validNotifications.push(notification);
+        }
+      });
+    }
+  }
+
+  // Add other notifications (they're always valid)
+  validNotifications.push(...otherNotifications);
+
+  // Delete invalid notifications from database
+  if (notificationIdsToDelete.length > 0) {
+    await supabase
+      .from("notifications")
+      .delete()
+      .in("id", notificationIdsToDelete);
+  }
+
+  return validNotifications;
+};
+
 // Groups notifications by type and the relevant resource ID
 const groupNotifications = (notifications: Notification[]): GroupedNotification[] => {
   // Types that should be grouped together
@@ -331,10 +467,12 @@ export default function NotificationsPage() {
             : undefined,
         }));
 
-        setNotifications(transformed);
+        // Validate notifications (filter out invalid ones)
+        const validated = await validateNotifications(transformed, user.id);
+        setNotifications(validated);
         
-        // Group notifications
-        const grouped = groupNotifications(transformed);
+        // Group notifications (use validated list)
+        const grouped = groupNotifications(validated);
         // Sort grouped notifications by most recent
         grouped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setGroupedNotifications(grouped);
@@ -348,8 +486,87 @@ export default function NotificationsPage() {
 
     loadNotifications();
 
+    // Set up real-time subscriptions to re-validate notifications when actions change
+    let likesChannel: any = null;
+    let commentsChannel: any = null;
+    let followsChannel: any = null;
+
+    const setupSubscriptions = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser || !mounted) return;
+
+      // Subscribe to post_likes changes
+      likesChannel = supabase
+        .channel(`notifications-post-likes-${authUser.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "post_likes",
+          },
+          () => {
+            // Re-validate notifications when likes change
+            if (mounted) {
+              loadNotifications();
+            }
+          }
+        )
+        .subscribe();
+
+      // Subscribe to comments changes
+      commentsChannel = supabase
+        .channel(`notifications-comments-${authUser.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "comments",
+          },
+          () => {
+            // Re-validate notifications when comments change
+            if (mounted) {
+              loadNotifications();
+            }
+          }
+        )
+        .subscribe();
+
+      // Subscribe to follows changes
+      followsChannel = supabase
+        .channel(`notifications-follows-${authUser.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "follows",
+            filter: `following_id=eq.${authUser.id}`,
+          },
+          () => {
+            // Re-validate notifications when follows change
+            if (mounted) {
+              loadNotifications();
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    setupSubscriptions();
+
     return () => {
       mounted = false;
+      if (likesChannel) {
+        supabase.removeChannel(likesChannel);
+      }
+      if (commentsChannel) {
+        supabase.removeChannel(commentsChannel);
+      }
+      if (followsChannel) {
+        supabase.removeChannel(followsChannel);
+      }
     };
   }, []);
 

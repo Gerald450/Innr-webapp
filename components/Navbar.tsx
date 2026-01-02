@@ -152,7 +152,7 @@ export const Navbar: React.FC = () => {
             className="flex items-center justify-center h-9 w-9 shrink-0 rounded-full bg-[var(--bg-primary)] cursor-pointer overflow-hidden hover:bg-[var(--card-bg)] transition-colors"
           >
             <img
-              src="/images/logo.png"
+              src="/images/logo2.png"
               alt="logo"
               className="object-contain h-full w-full"
             />
