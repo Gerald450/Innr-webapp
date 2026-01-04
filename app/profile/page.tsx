@@ -41,6 +41,7 @@ function MyProfilePageContent() {
   const [activityFilter, setActivityFilter] = useState<"all" | "media" | "text">("all");
   const [activityPosts, setActivityPosts] = useState<PostItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState<boolean>(false);
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
 
   // Check URL parameters on mount to set tab and activity type
   useEffect(() => {
@@ -165,6 +166,9 @@ function MyProfilePageContent() {
   useEffect(() => {
     if (activeTab !== "activity" || !profile?.id) return;
 
+    const cacheKey = `activity-${activityType}`;
+    if (loadedTabs.has(cacheKey)) return;
+
     let mounted = true;
 
     const loadActivityPosts = async () => {
@@ -221,6 +225,7 @@ function MyProfilePageContent() {
           if (!mounted) return;
           setActivityPosts([]);
           setLoadingActivity(false);
+          setLoadedTabs(prev => new Set(prev).add(cacheKey));
           return;
         }
 
@@ -365,6 +370,7 @@ function MyProfilePageContent() {
           .filter(Boolean) as PostItem[];
 
         setActivityPosts(mapped);
+        setLoadedTabs(prev => new Set(prev).add(cacheKey));
       } catch (err) {
         console.error("Unexpected error loading activity posts:", err);
       } finally {
@@ -377,11 +383,13 @@ function MyProfilePageContent() {
     return () => {
       mounted = false;
     };
-  }, [activeTab, activityType, profile?.id]);
+  }, [activeTab, activityType, profile?.id, loadedTabs]);
 
   // Load user's posts when Posts tab is active
   useEffect(() => {
     if (activeTab !== "posts" || !profile?.id) return;
+
+    if (loadedTabs.has("posts")) return;
 
     let mounted = true;
 
@@ -427,6 +435,7 @@ function MyProfilePageContent() {
           if (!mounted) return;
           setUserPosts([]);
           setLoadingPosts(false);
+          setLoadedTabs(prev => new Set(prev).add("posts"));
           return;
         }
 
@@ -555,6 +564,7 @@ function MyProfilePageContent() {
           }) as PostItem[];
 
         setUserPosts(mapped);
+        setLoadedTabs(prev => new Set(prev).add("posts"));
       } catch (err) {
         console.error("Unexpected error loading user posts:", err);
       } finally {
@@ -567,7 +577,7 @@ function MyProfilePageContent() {
     return () => {
       mounted = false;
     };
-  }, [activeTab, profile?.id]);
+  }, [activeTab, profile?.id, loadedTabs]);
 
   // quick debug UI to inspect state if something's failing
   if (loading) {

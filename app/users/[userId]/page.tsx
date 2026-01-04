@@ -45,6 +45,7 @@ export default function UserProfilePage() {
   const [isOwnProfile, setIsOwnProfile] = useState<boolean>(false);
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [isTogglingFollow, setIsTogglingFollow] = useState<boolean>(false);
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!userId) return;
@@ -103,6 +104,8 @@ export default function UserProfilePage() {
   useEffect(() => {
     if (activeTab !== "posts" || !profile?.id) return;
 
+    if (loadedTabs.has("posts")) return;
+
     let mounted = true;
 
     const loadUserPosts = async () => {
@@ -150,6 +153,7 @@ export default function UserProfilePage() {
           if (!mounted) return;
           setUserPosts([]);
           setLoadingPosts(false);
+          setLoadedTabs(prev => new Set(prev).add("posts"));
           return;
         }
 
@@ -275,7 +279,10 @@ export default function UserProfilePage() {
             };
           }) as PostItem[];
 
-        if (mounted) setUserPosts(mapped);
+        if (mounted) {
+          setUserPosts(mapped);
+          setLoadedTabs(prev => new Set(prev).add("posts"));
+        }
       } catch (err) {
         console.error("Unexpected error loading user posts:", err);
       } finally {
@@ -288,11 +295,13 @@ export default function UserProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [activeTab, profile?.id, profile?.full_name, profile?.graduation_year, profile?.avatar_url]);
+  }, [activeTab, profile?.id, profile?.full_name, profile?.graduation_year, profile?.avatar_url, loadedTabs]);
 
   // Load user's reposted posts when Reposted tab is active
   useEffect(() => {
     if (activeTab !== "reposted" || !profile?.id) return;
+
+    if (loadedTabs.has("reposted")) return;
 
     let mounted = true;
 
@@ -328,6 +337,7 @@ export default function UserProfilePage() {
           if (!mounted) return;
           setRepostedPosts([]);
           setLoadingReposted(false);
+          setLoadedTabs(prev => new Set(prev).add("reposted"));
           return;
         }
 
@@ -499,7 +509,10 @@ export default function UserProfilePage() {
             return orderA - orderB;
           }) as PostItem[];
 
-        if (mounted) setRepostedPosts(mapped);
+        if (mounted) {
+          setRepostedPosts(mapped);
+          setLoadedTabs(prev => new Set(prev).add("reposted"));
+        }
       } catch (err) {
         console.error("Unexpected error loading reposted posts:", err);
       } finally {
@@ -512,7 +525,7 @@ export default function UserProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [activeTab, profile?.id]);
+  }, [activeTab, profile?.id, loadedTabs]);
 
   // Check follow status and load connections count when profile loads
   useEffect(() => {
