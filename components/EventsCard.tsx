@@ -120,7 +120,7 @@ export default function EventsCard({
     <article
       role="button"
       onClick={onClick}
-      className="cursor-pointer bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-md transition-colors h-[120px] md:h-auto"
+      className="cursor-pointer bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-md transition-colors md:h-auto"
     >
       {/* MOBILE: flex row | DESKTOP: block */}
       <div className="flex md:block w-full items-stretch">
@@ -144,9 +144,9 @@ export default function EventsCard({
         </div>
 
         {/* CONTENT + BUTTONS */}
-        <div className="flex flex-1 flex-col p-3">
+        <div className="flex flex-1 flex-row md:flex-col p-3 relative">
           {/* TOP SECTION (date + title + location) */}
-          <div className="flex-1">
+          <div className="flex-1 pr-2 pb-12 md:pr-0 md:pb-0">
             <div className="text-xs text-[var(--text-secondary)]">
               {event.datetime}
             </div>
@@ -271,7 +271,7 @@ export default function EventsCard({
           </div>
 
           {/* ACTION ROW */}
-          <div className="flex items-center justify-end md:justify-between mt-2">
+          <div className="absolute bottom-0 right-0 pb-3 pr-3 md:static md:pb-0 md:pr-0 flex items-center justify-end md:justify-between md:mt-2">
             {/* LEFT SIDE ONLY DESKTOP (view + attendees) */}
             <div className="hidden md:flex items-center gap-2">
               <Link
