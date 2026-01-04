@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { Post } from "@/components/PostsCard";
 import Comments from "@/components/Comments";
+import { invalidatePosts } from "@/utils/cacheInvalidation";
 
 type PostDetail = {
   id: string;
@@ -28,12 +30,29 @@ type PostDetail = {
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const postId = params?.id as string;
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [eventId, setEventId] = useState<string | null>(null);
+
+  // Store referrer on mount for navigation after deletion
+  useEffect(() => {
+    if (typeof window !== "undefined" && document.referrer) {
+      try {
+        const referrerUrl = new URL(document.referrer);
+        const currentUrl = new URL(window.location.href);
+        // Only store if referrer is from the same origin
+        if (referrerUrl.origin === currentUrl.origin) {
+          sessionStorage.setItem("postDetailReferrer", referrerUrl.pathname + referrerUrl.search);
+        }
+      } catch (e) {
+        // Ignore URL parsing errors
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!postId) return;
@@ -303,8 +322,22 @@ export default function PostDetailPage() {
             onPostUpdate={(postId, newText) => {
               setPost((prev) => prev ? { ...prev, text: newText } : null);
             }}
-            onPostDelete={() => {
-              router.back();
+            onPostDelete={async () => {
+              // Invalidate React Query cache for posts (will trigger refetch on pages using React Query)
+              invalidatePosts(queryClient);
+              
+              // Navigate back to previous page
+              const referrer = sessionStorage.getItem("postDetailReferrer");
+              sessionStorage.removeItem("postDetailReferrer");
+              
+              if (referrer && typeof window !== "undefined" && referrer !== window.location.pathname) {
+                // Use referrer if available and different from current page
+                // This will trigger a full navigation and the page will load fresh data
+                router.push(referrer);
+              } else {
+                // Fallback to router.back()
+                router.back();
+              }
             }}
           />
         </div>
