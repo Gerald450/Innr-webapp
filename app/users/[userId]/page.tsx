@@ -882,11 +882,7 @@ export default function UserProfilePage() {
                                 <div
                                   key={post.id}
                                   onClick={() => {
-                                    if (post.postType === "event" && post.eventId) {
-                                      router.push(`/events/${post.eventId}`);
-                                    } else {
-                                      router.push(`/posts/${post.id}`);
-                                    }
+                                    router.push(`/posts/${post.id}`);
                                   }}
                                   className="cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
                                 >
@@ -944,11 +940,7 @@ export default function UserProfilePage() {
                               <div
                                 key={post.id}
                                 onClick={() => {
-                                  if (post.postType === "event" && post.eventId) {
-                                    router.push(`/events/${post.eventId}`);
-                                  } else {
-                                    router.push(`/posts/${post.id}`);
-                                  }
+                                  router.push(`/posts/${post.id}`);
                                 }}
                                 className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
                               >
@@ -1070,11 +1062,7 @@ export default function UserProfilePage() {
                                 <div
                                   key={post.id}
                                   onClick={() => {
-                                    if (post.postType === "event" && post.eventId) {
-                                      router.push(`/events/${post.eventId}`);
-                                    } else {
-                                      router.push(`/posts/${post.id}`);
-                                    }
+                                    router.push(`/posts/${post.id}`);
                                   }}
                                   className="cursor-pointer group relative overflow-hidden rounded sm:rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg aspect-square bg-gray-100 dark:bg-gray-800"
                                 >
@@ -1138,11 +1126,7 @@ export default function UserProfilePage() {
                               <div
                                 key={post.id}
                                 onClick={() => {
-                                  if (post.postType === "event" && post.eventId) {
-                                    router.push(`/events/${post.eventId}`);
-                                  } else {
-                                    router.push(`/posts/${post.id}`);
-                                  }
+                                  router.push(`/posts/${post.id}`);
                                 }}
                                 className="cursor-pointer group relative overflow-hidden rounded-lg border border-[var(--card-border)] hover:border-[var(--color-accent)] transition-all hover:shadow-lg bg-[var(--card-bg)] min-h-[120px]"
                               >

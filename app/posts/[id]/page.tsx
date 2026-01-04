@@ -33,6 +33,7 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [eventId, setEventId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!postId) return;
@@ -96,12 +97,13 @@ export default function PostDetailPage() {
 
         const postIdFromData = postDataTyped.id;
 
-        // Execute all count queries in parallel
+        // Execute all count queries and event check in parallel
         const [
           { data: likesData },
           { data: commentsData },
           { data: repostsData },
           { data: bookmarksData },
+          { data: eventData, error: eventError },
         ] = await Promise.all([
           supabase
             .from("post_likes")
@@ -120,6 +122,11 @@ export default function PostDetailPage() {
             .from("bookmarks")
             .select("user_id")
             .eq("post_id", postIdFromData),
+          supabase
+            .from("events")
+            .select("id")
+            .eq("post_id", postIdFromData)
+            .single(),
         ]);
 
         const likeCount = likesData?.length || 0;
@@ -162,6 +169,14 @@ export default function PostDetailPage() {
         };
 
         setPost(postDetail);
+        
+        // Set event ID if event exists (ignore error if no event found)
+        if (!mounted) return;
+        if (eventData && !eventError) {
+          setEventId((eventData as any).id);
+        } else {
+          setEventId(null);
+        }
       } catch (err) {
         console.error("Unexpected error loading post:", err);
         if (mounted) setError("Failed to load post");
@@ -220,26 +235,50 @@ export default function PostDetailPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] py-10 flex flex-col items-center px-4 transition-colors">
       <div className="w-full max-w-2xl">
-        {/* Back button */}
-        <button
-          onClick={() => router.back()}
-          className="mb-4 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 transition-colors"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {/* Back button and View Event button */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 transition-colors"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Back
-        </button>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back
+          </button>
+          
+          {eventId && (
+            <button
+              onClick={() => router.push(`/events/${eventId}`)}
+              className="text-sm font-medium text-[var(--color-accent)] hover:text-[color-mix(in_oklab,var(--color-accent)_85%,black)] flex items-center gap-2 transition-colors px-4 py-2 rounded-lg border border-[var(--color-accent)]/30 hover:bg-[var(--color-accent)]/10"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              View Event
+            </button>
+          )}
+        </div>
 
         {/* Post */}
         <div className="mb-6">

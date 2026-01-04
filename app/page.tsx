@@ -209,12 +209,8 @@ export default function Home() {
             postType={p.postType}
             eventId={p.eventId}
             onClick={() => {
-              // Navigate to event page if it's an event post, otherwise to post page
-              if (p.postType === "event" && p.eventId) {
-                router.push(`/events/${p.eventId}`);
-              } else {
-                router.push(`/posts/${p.id}`);
-              }
+              // Always navigate to post page for event-tagged posts
+              router.push(`/posts/${p.id}`);
             }}
           />
         ))}
