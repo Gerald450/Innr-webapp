@@ -120,12 +120,12 @@ export default function EventsCard({
     <article
       role="button"
       onClick={onClick}
-      className="cursor-pointer bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-md transition-colors"
+      className="cursor-pointer bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-md transition-colors h-[120px] md:h-auto"
     >
       {/* MOBILE: flex row | DESKTOP: block */}
       <div className="flex md:block w-full items-stretch">
         {/* IMAGE */}
-        <div className="w-24 h-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] relative">
+        <div className="w-24 h-full md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] relative">
           {event.imageSrc ? (
             <Image
               src={event.imageSrc}
