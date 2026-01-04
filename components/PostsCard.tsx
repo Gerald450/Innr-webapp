@@ -718,16 +718,16 @@ export const Post: React.FC<PostProps> = ({
             onClick={handleLike}
             disabled={isLiking}
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
-              liked || likeCount >= 1
+              liked
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95 disabled:opacity-50`}
           >
             <svg
               className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
-                liked || likeCount >= 1 ? "fill-current scale-125 rotate-12" : ""
+                liked ? "fill-current scale-125 rotate-12" : ""
               }`}
-              fill={liked || likeCount >= 1 ? "currentColor" : "none"}
+              fill={liked ? "currentColor" : "none"}
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
@@ -751,16 +751,16 @@ export const Post: React.FC<PostProps> = ({
               router.push(`/posts/${id}#comments`);
             }}
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
-              commented || commentCount >= 1
+              commented
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95`}
           >
             <svg
               className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
-                commented || commentCount >= 1 ? "fill-current scale-125" : ""
+                commented ? "fill-current scale-125" : ""
               }`}
-              fill={commented || commentCount >= 1 ? "currentColor" : "none"}
+              fill={commented ? "currentColor" : "none"}
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
@@ -782,16 +782,16 @@ export const Post: React.FC<PostProps> = ({
             onClick={handleRepost}
             disabled={isReposting}
             className={`flex items-center justify-center gap-1.5 flex-1 p-2 rounded-md transition-all duration-300 ${
-              reposted || repostCount >= 1
+              reposted
                 ? "text-[var(--color-accent)] scale-110"
                 : "hover:text-[var(--text-primary)] hover:scale-105"
             } active:scale-95 disabled:opacity-50`}
           >
             <svg
               className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
-                reposted || repostCount >= 1 ? "fill-current scale-125 rotate-180" : ""
+                reposted ? "fill-current scale-125 rotate-180" : ""
               }`}
-              fill={reposted || repostCount >= 1 ? "currentColor" : "none"}
+              fill={reposted ? "currentColor" : "none"}
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
