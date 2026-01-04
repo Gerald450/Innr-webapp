@@ -5,6 +5,14 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Post } from "@/components/PostsCard";
+import {
+  getCachedProfilePosts,
+  setCachedProfilePosts,
+  getCachedActivityPosts,
+  setCachedActivityPosts,
+  getCachedLoadedTabs,
+  setCachedLoadedTabs,
+} from "@/utils/storage";
 
 type PostItem = {
   id: string;
@@ -131,6 +139,39 @@ function MyProfilePageContent() {
     };
   }, [router]);
 
+  // Restore cached data when profile loads
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    try {
+      // Restore cached loaded tabs
+      const cachedLoadedTabs = getCachedLoadedTabs(profile.id);
+      if (cachedLoadedTabs && cachedLoadedTabs.size > 0) {
+        setLoadedTabs(cachedLoadedTabs);
+      }
+
+      // Restore cached user posts if "posts" tab was loaded
+      if (cachedLoadedTabs?.has("posts")) {
+        const cachedPosts = getCachedProfilePosts(profile.id);
+        if (cachedPosts && Array.isArray(cachedPosts)) {
+          setUserPosts(cachedPosts);
+        }
+      }
+
+      // Restore cached activity posts for current activity type if it was loaded
+      const cacheKey = `activity-${activityType}`;
+      if (cachedLoadedTabs?.has(cacheKey)) {
+        const cachedActivityPosts = getCachedActivityPosts(profile.id, activityType);
+        if (cachedActivityPosts && Array.isArray(cachedActivityPosts)) {
+          setActivityPosts(cachedActivityPosts);
+        }
+      }
+    } catch (err) {
+      // Gracefully handle localStorage errors (private browsing, quota exceeded, etc.)
+      console.warn("Error restoring cached data:", err);
+    }
+  }, [profile?.id, activityType]);
+
   // Load connections count when profile loads
   useEffect(() => {
     if (!profile?.id) return;
@@ -225,7 +266,16 @@ function MyProfilePageContent() {
           if (!mounted) return;
           setActivityPosts([]);
           setLoadingActivity(false);
-          setLoadedTabs(prev => new Set(prev).add(cacheKey));
+          setLoadedTabs(prev => {
+            const newSet = new Set(prev).add(cacheKey);
+            try {
+              setCachedActivityPosts(profile.id, activityType, []);
+              setCachedLoadedTabs(profile.id, newSet);
+            } catch (err) {
+              console.warn("Error caching activity posts:", err);
+            }
+            return newSet;
+          });
           return;
         }
 
@@ -370,7 +420,16 @@ function MyProfilePageContent() {
           .filter(Boolean) as PostItem[];
 
         setActivityPosts(mapped);
-        setLoadedTabs(prev => new Set(prev).add(cacheKey));
+        setLoadedTabs(prev => {
+          const newSet = new Set(prev).add(cacheKey);
+          try {
+            setCachedActivityPosts(profile.id, activityType, mapped);
+            setCachedLoadedTabs(profile.id, newSet);
+          } catch (err) {
+            console.warn("Error caching activity posts:", err);
+          }
+          return newSet;
+        });
       } catch (err) {
         console.error("Unexpected error loading activity posts:", err);
       } finally {
@@ -435,7 +494,16 @@ function MyProfilePageContent() {
           if (!mounted) return;
           setUserPosts([]);
           setLoadingPosts(false);
-          setLoadedTabs(prev => new Set(prev).add("posts"));
+          setLoadedTabs(prev => {
+            const newSet = new Set(prev).add("posts");
+            try {
+              setCachedProfilePosts(profile.id, []);
+              setCachedLoadedTabs(profile.id, newSet);
+            } catch (err) {
+              console.warn("Error caching user posts:", err);
+            }
+            return newSet;
+          });
           return;
         }
 
@@ -564,7 +632,16 @@ function MyProfilePageContent() {
           }) as PostItem[];
 
         setUserPosts(mapped);
-        setLoadedTabs(prev => new Set(prev).add("posts"));
+        setLoadedTabs(prev => {
+          const newSet = new Set(prev).add("posts");
+          try {
+            setCachedProfilePosts(profile.id, mapped);
+            setCachedLoadedTabs(profile.id, newSet);
+          } catch (err) {
+            console.warn("Error caching user posts:", err);
+          }
+          return newSet;
+        });
       } catch (err) {
         console.error("Unexpected error loading user posts:", err);
       } finally {

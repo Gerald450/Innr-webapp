@@ -7,12 +7,18 @@ const CACHE_KEYS = {
   PROFILE: "innr_user_profile",
   UNIVERSITY_ID: "innr_university_id",
   USER_ROLE: "innr_user_role",
+  PROFILE_POSTS_PREFIX: "innr_profile_posts_",
+  ACTIVITY_POSTS_PREFIX: "innr_activity_posts_",
+  LOADED_TABS_PREFIX: "innr_loaded_tabs_",
 } as const;
 
 const CACHE_TTL = {
   PROFILE: 10 * 60 * 1000, // 10 minutes
   UNIVERSITY_ID: 30 * 60 * 1000, // 30 minutes
   USER_ROLE: 30 * 60 * 1000, // 30 minutes
+  PROFILE_POSTS: 5 * 60 * 1000, // 5 minutes
+  ACTIVITY_POSTS: 5 * 60 * 1000, // 5 minutes
+  LOADED_TABS: 5 * 60 * 1000, // 5 minutes
 } as const;
 
 type CachedItem<T> = {
@@ -104,10 +110,57 @@ export function setCachedUserRole(role: string): void {
   setCachedItem(CACHE_KEYS.USER_ROLE, role);
 }
 
+// Profile Posts Cache (user-specific)
+export function getCachedProfilePosts(userId: string): any[] | null {
+  const key = `${CACHE_KEYS.PROFILE_POSTS_PREFIX}${userId}`;
+  return getCachedItem<any[]>(key, CACHE_TTL.PROFILE_POSTS);
+}
+
+export function setCachedProfilePosts(userId: string, posts: any[]): void {
+  const key = `${CACHE_KEYS.PROFILE_POSTS_PREFIX}${userId}`;
+  setCachedItem(key, posts);
+}
+
+// Activity Posts Cache (user-specific, by type: liked/commented/reposted/saves)
+export function getCachedActivityPosts(userId: string, activityType: string): any[] | null {
+  const key = `${CACHE_KEYS.ACTIVITY_POSTS_PREFIX}${userId}_${activityType}`;
+  return getCachedItem<any[]>(key, CACHE_TTL.ACTIVITY_POSTS);
+}
+
+export function setCachedActivityPosts(userId: string, activityType: string, posts: any[]): void {
+  const key = `${CACHE_KEYS.ACTIVITY_POSTS_PREFIX}${userId}_${activityType}`;
+  setCachedItem(key, posts);
+}
+
+// Loaded Tabs Cache (user-specific)
+export function getCachedLoadedTabs(userId: string): Set<string> | null {
+  const key = `${CACHE_KEYS.LOADED_TABS_PREFIX}${userId}`;
+  const cached = getCachedItem<string[]>(key, CACHE_TTL.LOADED_TABS);
+  return cached ? new Set(cached) : null;
+}
+
+export function setCachedLoadedTabs(userId: string, loadedTabs: Set<string>): void {
+  const key = `${CACHE_KEYS.LOADED_TABS_PREFIX}${userId}`;
+  setCachedItem(key, Array.from(loadedTabs));
+}
+
 // Clear all user-related cache (useful for logout)
-export function clearUserCache(): void {
+export function clearUserCache(userId?: string): void {
+  // Clear general cache keys
   Object.values(CACHE_KEYS).forEach((key) => {
-    removeCachedItem(key);
+    if (typeof key === 'string' && !key.includes('_PREFIX')) {
+      removeCachedItem(key);
+    }
   });
+  
+  // Clear user-specific profile cache if userId provided
+  if (userId) {
+    removeCachedItem(`${CACHE_KEYS.PROFILE_POSTS_PREFIX}${userId}`);
+    removeCachedItem(`${CACHE_KEYS.LOADED_TABS_PREFIX}${userId}`);
+    // Clear all activity types for this user
+    ['liked', 'commented', 'reposted', 'saves'].forEach(activityType => {
+      removeCachedItem(`${CACHE_KEYS.ACTIVITY_POSTS_PREFIX}${userId}_${activityType}`);
+    });
+  }
 }
 
