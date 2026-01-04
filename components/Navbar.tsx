@@ -139,8 +139,6 @@ export const Navbar: React.FC = () => {
 
   // compute breakpoints only when we have a real width
   const isWide = windowWidth !== null ? windowWidth >= 928 : false;
-  const isMedium =
-    windowWidth !== null ? windowWidth >= 768 && windowWidth < 928 : false;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[var(--card-bg)] border-b border-[var(--card-border)] shadow-sm transition-colors">
@@ -278,7 +276,7 @@ export const Navbar: React.FC = () => {
                               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-primary)] transition-colors text-left"
                             >
                               <img
-                                src={profile.avatar_url || "/images/default-avatar.png"}
+                                src={profile.avatar_url || "/images/avatar_placeholder.png"}
                                 alt={profile.full_name || "User"}
                                 className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                                 loading="lazy"
