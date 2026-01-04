@@ -93,8 +93,18 @@ export function useUnreadNotifications() {
 
     setupSubscription();
 
+    // Listen for custom refresh events (e.g., when notifications are marked as read)
+    const handleRefresh = () => {
+      if (mounted) {
+        loadUnreadCount();
+      }
+    };
+
+    window.addEventListener("notifications-refresh", handleRefresh);
+
     return () => {
       mounted = false;
+      window.removeEventListener("notifications-refresh", handleRefresh);
       if (channel) {
         supabase.removeChannel(channel);
       }

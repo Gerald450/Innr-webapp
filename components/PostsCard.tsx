@@ -406,8 +406,10 @@ export const Post: React.FC<PostProps> = ({
 
   // Render timestamp in top-right corner
   const renderTimestamp = () => {
+    // Adjust position when menu is visible to avoid overlap
+    const timestampTop = showMenu && isAuthor ? 'top-12' : 'top-3';
     return (
-      <div className="absolute top-3 right-3 z-10">
+      <div className={`absolute ${timestampTop} right-3 z-10`}>
         <span className="text-xs text-[var(--text-secondary)] bg-[var(--card-bg)]/80 backdrop-blur-sm px-2 py-0.5 rounded-full border border-[var(--card-border)] shadow-sm">
           {created_at ? getRelativeTime(created_at) : "just now"}
         </span>

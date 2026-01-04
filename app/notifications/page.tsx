@@ -289,6 +289,9 @@ const validateNotifications = async (
       .from("notifications")
       .delete()
       .in("id", notificationIdsToDelete);
+    
+    // Dispatch refresh event to update notification count in navbar
+    window.dispatchEvent(new CustomEvent("notifications-refresh"));
   }
 
   return validNotifications;
@@ -609,6 +612,9 @@ export default function NotificationsPage() {
               : g
           )
         );
+
+        // Dispatch custom event to refresh notification count in navbar
+        window.dispatchEvent(new CustomEvent("notifications-refresh"));
       } catch (err) {
         console.error("Error marking notifications as read:", err);
       } finally {
@@ -658,6 +664,9 @@ export default function NotificationsPage() {
       setGroupedNotifications((prev) =>
         prev.map((g) => ({ ...g, is_read: true }))
       );
+
+      // Dispatch custom event to refresh notification count in navbar
+      window.dispatchEvent(new CustomEvent("notifications-refresh"));
     } catch (err) {
       console.error("Error marking all notifications as read:", err);
     }
