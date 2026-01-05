@@ -118,7 +118,7 @@ export default function EventsClient() {
     const currentCount = attendeeCounts[eventId] || 0;
 
     // Optimistically update the cache
-    const queryKey = ["events", profile?.role];
+    const queryKey = ["events", profile?.role, profile?.university_id];
     queryClient.setQueryData(queryKey, (old: any) => {
       if (!old) return old;
       return {
@@ -147,7 +147,7 @@ export default function EventsClient() {
 
       if (authError || !user) {
         // Revert optimistic update
-        queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
+        queryClient.invalidateQueries({ queryKey: ["events", profile?.role, profile?.university_id] });
         alert("You must be signed in to attend events.");
         setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
         return;
@@ -162,7 +162,7 @@ export default function EventsClient() {
 
       if (profileError || !userProfile) {
         // Revert optimistic update
-        queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
+        queryClient.invalidateQueries({ queryKey: ["events", profile?.role, profile?.university_id] });
         console.error("Error getting profile:", profileError);
         alert("Failed to get your profile.");
         setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
@@ -181,7 +181,7 @@ export default function EventsClient() {
 
         if (deleteError) {
           // Revert optimistic update
-          queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
+          queryClient.invalidateQueries({ queryKey: ["events", profile?.role, profile?.university_id] });
           console.error("Error un-attending event:", deleteError);
           alert("Failed to un-attend event. Please try again.");
           setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
@@ -203,7 +203,7 @@ export default function EventsClient() {
             // Already attending, cache is already updated optimistically
           } else {
             // Revert optimistic update
-            queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
+            queryClient.invalidateQueries({ queryKey: ["events", profile?.role, profile?.university_id] });
             console.error("Error attending event:", insertError);
             alert("Failed to attend event. Please try again.");
             setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
@@ -213,7 +213,7 @@ export default function EventsClient() {
       }
     } catch (err) {
       // Revert optimistic update
-      queryClient.invalidateQueries({ queryKey: ["events", profile?.role] });
+      queryClient.invalidateQueries({ queryKey: ["events", profile?.role, profile?.university_id] });
       console.error("Unexpected error toggling attend:", err);
       alert("An unexpected error occurred. Please try again.");
     } finally {
@@ -289,7 +289,7 @@ export default function EventsClient() {
       }
 
       // Optimistically update the cache by prepending to the first page
-      const queryKey = ["events", profile?.role];
+      const queryKey = ["events", profile?.role, profile?.university_id];
       queryClient.setQueryData(queryKey, (old: any) => {
         if (!old || !old.pages || old.pages.length === 0) {
           // If cache structure doesn't match, fall back to invalidation

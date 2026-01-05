@@ -31,7 +31,8 @@ const EVENTS_PER_PAGE = 20;
 async function fetchEventsPage(
   page: number,
   userId: string,
-  userRole: string | null
+  userRole: string | null,
+  universityId: string | null
 ): Promise<{ events: EventItem[]; attendeeCounts: Record<string, number>; joinedMap: Record<string, boolean>; hasMore: boolean; totalCount: number | null }> {
   // Build query with pagination
   const from = page * EVENTS_PER_PAGE;
@@ -58,6 +59,7 @@ async function fetchEventsPage(
           title,
           body,
           created_at,
+          university_id,
           profiles!inner (
             id,
             full_name,
@@ -73,6 +75,11 @@ async function fetchEventsPage(
     )
     .order("starts_at", { ascending: true })
     .range(from, to);
+
+  // Filter by university_id if provided
+  if (universityId) {
+    query = query.eq("posts.university_id", universityId);
+  }
 
   const { data: eventsData, error: eventsError, count } = await query;
 
@@ -195,7 +202,7 @@ export function useEvents() {
   const { data: profile, isLoading: profileLoading } = useProfile();
 
   return useInfiniteQuery({
-    queryKey: ["events", profile?.role],
+    queryKey: ["events", profile?.role, profile?.university_id],
     queryFn: async ({ pageParam = 0 }) => {
       // Get current authenticated user
       const {
@@ -207,7 +214,7 @@ export function useEvents() {
         throw new Error("Not authenticated");
       }
 
-      return fetchEventsPage(pageParam, user.id, profile?.role || null);
+      return fetchEventsPage(pageParam, user.id, profile?.role || null, profile?.university_id || null);
     },
     enabled: !!profile && !profileLoading,
     getNextPageParam: (lastPage, allPages) => {
