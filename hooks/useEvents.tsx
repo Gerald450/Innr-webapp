@@ -211,8 +211,11 @@ export function useEvents() {
       return lastPage.hasMore ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 3 * 60 * 1000, // 3 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - keep data fresh longer
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
+    refetchOnMount: false, // Don't refetch when component remounts
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnReconnect: true, // Only refetch on reconnect
     retry: (failureCount, error: any) => {
       if (error?.message === "Not authenticated") {
         return false;
