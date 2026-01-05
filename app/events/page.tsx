@@ -321,7 +321,7 @@ export default function EventsClient() {
                 : "View your joined events on the calendar."}
             </p>
           </div>
-          {activeTab === "events" && (
+          {activeTab === "events" && profile?.role === "admin" && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-2 py-1.5 sm:px-4 sm:py-2 bg-[var(--color-accent)] text-white rounded-md text-xs sm:text-sm font-medium hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"

@@ -361,6 +361,12 @@ export default function CreateEventModal({
         return;
       }
 
+      const userRole = (profile as any)?.role;
+      if (userRole !== "admin") {
+        alert("Only admins can create events");
+        return;
+      }
+
       // 1. Create the post (with post_type = 'event')
       const { data: post, error: postError } = await supabase
         .from("posts")
