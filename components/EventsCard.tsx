@@ -125,7 +125,7 @@ export default function EventsCard({
       {/* MOBILE: flex row | DESKTOP: block */}
       <div className="flex md:block w-full items-stretch">
         {/* IMAGE - Left thumbnail on mobile */}
-        <div className="w-24 h-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] relative" style={{ height: '140px' }}>
+        <div className="w-24 h-[140px] md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] relative">
           {event.imageSrc ? (
             <Image
               src={event.imageSrc}
