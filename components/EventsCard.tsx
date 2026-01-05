@@ -124,8 +124,8 @@ export default function EventsCard({
     >
       {/* MOBILE: flex row | DESKTOP: block */}
       <div className="flex md:block w-full items-stretch">
-        {/* IMAGE */}
-        <div className="w-24 h-full md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] relative">
+        {/* IMAGE - Left thumbnail on mobile */}
+        <div className="w-24 h-24 md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] relative">
           {event.imageSrc ? (
             <Image
               src={event.imageSrc}
@@ -143,15 +143,15 @@ export default function EventsCard({
           )}
         </div>
 
-        {/* CONTENT + BUTTONS */}
-        <div className="flex flex-1 flex-row md:flex-col p-3 relative">
-          {/* TOP SECTION (date + title + location) */}
-          <div className="flex-1 pr-2 pb-12 md:pr-0 md:pb-0">
+        {/* CONTENT SECTION - Middle and Right on mobile */}
+        <div className="flex flex-1 flex-row md:flex-col p-3 md:p-3">
+          {/* MIDDLE SECTION (date + title + location + tags + additional info) */}
+          <div className="flex-1 pr-3 md:pr-0 min-w-0">
             <div className="text-xs text-[var(--text-secondary)]">
               {event.datetime}
             </div>
 
-            <h2 className="text-sm font-semibold leading-tight text-[var(--text-primary)] line-clamp-2">
+            <h2 className="text-sm font-semibold leading-tight text-[var(--text-primary)] line-clamp-2 mt-1">
               {event.title}
             </h2>
 
@@ -166,7 +166,7 @@ export default function EventsCard({
             {allTags.length > 0 && (
               <>
                 {/* Mobile: Show only 2 tags */}
-                <div className="flex flex-wrap gap-1.5 mt-2 mb-1 md:hidden">
+                <div className="flex flex-wrap gap-1.5 mt-1.5 mb-1 md:hidden">
                   {allTags.slice(0, 2).map((tag, idx) => (
                     <span
                       key={`tag-mobile-${idx}`}
@@ -248,9 +248,9 @@ export default function EventsCard({
               </>
             )}
 
-            <div className="text-xs text-[var(--text-secondary)] flex items-center gap-2 mt-1">
+            <div className="text-xs text-[var(--text-secondary)] flex items-center gap-1.5 mt-1.5">
               <svg
-                className="w-4 h-4 text-[var(--text-secondary)]"
+                className="w-3.5 h-3.5 text-[var(--text-secondary)] flex-shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
               >
@@ -268,10 +268,33 @@ export default function EventsCard({
               </svg>
               <span className="truncate">{event.location}</span>
             </div>
+
+            {/* Additional info on mobile (organizer, attendee count, share) - shown inline */}
+            <div className="flex items-center gap-2 mt-1.5 md:hidden text-[10px] text-[var(--text-secondary)]">
+              {event.organizer && (
+                <>
+                  <span className="truncate">{event.organizer}</span>
+                  <span>·</span>
+                </>
+              )}
+              <span>{event.attendees ?? 0} attending</span>
+              <button
+                type="button"
+                onClick={(e) => onShare(e, event)}
+                aria-label="Share event"
+                className="ml-auto flex h-6 w-6 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors flex-shrink-0"
+              >
+                <img
+                  src="/svgs/share.svg"
+                  alt="Share"
+                  className="w-3 h-3 svg-icon"
+                />
+              </button>
+            </div>
           </div>
 
-          {/* ACTION ROW */}
-          <div className="absolute bottom-0 right-0 pb-3 pr-3 md:static md:pb-0 md:pr-0 flex items-center justify-end md:justify-between md:mt-2">
+          {/* RIGHT SECTION - Attend button and loading indicator on mobile */}
+          <div className="flex flex-col items-end justify-start md:static md:flex-row md:items-center md:justify-between md:mt-2 md:w-full">
             {/* LEFT SIDE ONLY DESKTOP (view + attendees) */}
             <div className="hidden md:flex items-center gap-2">
               <Link
@@ -289,26 +312,57 @@ export default function EventsCard({
               </div>
             </div>
 
-            {/* RIGHT SIDE — ALWAYS VISIBLE */}
-            <div className="flex items-center gap-2">
+            {/* RIGHT SIDE — Attend button and loading indicator */}
+            <div className="flex flex-col items-end gap-1 md:flex-row md:items-center md:gap-2">
               <button
                 type="button"
                 onClick={(e) => onToggleAttend(e, event.id)}
                 disabled={isToggling}
-                className={`px-4 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                   joined
-                    ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)]"
-                    : "bg-[var(--card-bg)] text-[var(--color-accent)] border-[var(--color-accent)]"
+                    ? "bg-[var(--color-accent)] text-white border border-[var(--color-accent)] md:rounded-md"
+                    : "bg-[var(--card-bg)] text-[var(--color-accent)] border border-[var(--color-accent)] md:rounded-md"
                 } ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isToggling ? "..." : joined ? "Joined" : "Attend"}
               </button>
 
+              {/* Loading indicator - only on mobile, only when toggling */}
+              {isToggling && (
+                <div className="w-4 h-4 md:hidden flex items-center justify-center">
+                  <svg
+                    className="animate-spin text-[var(--text-secondary)]"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    {/* Segmented circle - 8 segments */}
+                    {[...Array(8)].map((_, i) => (
+                      <line
+                        key={i}
+                        x1="8"
+                        y1="1"
+                        x2="8"
+                        y2="3"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        opacity={i < 4 ? "0.6" : "0.2"}
+                        transform={`rotate(${i * 45} 8 8)`}
+                      />
+                    ))}
+                  </svg>
+                </div>
+              )}
+
+              {/* Share button - desktop only */}
               <button
                 type="button"
                 onClick={(e) => onShare(e, event)}
                 aria-label="Share event"
-                className="flex h-8 w-8 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors"
+                className="hidden md:flex h-8 w-8 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors"
               >
                 <img
                   src="/svgs/share.svg"
