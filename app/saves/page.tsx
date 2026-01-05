@@ -25,7 +25,7 @@ export default function SavesPage() {
   useEffect(() => {
     if (!mounted || profileLoading) return;
 
-    let mounted = true;
+    let isMounted = true;
 
     const loadSavedPosts = async () => {
       setLoading(true);
@@ -39,7 +39,7 @@ export default function SavesPage() {
         } = await supabase.auth.getUser();
 
         if (authError || !user) {
-          if (!mounted) return;
+          if (!isMounted) return;
           setError("You must be signed in to view saved posts.");
           setLoading(false);
           return;
@@ -54,14 +54,14 @@ export default function SavesPage() {
 
         if (bookmarksError) {
           console.error("Error loading bookmarks:", bookmarksError);
-          if (!mounted) return;
+          if (!isMounted) return;
           setError("Failed to load saved posts. Please try again.");
           setLoading(false);
           return;
         }
 
         if (!bookmarksData || bookmarksData.length === 0) {
-          if (!mounted) return;
+          if (!isMounted) return;
           setSavedPosts([]);
           setLoading(false);
           return;
@@ -96,14 +96,14 @@ export default function SavesPage() {
 
         if (postsError) {
           console.error("Error loading posts:", postsError);
-          if (!mounted) return;
+          if (!isMounted) return;
           setError("Failed to load saved posts. Please try again.");
           setLoading(false);
           return;
         }
 
         if (!postsData || postsData.length === 0) {
-          if (!mounted) return;
+          if (!isMounted) return;
           setSavedPosts([]);
           setLoading(false);
           return;
@@ -242,14 +242,14 @@ export default function SavesPage() {
           };
         });
 
-        if (!mounted) return;
+        if (!isMounted) return;
         setSavedPosts(mapped);
       } catch (err) {
         console.error("Unexpected error loading saved posts:", err);
-        if (!mounted) return;
+        if (!isMounted) return;
         setError("An unexpected error occurred. Please try again.");
       } finally {
-        if (mounted) {
+        if (isMounted) {
           setLoading(false);
         }
       }
@@ -258,7 +258,7 @@ export default function SavesPage() {
     loadSavedPosts();
 
     return () => {
-      mounted = false;
+      isMounted = false;
     };
   }, [mounted, profileLoading]);
 
