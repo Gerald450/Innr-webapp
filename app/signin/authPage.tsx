@@ -1,13 +1,17 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
+import { clearAllUserCache } from "@/utils/cacheInvalidation";
+import { clearUserCache } from "@/utils/storage";
 
 type Mode = "signin" | "signup";
 
 export default function AuthPageSupabase() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -102,11 +106,18 @@ export default function AuthPageSupabase() {
               setStatusMsg(
                 "Signed in, but failed to persist session on server."
               );
+              // Clear cache before redirect
+              clearAllUserCache(queryClient);
+              clearUserCache();
               // fallback: still navigate to requested page
               router.push(nextPath || "/");
               return;
             }
 
+            // Clear React Query cache and localStorage before redirect
+            clearAllUserCache(queryClient);
+            clearUserCache();
+            
             setStatusMsg("Signed in successfully!");
             // navigate to requested page (middleware will now see cookies)
             router.push(nextPath || "/");
@@ -114,12 +125,18 @@ export default function AuthPageSupabase() {
           } catch (err) {
             console.error("Error posting tokens to server:", err);
             setStatusMsg("Signed in, but server cookie step failed.");
+            // Clear cache before redirect
+            clearAllUserCache(queryClient);
+            clearUserCache();
             router.push(nextPath || "/");
             return;
           }
         }
 
         // If tokens absent (unexpected), just proceed to home as a fallback
+        // Clear cache before redirect
+        clearAllUserCache(queryClient);
+        clearUserCache();
         setStatusMsg("Signed in successfully!");
         router.push("/");
       }

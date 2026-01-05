@@ -1,10 +1,13 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
 import { useProfile } from "@/hooks/useProfile";
 import { useRouter, usePathname } from "next/navigation";
+import { clearAllUserCache } from "@/utils/cacheInvalidation";
+import { clearUserCache } from "@/utils/storage";
 
 type NavItem = {
   label: string;
@@ -28,6 +31,7 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
   const avatar = useUserAvatar();
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [clickedIndex, setClickedIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -85,18 +89,27 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
     if (item.label === "Logout") {
       setTimeout(async () => {
         try {
-          // 1. Clear server-side cookies
+          // Get current user ID before signing out (if available)
+          const userId = profile?.id || null;
+          
+          // 1. Clear React Query cache
+          clearAllUserCache(queryClient);
+          
+          // 2. Clear localStorage cache
+          clearUserCache(userId || undefined);
+          
+          // 3. Clear server-side cookies
           await fetch("/api/auth/clearCookie", { method: "POST" });
 
-          // 2. Clear client-side Supabase session as well
+          // 4. Clear client-side Supabase session as well
           await supabase.auth.signOut();
         } catch (err) {
           console.error("Error signing out:", err);
         } finally {
-          // 3. Close dropdown
+          // 5. Close dropdown
           setIsOpen(false);
 
-          // 4. Redirect to signin page
+          // 6. Redirect to signin page
           router.push("/signin");
         }
       }, 150);

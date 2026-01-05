@@ -48,6 +48,43 @@ export function invalidateAllUserData(queryClient: QueryClient, userId?: string)
 }
 
 /**
+ * Clear all user-related cache (comprehensive invalidation)
+ * Used on sign in/out to ensure fresh data is loaded
+ * Invalidates all user-specific queries including nested ones
+ */
+export function clearAllUserCache(queryClient: QueryClient) {
+  // Invalidate profile queries (with and without userId)
+  queryClient.invalidateQueries({ queryKey: ["profile"] });
+  
+  // Invalidate avatar
+  queryClient.invalidateQueries({ queryKey: ["avatar"] });
+  
+  // Invalidate posts (all variations)
+  queryClient.invalidateQueries({ queryKey: ["posts"] });
+  
+  // Invalidate events (all variations)
+  queryClient.invalidateQueries({ queryKey: ["events"] });
+  
+  // Invalidate individual post details
+  queryClient.invalidateQueries({ 
+    predicate: (query) => query.queryKey[0] === "post" 
+  });
+  
+  // Invalidate comments
+  queryClient.invalidateQueries({ 
+    predicate: (query) => query.queryKey[0] === "comments" 
+  });
+  
+  // Invalidate notifications
+  queryClient.invalidateQueries({ 
+    predicate: (query) => query.queryKey[0] === "notifications" 
+  });
+  
+  // Remove all cached data (more aggressive - clears everything)
+  queryClient.clear();
+}
+
+/**
  * Invalidate post detail cache
  */
 export function invalidatePostDetail(queryClient: QueryClient, postId: string) {
