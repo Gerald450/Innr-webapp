@@ -31,7 +31,6 @@ const EVENTS_PER_PAGE = 20;
 async function fetchEventsPage(
   page: number,
   userId: string,
-  userRole: string | null,
   universityId: string | null
 ): Promise<{ events: EventItem[]; attendeeCounts: Record<string, number>; joinedMap: Record<string, boolean>; hasMore: boolean; totalCount: number | null }> {
   // Build query with pagination
@@ -144,15 +143,6 @@ async function fetchEventsPage(
           .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ??
         null;
 
-      // Filter: Only show events from 'regular' users to other 'regular' users
-      const authorRole = author?.role;
-      if (userRole === "regular" && authorRole !== "regular") {
-        return null; // Skip this event
-      }
-      if (userRole !== "regular" && authorRole === "regular") {
-        return null; // Skip this event
-      }
-
       const startDate = new Date(row.starts_at);
       const formattedDate = startDate.toLocaleDateString("en-US", {
         month: "short",
@@ -202,7 +192,7 @@ export function useEvents() {
   const { data: profile, isLoading: profileLoading } = useProfile();
 
   return useInfiniteQuery({
-    queryKey: ["events", profile?.role, profile?.university_id],
+    queryKey: ["events", profile?.university_id],
     queryFn: async ({ pageParam = 0 }) => {
       // Get current authenticated user
       const {
@@ -214,7 +204,7 @@ export function useEvents() {
         throw new Error("Not authenticated");
       }
 
-      return fetchEventsPage(pageParam, user.id, profile?.role || null, profile?.university_id || null);
+      return fetchEventsPage(pageParam, user.id, profile?.university_id || null);
     },
     enabled: !!profile && !profileLoading,
     getNextPageParam: (lastPage, allPages) => {

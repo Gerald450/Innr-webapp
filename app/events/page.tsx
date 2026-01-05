@@ -15,22 +15,11 @@ import { EventCreationResult } from "@/components/CreateEventModal";
 
 /**
  * Transforms event creation data to EventItem format
- * Returns null if the event should be filtered out based on role
  */
 function transformEventToEventItem(
-  eventData: EventCreationResult,
-  userRole: string | null
-): EventItem | null {
+  eventData: EventCreationResult
+): EventItem {
   const { event, post, profile, media } = eventData;
-
-  // Role filtering: Only show events from 'regular' users to other 'regular' users
-  const authorRole = profile.role;
-  if (userRole === "regular" && authorRole !== "regular") {
-    return null; // Skip this event
-  }
-  if (userRole !== "regular" && authorRole === "regular") {
-    return null; // Skip this event
-  }
 
   // Format date using the same logic as fetchEventsPage
   const startDate = new Date(event.starts_at);
@@ -118,7 +107,7 @@ export default function EventsClient() {
     const currentCount = attendeeCounts[eventId] || 0;
 
     // Optimistically update the cache
-    const queryKey = ["events", profile?.role, profile?.university_id];
+    const queryKey = ["events", profile?.university_id];
     queryClient.setQueryData(queryKey, (old: any) => {
       if (!old) return old;
       return {
@@ -280,13 +269,7 @@ export default function EventsClient() {
       setShowCreateModal(false);
 
       // Transform the event data to EventItem format
-      const newEventItem = transformEventToEventItem(eventData, profile?.role || null);
-
-      // If event is filtered out (returns null), fall back to refetch
-      if (!newEventItem) {
-        invalidateEvents(queryClient);
-        return;
-      }
+      const newEventItem = transformEventToEventItem(eventData);
 
       // Optimistically update the cache by prepending to the first page
       const queryKey = ["events", profile?.role, profile?.university_id];
@@ -320,7 +303,7 @@ export default function EventsClient() {
         };
       });
     },
-    [queryClient, profile?.role]
+    [queryClient]
   );
 
   return (
