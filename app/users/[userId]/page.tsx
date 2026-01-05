@@ -33,7 +33,7 @@ export default function UserProfilePage() {
   const [connectionsCount, setConnectionsCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"posts" | "reposted" | "about">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "reposted" | "about">("reposted");
   const [postFilter, setPostFilter] = useState<"all" | "media" | "text">("all");
   const [userPosts, setUserPosts] = useState<PostItem[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
@@ -64,7 +64,7 @@ export default function UserProfilePage() {
           supabase.auth.getUser(),
           supabase
             .from("profiles")
-            .select("id, full_name, program_of_study, bio, avatar_url, graduation_year, student_type")
+            .select("id, full_name, program_of_study, bio, avatar_url, graduation_year, student_type, role")
             .eq("id", userId)
             .single()
         ]);
@@ -99,6 +99,15 @@ export default function UserProfilePage() {
       mounted = false;
     };
   }, [userId, router]);
+
+  // Ensure activeTab is valid for user role
+  useEffect(() => {
+    if (!profile) return;
+    const isAdmin = profile.role === "admin";
+    if (!isAdmin && activeTab === "posts") {
+      setActiveTab("reposted");
+    }
+  }, [profile, activeTab]);
 
   // Load user's posts when Posts tab is active
   useEffect(() => {
@@ -765,16 +774,18 @@ export default function UserProfilePage() {
           {/* Tabs */}
           <div className="border-b border-[var(--card-border)]">
             <div className="flex text-sm font-medium">
-              <button
-                onClick={() => setActiveTab("posts")}
-                className={`flex-1 text-center py-4 border-b-2 transition-colors ${
-                  activeTab === "posts"
-                    ? "text-[var(--text-primary)] border-[var(--color-accent)] font-semibold"
-                    : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
-                }`}
-              >
-                Posts
-              </button>
+              {profile.role === "admin" && (
+                <button
+                  onClick={() => setActiveTab("posts")}
+                  className={`flex-1 text-center py-4 border-b-2 transition-colors ${
+                    activeTab === "posts"
+                      ? "text-[var(--text-primary)] border-[var(--color-accent)] font-semibold"
+                      : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  Posts
+                </button>
+              )}
               <button
                 onClick={() => setActiveTab("reposted")}
                 className={`flex-1 text-center py-4 border-b-2 transition-colors ${
