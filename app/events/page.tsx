@@ -65,10 +65,16 @@ export default function EventsClient() {
   const [activeTab, setActiveTab] = useState<"events" | "calendar">("events");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [togglingAttend, setTogglingAttend] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Get profile for query key
   const { data: profile, isLoading: profileLoading } = useProfile();
+
+  // Prevent hydration mismatch by only rendering conditional content after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Use React Query hook for events
   const {
@@ -321,7 +327,7 @@ export default function EventsClient() {
                 : "View your joined events on the calendar."}
             </p>
           </div>
-          {activeTab === "events" && profile?.role === "admin" && (
+          {mounted && activeTab === "events" && !profileLoading && profile?.role === "admin" && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-2 py-1.5 sm:px-4 sm:py-2 bg-[var(--color-accent)] text-white rounded-md text-xs sm:text-sm font-medium hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition"
