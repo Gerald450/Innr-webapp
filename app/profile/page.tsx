@@ -41,7 +41,7 @@ function MyProfilePageContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"posts" | "activity" | "about">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "activity" | "about">("activity");
   const [postFilter, setPostFilter] = useState<"all" | "media" | "text">("all");
   const [userPosts, setUserPosts] = useState<PostItem[]>([]);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
@@ -53,8 +53,11 @@ function MyProfilePageContent() {
 
   // Check URL parameters on mount to set tab and activity type
   useEffect(() => {
+    if (!profile) return;
+    
     const tab = searchParams.get("tab");
     const type = searchParams.get("type");
+    const isAdmin = profile.role === "admin";
     
     if (tab === "activity") {
       setActiveTab("activity");
@@ -67,8 +70,30 @@ function MyProfilePageContent() {
       } else if (type === "reposted") {
         setActivityType("reposted");
       }
+    } else if (tab === "posts" && isAdmin) {
+      setActiveTab("posts");
+    } else if (tab === "posts" && !isAdmin) {
+      // Redirect to activity if regular user tries to access posts tab
+      setActiveTab("activity");
+    } else if (tab === "about") {
+      setActiveTab("about");
+    } else if (!tab && !isAdmin) {
+      // Default to activity for regular users
+      setActiveTab("activity");
+    } else if (!tab && isAdmin) {
+      // Default to posts for admins
+      setActiveTab("posts");
     }
-  }, [searchParams]);
+  }, [searchParams, profile]);
+
+  // Ensure activeTab is valid for user role
+  useEffect(() => {
+    if (!profile) return;
+    const isAdmin = profile.role === "admin";
+    if (!isAdmin && activeTab === "posts") {
+      setActiveTab("activity");
+    }
+  }, [profile, activeTab]);
 
   useEffect(() => {
     let mounted = true;
@@ -109,7 +134,7 @@ function MyProfilePageContent() {
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select(
-            "id, full_name, program_of_study, bio, avatar_url, graduation_year, student_type"
+            "id, full_name, program_of_study, bio, avatar_url, graduation_year, student_type, role"
           )
           .eq("id", userId)
           .single();
@@ -849,16 +874,18 @@ function MyProfilePageContent() {
           {/* Tabs */}
           <div className="border-b border-[var(--card-border)]">
             <div className="flex text-sm font-medium">
-              <button
-                onClick={() => setActiveTab("posts")}
-                className={`flex-1 text-center py-4 border-b-2 transition-colors ${
-                  activeTab === "posts"
-                    ? "text-[var(--text-primary)] border-[var(--color-accent)] font-semibold"
-                    : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
-                }`}
-              >
-                Posts
-              </button>
+              {profile.role === "admin" && (
+                <button
+                  onClick={() => setActiveTab("posts")}
+                  className={`flex-1 text-center py-4 border-b-2 transition-colors ${
+                    activeTab === "posts"
+                      ? "text-[var(--text-primary)] border-[var(--color-accent)] font-semibold"
+                      : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  Posts
+                </button>
+              )}
               <button
                 onClick={() => setActiveTab("activity")}
                 className={`flex-1 text-center py-4 border-b-2 transition-colors ${
