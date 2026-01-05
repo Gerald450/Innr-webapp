@@ -614,7 +614,10 @@ export default function NotificationsPage() {
         );
 
         // Dispatch custom event to refresh notification count in navbar
-        window.dispatchEvent(new CustomEvent("notifications-refresh"));
+        // Small delay to ensure database update has fully propagated
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("notifications-refresh"));
+        }, 200);
       } catch (err) {
         console.error("Error marking notifications as read:", err);
       } finally {
@@ -666,7 +669,10 @@ export default function NotificationsPage() {
       );
 
       // Dispatch custom event to refresh notification count in navbar
-      window.dispatchEvent(new CustomEvent("notifications-refresh"));
+      // Small delay to ensure database update has fully propagated
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("notifications-refresh"));
+      }, 200);
     } catch (err) {
       console.error("Error marking all notifications as read:", err);
     }

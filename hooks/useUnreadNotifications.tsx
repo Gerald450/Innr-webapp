@@ -83,8 +83,13 @@ export function useUnreadNotifications() {
           },
           () => {
             // Refetch count when notifications change
+            // Add a small delay to ensure database transaction has completed
             if (mounted) {
-              loadUnreadCount();
+              setTimeout(() => {
+                if (mounted) {
+                  loadUnreadCount();
+                }
+              }, 200);
             }
           }
         )
@@ -96,7 +101,12 @@ export function useUnreadNotifications() {
     // Listen for custom refresh events (e.g., when notifications are marked as read)
     const handleRefresh = () => {
       if (mounted) {
-        loadUnreadCount();
+        // Add a small delay to ensure database update has completed
+        setTimeout(() => {
+          if (mounted) {
+            loadUnreadCount();
+          }
+        }, 200);
       }
     };
 
