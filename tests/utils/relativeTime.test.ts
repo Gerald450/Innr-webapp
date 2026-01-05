@@ -109,5 +109,59 @@ describe('getRelativeTime', () => {
     const timestamp = new Date('2024-01-01T11:00:00Z');
     expect(getRelativeTime(timestamp)).toBe('1h');
   });
+
+  it('should handle boundary condition of exactly 1 day', () => {
+    const now = new Date('2024-01-02T12:00:00Z');
+    vi.setSystemTime(now);
+
+    const timestamp = new Date('2024-01-01T12:00:00Z');
+    expect(getRelativeTime(timestamp)).toBe('1d');
+  });
+
+  it('should handle boundary condition of exactly 1 week', () => {
+    const now = new Date('2024-01-08T12:00:00Z');
+    vi.setSystemTime(now);
+
+    const timestamp = new Date('2024-01-01T12:00:00Z');
+    expect(getRelativeTime(timestamp)).toBe('1w');
+  });
+
+  it('should handle boundary condition of exactly 1 month', () => {
+    const now = new Date('2024-02-01T12:00:00Z');
+    vi.setSystemTime(now);
+
+    const timestamp = new Date('2024-01-01T12:00:00Z');
+    expect(getRelativeTime(timestamp)).toBe('1mo');
+  });
+
+  it('should handle very old timestamps (many years)', () => {
+    const now = new Date('2024-01-01T12:00:00Z');
+    vi.setSystemTime(now);
+
+    const timestamp = new Date('2020-01-01T12:00:00Z');
+    expect(getRelativeTime(timestamp)).toBe('4y');
+  });
+
+  it('should handle performance with many timestamps', () => {
+    const now = new Date('2024-01-01T12:00:00Z');
+    vi.setSystemTime(now);
+
+    const startTime = Date.now();
+    const timestamps = Array.from({ length: 1000 }, (_, i) => {
+      const date = new Date(now);
+      date.setMinutes(date.getMinutes() - i);
+      return date;
+    });
+
+    timestamps.forEach((timestamp) => {
+      getRelativeTime(timestamp);
+    });
+
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    // Should process 1000 timestamps quickly (< 100ms)
+    expect(duration).toBeLessThan(100);
+  });
 });
 

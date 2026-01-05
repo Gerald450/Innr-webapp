@@ -12,7 +12,7 @@ import {
 
 describe('Cache invalidation utilities', () => {
   let queryClient: QueryClient;
-  let invalidateQueriesSpy: ReturnType<typeof vi.spyOn>;
+  let invalidateQueriesSpy: any;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -159,24 +159,36 @@ describe('Cache invalidation utilities', () => {
 
       // Find the predicate call for posts
       const predicateCalls = invalidateQueriesSpy.mock.calls.filter(
-        (call) => call[0]?.predicate
+        (call: any) => {
+          const arg = call[0] as any;
+          return arg && typeof arg === 'object' && 'predicate' in arg && typeof arg.predicate === 'function';
+        }
       );
 
       // Test the predicate function for post queries
       const postPredicate = predicateCalls.find(
-        (call) => call[0]?.predicate({ queryKey: ['post', '123'] })
+        (call: any) => {
+          const arg = call[0] as any;
+          return arg && arg.predicate && arg.predicate({ queryKey: ['post', '123'] });
+        }
       );
       expect(postPredicate).toBeDefined();
 
       // Test the predicate function for comment queries
       const commentPredicate = predicateCalls.find(
-        (call) => call[0]?.predicate({ queryKey: ['comments', '123'] })
+        (call: any) => {
+          const arg = call[0] as any;
+          return arg && arg.predicate && arg.predicate({ queryKey: ['comments', '123'] });
+        }
       );
       expect(commentPredicate).toBeDefined();
 
       // Test the predicate function for notification queries
       const notificationPredicate = predicateCalls.find(
-        (call) => call[0]?.predicate({ queryKey: ['notifications'] })
+        (call: any) => {
+          const arg = call[0] as any;
+          return arg && arg.predicate && arg.predicate({ queryKey: ['notifications'] });
+        }
       );
       expect(notificationPredicate).toBeDefined();
     });
