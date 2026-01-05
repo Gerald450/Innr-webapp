@@ -25,6 +25,8 @@ export function invalidateProfile(queryClient: QueryClient, userId?: string) {
   } else {
     queryClient.invalidateQueries({ queryKey: ["profile"] });
   }
+  // Also invalidate avatar cache when profile changes
+  queryClient.invalidateQueries({ queryKey: ["avatar"] });
 }
 
 /**

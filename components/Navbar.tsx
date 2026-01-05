@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import ProfileSidebar from "./ProfileSideBar";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+import { useProfileRealtime } from "@/hooks/useProfileRealtime";
 import { supabase } from "@/lib/supabaseClient";
 
 const navTabs = [
@@ -44,6 +45,9 @@ export const Navbar: React.FC = () => {
   const router = useRouter();
   const avatar = useUserAvatar();
   const { unreadCount } = useUnreadNotifications();
+  
+  // Set up real-time subscription for profile changes
+  useProfileRealtime();
 
   useEffect(() => {
     // set initial width on mount and subscribe to resize

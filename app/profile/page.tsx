@@ -51,6 +51,33 @@ function MyProfilePageContent() {
   const [loadingActivity, setLoadingActivity] = useState<boolean>(false);
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
 
+  // Listen for real-time profile updates to update local state
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const channel = supabase
+      .channel(`profile-refetch:${profile.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${profile.id}`,
+        },
+        async (payload) => {
+          // Refetch profile data when it's updated
+          const updatedProfile = payload.new as any;
+          setProfile(updatedProfile);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.id]);
+
   // Check URL parameters on mount to set tab and activity type
   useEffect(() => {
     if (!profile) return;

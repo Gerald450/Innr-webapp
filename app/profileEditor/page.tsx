@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateProfile } from "@/utils/cacheInvalidation";
 
 type ProfileRow = {
   id?: string;
@@ -40,6 +42,7 @@ export default function ProfileEditor() {
     "/images/avatar_placeholder.png"
   );
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // ---------- mount: fetch auth user and profile ----------
   useEffect(() => {
@@ -264,6 +267,21 @@ export default function ProfileEditor() {
         console.warn("Failed to clear avatar_url in DB:", error);
         setMessage({ type: "error", text: "Failed to clear avatar in DB." });
       } else {
+        // Invalidate React Query cache to update all components in real-time
+        invalidateProfile(queryClient, user.id);
+        queryClient.invalidateQueries({ queryKey: ["avatar"] });
+        
+        // Update cached profile in localStorage
+        const { setCachedProfile } = await import("@/utils/storage");
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        if (profileData) {
+          setCachedProfile(profileData);
+        }
+        
         setMessage({ type: "success", text: "Avatar removed." });
       }
     }
@@ -311,6 +329,15 @@ export default function ProfileEditor() {
 
       if (error) throw error;
       setProfile((p) => ({ ...p, ...data }));
+      
+      // Invalidate React Query cache to update all components in real-time
+      invalidateProfile(queryClient, user.id);
+      queryClient.invalidateQueries({ queryKey: ["avatar"] });
+      
+      // Update cached profile in localStorage
+      const { setCachedProfile } = await import("@/utils/storage");
+      setCachedProfile(data);
+      
       setMessage({ type: "success", text: "Profile saved successfully." });
       
       // Navigate to profile page after successful save
