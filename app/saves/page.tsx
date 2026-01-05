@@ -116,7 +116,7 @@ export default function SavesPage() {
           { data: commentsData },
           { data: repostsData },
           { data: userRepostsData },
-          { data: bookmarksData: allBookmarksData },
+          { data: allBookmarksData },
           { data: userBookmarksData },
         ] = await Promise.all([
           supabase
