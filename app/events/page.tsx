@@ -104,17 +104,8 @@ export default function EventsClient() {
   const handleToggleAttend = async (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation();
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:104',message:'handleToggleAttend entry',data:{eventId,profileUniversityId:profile?.university_id,profileRole:profile?.role},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     // Prevent multiple clicks
-    if (togglingAttend[eventId]) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:108',message:'Already toggling, early return',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      return;
-    }
+    if (togglingAttend[eventId]) return;
     
     setTogglingAttend((prev) => ({ ...prev, [eventId]: true }));
 
@@ -123,9 +114,6 @@ export default function EventsClient() {
 
     // Optimistically update the cache
     const queryKey = ["events", profile?.university_id];
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:116',message:'Optimistic update queryKey',data:{queryKey:JSON.stringify(queryKey),profileUniversityId:profile?.university_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     queryClient.setQueryData(queryKey, (old: any) => {
       if (!old) return old;
       return {
@@ -154,9 +142,6 @@ export default function EventsClient() {
 
       if (authError || !user) {
         // Revert optimistic update - use same key as optimistic update
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:155',message:'Invalidation queryKey fix',data:{queryKey:JSON.stringify(queryKey)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         queryClient.invalidateQueries({ queryKey });
         alert("You must be signed in to attend events.");
         setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
@@ -172,9 +157,6 @@ export default function EventsClient() {
 
       if (profileError || !userProfile) {
         // Revert optimistic update - use same key as optimistic update
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:174',message:'Invalidation queryKey fix',data:{queryKey:JSON.stringify(queryKey)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         queryClient.invalidateQueries({ queryKey });
         console.error("Error getting profile:", profileError);
         alert("Failed to get your profile.");
@@ -194,9 +176,6 @@ export default function EventsClient() {
 
         if (deleteError) {
           // Revert optimistic update - use same key as optimistic update
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:197',message:'Invalidation queryKey fix',data:{queryKey:JSON.stringify(queryKey)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
           queryClient.invalidateQueries({ queryKey });
           console.error("Error un-attending event:", deleteError);
           alert("Failed to un-attend event. Please try again.");
@@ -219,9 +198,6 @@ export default function EventsClient() {
             // Already attending, cache is already updated optimistically
           } else {
             // Revert optimistic update - use same key as optimistic update
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:219',message:'Invalidation queryKey fix',data:{queryKey:JSON.stringify(queryKey)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
             queryClient.invalidateQueries({ queryKey });
             console.error("Error attending event:", insertError);
             alert("Failed to attend event. Please try again.");
@@ -232,16 +208,10 @@ export default function EventsClient() {
       }
     } catch (err) {
       // Revert optimistic update - use same key as optimistic update
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:229',message:'Invalidation queryKey fix',data:{queryKey:JSON.stringify(queryKey)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       queryClient.invalidateQueries({ queryKey });
       console.error("Unexpected error toggling attend:", err);
       alert("An unexpected error occurred. Please try again.");
     } finally {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:215',message:'handleToggleAttend finally',data:{eventId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       setTogglingAttend((prev) => ({ ...prev, [eventId]: false }));
     }
   };
@@ -310,9 +280,6 @@ export default function EventsClient() {
       // Optimistically update the cache by prepending to the first page
       // Use same query key as useEvents hook
       const queryKey = ["events", profile?.university_id];
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/events/page.tsx:311',message:'Event creation queryKey fix',data:{queryKey:JSON.stringify(queryKey)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       queryClient.setQueryData(queryKey, (old: any) => {
         if (!old || !old.pages || old.pages.length === 0) {
           // If cache structure doesn't match, fall back to invalidation

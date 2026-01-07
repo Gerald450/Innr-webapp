@@ -191,13 +191,8 @@ async function fetchEventsPage(
 export function useEvents() {
   const { data: profile, isLoading: profileLoading } = useProfile();
 
-  // #region agent log
-  const actualQueryKey = ["events", profile?.university_id];
-  fetch('http://127.0.0.1:7242/ingest/5951b94c-31d1-4c2d-a278-3bf433b889ee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'hooks/useEvents.tsx:195',message:'useEvents actual queryKey',data:{queryKey:JSON.stringify(actualQueryKey),profileUniversityId:profile?.university_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-
   return useInfiniteQuery({
-    queryKey: actualQueryKey,
+    queryKey: ["events", profile?.university_id],
     queryFn: async ({ pageParam = 0 }) => {
       // Get current authenticated user
       const {
