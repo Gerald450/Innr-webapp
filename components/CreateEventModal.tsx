@@ -317,6 +317,21 @@ export default function CreateEventModal({
       alert("Please select a start date and time");
       return;
     }
+    // Validate that start date is not in the past
+    const startDateTime = new Date(startsAt);
+    const now = new Date();
+    if (startDateTime < now) {
+      alert("Start date and time cannot be in the past");
+      return;
+    }
+    // Validate that end date is after start date (if provided)
+    if (endsAt) {
+      const endDateTime = new Date(endsAt);
+      if (endDateTime <= startDateTime) {
+        alert("End date and time must be after the start date and time");
+        return;
+      }
+    }
     if (!locationAddress.trim()) {
       alert("Please enter a location address");
       return;
@@ -516,6 +531,7 @@ export default function CreateEventModal({
                 type="datetime-local"
                 value={startsAt}
                 onChange={(e) => setStartsAt(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
                 className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors datetime-input"
               />
             </div>
@@ -527,6 +543,7 @@ export default function CreateEventModal({
                 type="datetime-local"
                 value={endsAt}
                 onChange={(e) => setEndsAt(e.target.value)}
+                min={startsAt || new Date().toISOString().slice(0, 16)}
                 className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors datetime-input"
               />
             </div>
