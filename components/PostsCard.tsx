@@ -446,6 +446,11 @@ export const Post: React.FC<PostProps> = ({
                 className="object-cover"
                 priority
                 unoptimized={!avatar || avatar.startsWith("/images/")}
+                onError={(e) => {
+                  // Fallback to placeholder on error (e.g., timeout)
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/images/avatar_placeholder.png";
+                }}
               />
             </button>
           ) : (
@@ -457,6 +462,11 @@ export const Post: React.FC<PostProps> = ({
               className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover bg-[var(--bg-primary)] flex-shrink-0"
               priority
               unoptimized={!avatar || avatar.startsWith("/images/")}
+              onError={(e) => {
+                // Fallback to placeholder on error (e.g., timeout)
+                const target = e.target as HTMLImageElement;
+                target.src = "/images/avatar_placeholder.png";
+              }}
             />
           )}
           {/* Post Type Badge below profile picture */}
@@ -620,6 +630,11 @@ export const Post: React.FC<PostProps> = ({
                     style={{ display: "block" }}
                     loading={index === 0 ? "eager" : "lazy"}
                     unoptimized
+                    onError={(e) => {
+                      // Hide broken images on error (e.g., timeout)
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                    }}
                   />
                 </div>
               ))}

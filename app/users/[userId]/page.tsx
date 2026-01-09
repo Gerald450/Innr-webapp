@@ -696,6 +696,12 @@ export default function UserProfilePage() {
                       className="w-full h-full object-cover"
                       priority
                       unoptimized
+                      onError={(e) => {
+                        // Fallback to placeholder on error
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/images/avatar_placeholder.png";
+                      }}
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-secondary)] text-4xl font-semibold">
@@ -905,6 +911,11 @@ export default function UserProfilePage() {
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     loading="lazy"
                                     unoptimized
+                                    onError={(e) => {
+                                      // Hide broken images on error (e.g., timeout)
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = "none";
+                                    }}
                                   />
                                   {/* Overlay on hover */}
                                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -1085,6 +1096,11 @@ export default function UserProfilePage() {
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     loading="lazy"
                                     unoptimized
+                                    onError={(e) => {
+                                      // Hide broken images on error (e.g., timeout)
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = "none";
+                                    }}
                                   />
                                   {/* Repost badge */}
                                   <div className="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-green-500/90 text-white">

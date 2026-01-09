@@ -135,6 +135,11 @@ export default function EventsCard({
               className="w-full h-full object-cover"
               loading="lazy"
               unoptimized
+              onError={(e) => {
+                // Fallback to placeholder on error (e.g., timeout)
+                const target = e.target as HTMLImageElement;
+                target.src = "/images/avatar_placeholder.png";
+              }}
             />
           ) : (
             <div className="w-full h-full bg-[var(--bg-primary)] flex items-center justify-center">

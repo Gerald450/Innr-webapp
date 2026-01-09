@@ -1010,6 +1010,11 @@ export default function Comments({ postId, onCommentCountChange }: CommentsProps
                 className="h-full w-full object-cover"
                 loading="lazy"
                 unoptimized={!comment.author.avatar_url || comment.author.avatar_url.startsWith("/images/")}
+                onError={(e) => {
+                  // Fallback to placeholder on error (e.g., timeout)
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/images/avatar_placeholder.png";
+                }}
               />
             </button>
           ) : (
@@ -1021,6 +1026,11 @@ export default function Comments({ postId, onCommentCountChange }: CommentsProps
               className="h-8 w-8 rounded-full object-cover flex-shrink-0"
               loading="lazy"
               unoptimized={!comment.author.avatar_url || comment.author.avatar_url.startsWith("/images/")}
+              onError={(e) => {
+                // Fallback to placeholder on error (e.g., timeout)
+                const target = e.target as HTMLImageElement;
+                target.src = "/images/avatar_placeholder.png";
+              }}
             />
           )}
           <div className="flex-1 min-w-0">

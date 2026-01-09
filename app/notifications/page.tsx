@@ -771,6 +771,11 @@ export default function NotificationsPage() {
                         className="h-10 w-10 rounded-full object-cover"
                         loading="lazy"
                         unoptimized
+                        onError={(e) => {
+                          // Fallback to placeholder on error (e.g., timeout)
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/images/avatar_placeholder.png";
+                        }}
                       />
                     ) : hasActors ? (
                       <div className="h-10 w-10 rounded-full bg-[var(--bg-primary)] flex items-center justify-center">

@@ -432,6 +432,11 @@ export default function EventDetail() {
               className="w-full h-full object-cover"
               priority
               unoptimized
+              onError={(e) => {
+                // Fallback to placeholder on error (e.g., timeout)
+                const target = e.target as HTMLImageElement;
+                target.src = "/images/avatar_placeholder.png";
+              }}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-accent)]/5">
