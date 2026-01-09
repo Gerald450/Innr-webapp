@@ -10,6 +10,7 @@ export function useUnreadNotifications() {
   useEffect(() => {
     let mounted = true;
     let channel: any = null;
+    const timeoutIds: NodeJS.Timeout[] = [];
 
     const loadUnreadCount = async () => {
       try {
@@ -85,11 +86,12 @@ export function useUnreadNotifications() {
             // Refetch count when notifications change
             // Add a small delay to ensure database transaction has completed
             if (mounted) {
-              setTimeout(() => {
+              const timeoutId = setTimeout(() => {
                 if (mounted) {
                   loadUnreadCount();
                 }
               }, 200);
+              timeoutIds.push(timeoutId);
             }
           }
         )
@@ -102,11 +104,12 @@ export function useUnreadNotifications() {
     const handleRefresh = () => {
       if (mounted) {
         // Add a small delay to ensure database update has completed
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           if (mounted) {
             loadUnreadCount();
           }
         }, 200);
+        timeoutIds.push(timeoutId);
       }
     };
 
@@ -114,6 +117,8 @@ export function useUnreadNotifications() {
 
     return () => {
       mounted = false;
+      // Clear all pending timeouts to prevent memory leaks
+      timeoutIds.forEach((id) => clearTimeout(id));
       window.removeEventListener("notifications-refresh", handleRefresh);
       if (channel) {
         supabase.removeChannel(channel);

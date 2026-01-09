@@ -35,6 +35,7 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
   const [clickedIndex, setClickedIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const [mounted, setMounted] = useState(false);
+  const timeoutRefs = useRef<NodeJS.Timeout[]>([]);
   
   // Use React Query hook for cached profile data
   const { data: profile, isLoading: profileLoading } = useProfile();
@@ -42,6 +43,12 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
   // Prevent hydration mismatch by only showing profile data after mount
   useEffect(() => {
     setMounted(true);
+    
+    // Cleanup function to clear all pending timeouts
+    return () => {
+      timeoutRefs.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      timeoutRefs.current = [];
+    };
   }, []);
 
   // Reset clickedIndex when sidebar closes
@@ -87,7 +94,7 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
 
     // logout special handling
     if (item.label === "Logout") {
-      setTimeout(async () => {
+      const timeoutId = setTimeout(async () => {
         try {
           // Get current user ID before signing out (if available)
           const userId = profile?.id || null;
@@ -113,12 +120,13 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
           router.push("/signin");
         }
       }, 150);
+      timeoutRefs.current.push(timeoutId);
 
       return;
     }
 
     if (item.path) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setIsOpen(false);
         // Special handling for Saves button - navigate to saves page
         if (item.label === "Saves") {
@@ -127,6 +135,7 @@ export default function ProfileSidebar({ isOpen, setIsOpen }: Props) {
           router.push(item.path);
         }
       }, 150);
+      timeoutRefs.current.push(timeoutId);
     }
   }
 
