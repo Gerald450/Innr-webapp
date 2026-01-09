@@ -701,7 +701,6 @@ export default function UserProfilePage() {
                         const target = e.target as HTMLImageElement;
                         target.src = "/images/avatar_placeholder.png";
                       }}
-                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-secondary)] text-4xl font-semibold">
