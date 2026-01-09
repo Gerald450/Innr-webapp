@@ -1,7 +1,7 @@
 // app/updatePassword/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -10,11 +10,26 @@ export default function UpdatePasswordPage() {
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Cleanup timeout on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
 
     const { error } = await supabase.auth.updateUser({ password: newPassword });
 
@@ -22,7 +37,7 @@ export default function UpdatePasswordPage() {
       setMessage(error.message);
     } else {
       setMessage("Password updated successfully. Redirecting to signin...");
-      setTimeout(() => router.push("/signin"), 3000);
+      timeoutRef.current = setTimeout(() => router.push("/signin"), 3000);
     }
 
     setLoading(false);

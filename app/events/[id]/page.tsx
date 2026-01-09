@@ -177,12 +177,13 @@ export default function EventDetail() {
             const userId = profile.id;
 
             // Check if user is attending
+            // Use maybeSingle() instead of single() since user might not be attending
             const { data: userAttendee, error: attendeeError } = await supabase
               .from("event_attendees")
               .select("id")
               .eq("event_id", eventId)
               .eq("user_id", userId)
-              .single();
+              .maybeSingle();
 
             if (!attendeeError && userAttendee) {
               setJoined(true);
