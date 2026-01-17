@@ -99,26 +99,106 @@ export const Navbar: React.FC = () => {
             .limit(10),
           
           // Search events by title, body, location_name, or location_address
-          supabase
-            .from("events")
-            .select(`
-              id,
-              starts_at,
-              location_name,
-              location_address,
-              posts!inner (
-                id,
-                title,
-                body,
-                post_media (
-                  url,
-                  order_index
-                )
-              )
-            `)
-            .or(`posts.title.ilike.%${query}%,posts.body.ilike.%${query}%,location_name.ilike.%${query}%,location_address.ilike.%${query}%`)
-            .order("starts_at", { ascending: true })
-            .limit(10)
+          // We need to query events and filter on both event fields and joined post fields
+          // Since .or() doesn't work well across joined tables, we'll search posts with events
+          // and events by location separately, then combine
+          (async () => {
+            const [postsWithEventsResult, eventsByLocationResult] = await Promise.all([
+              // Search events via posts (title, body)
+              supabase
+                .from("posts")
+                .select(`
+                  id,
+                  title,
+                  body,
+                  post_media (
+                    url,
+                    order_index
+                  ),
+                  events!inner (
+                    id,
+                    starts_at,
+                    location_name,
+                    location_address
+                  )
+                `)
+                .or(`title.ilike.%${query}%,body.ilike.%${query}%`)
+                .limit(20),
+              
+              // Search events directly by location fields
+              supabase
+                .from("events")
+                .select(`
+                  id,
+                  starts_at,
+                  location_name,
+                  location_address,
+                  posts!inner (
+                    id,
+                    title,
+                    body,
+                    post_media (
+                      url,
+                      order_index
+                    )
+                  )
+                `)
+                .or(`location_name.ilike.%${query}%,location_address.ilike.%${query}%`)
+                .limit(10)
+            ]);
+
+            // Combine results and deduplicate by event id
+            const eventMap = new Map<string, any>();
+            
+            // Process posts with events (matched by title/body)
+            if (postsWithEventsResult.data && !postsWithEventsResult.error) {
+              postsWithEventsResult.data.forEach((post: any) => {
+                if (post.events && post.events.length > 0) {
+                  post.events.forEach((event: any) => {
+                    if (!eventMap.has(event.id)) {
+                      eventMap.set(event.id, {
+                        id: event.id,
+                        starts_at: event.starts_at,
+                        location_name: event.location_name,
+                        location_address: event.location_address,
+                        posts: {
+                          id: post.id,
+                          title: post.title,
+                          body: post.body,
+                          post_media: post.post_media || []
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Process events matched by location
+            if (eventsByLocationResult.data && !eventsByLocationResult.error) {
+              eventsByLocationResult.data.forEach((event: any) => {
+                if (!eventMap.has(event.id)) {
+                  eventMap.set(event.id, {
+                    id: event.id,
+                    starts_at: event.starts_at,
+                    location_name: event.location_name,
+                    location_address: event.location_address,
+                    posts: event.posts
+                  });
+                }
+              });
+            }
+
+            // Convert map to array and limit to 10 results
+            const combinedEvents = Array.from(eventMap.values())
+              .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
+              .slice(0, 10);
+
+            return {
+              data: combinedEvents,
+              error: postsWithEventsResult.error || eventsByLocationResult.error || null
+            };
+          })()
         ]);
 
         // Handle profile results
