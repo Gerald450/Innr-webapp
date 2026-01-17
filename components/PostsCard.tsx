@@ -469,8 +469,8 @@ export const Post: React.FC<PostProps> = ({
               }}
             />
           )}
-          {/* Post Type Badge below profile picture */}
-          {badgeConfig && (
+          {/* Post Type Badge below profile picture - hidden on detail page */}
+          {badgeConfig && !showMenu && (
             <div className={`${badgeConfig.className} border px-2 py-0.5 rounded-full flex items-center gap-1 text-xs font-medium shadow-sm backdrop-blur-sm`}>
               {badgeConfig.icon}
               <span>{badgeConfig.text}</span>
