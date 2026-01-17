@@ -29,12 +29,22 @@ type ProfileSearchResult = {
   graduation_year: number | null;
 };
 
+type EventSearchResult = {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  imageSrc?: string;
+  datetime: string;
+};
+
 export const Navbar: React.FC = () => {
   // NOTE: initialize to null so server and client initial render match
   const [windowWidth, setWindowWidth] = useState<number | null>(null);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<ProfileSearchResult[]>([]);
+  const [profileResults, setProfileResults] = useState<ProfileSearchResult[]>([]);
+  const [eventResults, setEventResults] = useState<EventSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -68,7 +78,8 @@ export const Navbar: React.FC = () => {
   // Debounced search function
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
+      setProfileResults([]);
+      setEventResults([]);
       setIsSearching(false);
       return;
     }
@@ -76,24 +87,88 @@ export const Navbar: React.FC = () => {
     const searchTimeout = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const query = searchQuery.trim().toLowerCase();
+        const query = searchQuery.trim();
         
-        // Search profiles by full_name or username
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, full_name, username, avatar_url, graduation_year")
-          .or(`full_name.ilike.%${query}%,username.ilike.%${query}%`)
-          .limit(10);
+        // Search profiles and events in parallel
+        const [profilesResult, eventsResult] = await Promise.all([
+          // Search profiles by full_name or username
+          supabase
+            .from("profiles")
+            .select("id, full_name, username, avatar_url, graduation_year")
+            .or(`full_name.ilike.%${query}%,username.ilike.%${query}%`)
+            .limit(10),
+          
+          // Search events by title, body, location_name, or location_address
+          supabase
+            .from("events")
+            .select(`
+              id,
+              starts_at,
+              location_name,
+              location_address,
+              posts!inner (
+                id,
+                title,
+                body,
+                post_media (
+                  url,
+                  order_index
+                )
+              )
+            `)
+            .or(`posts.title.ilike.%${query}%,posts.body.ilike.%${query}%,location_name.ilike.%${query}%,location_address.ilike.%${query}%`)
+            .order("starts_at", { ascending: true })
+            .limit(10)
+        ]);
 
-        if (error) {
-          console.error("Search error:", error);
-          setSearchResults([]);
+        // Handle profile results
+        if (profilesResult.error) {
+          console.error("Profile search error:", profilesResult.error);
+          setProfileResults([]);
         } else {
-          setSearchResults((data || []) as ProfileSearchResult[]);
+          setProfileResults((profilesResult.data || []) as ProfileSearchResult[]);
+        }
+
+        // Handle event results
+        if (eventsResult.error) {
+          console.error("Event search error:", eventsResult.error);
+          setEventResults([]);
+        } else {
+          const formattedEvents: EventSearchResult[] = (eventsResult.data || []).map((row: any) => {
+            const post = row.posts;
+            const media = (post?.post_media || []) as any[];
+            const firstMedia = media
+              .slice()
+              .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ?? null;
+
+            const startDate = new Date(row.starts_at);
+            const formattedDate = startDate.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            });
+
+            const truncatedDescription = post?.body 
+              ? (post.body.length > 60 ? post.body.substring(0, 60).trim() + "..." : post.body)
+              : "";
+
+            return {
+              id: row.id,
+              title: post?.title || "Untitled Event",
+              description: truncatedDescription,
+              location: row.location_name || row.location_address || "Location TBD",
+              imageSrc: firstMedia?.url,
+              datetime: formattedDate,
+            };
+          });
+          setEventResults(formattedEvents);
         }
       } catch (err) {
         console.error("Search failed:", err);
-        setSearchResults([]);
+        setProfileResults([]);
+        setEventResults([]);
       } finally {
         setIsSearching(false);
       }
@@ -113,7 +188,8 @@ export const Navbar: React.FC = () => {
       ) {
         setSearchExpanded(false);
         setSearchQuery("");
-        setSearchResults([]);
+        setProfileResults([]);
+        setEventResults([]);
       }
     };
     const handleEsc = (e: KeyboardEvent) => {
@@ -121,7 +197,8 @@ export const Navbar: React.FC = () => {
       if (e.key === "Escape") {
         setSearchExpanded(false);
         setSearchQuery("");
-        setSearchResults([]);
+        setProfileResults([]);
+        setEventResults([]);
       }
     };
 
@@ -138,7 +215,16 @@ export const Navbar: React.FC = () => {
     router.push(`/users/${userId}`);
     setSearchExpanded(false);
     setSearchQuery("");
-    setSearchResults([]);
+    setProfileResults([]);
+    setEventResults([]);
+  };
+
+  const handleEventClick = (eventId: string) => {
+    router.push(`/events/${eventId}`);
+    setSearchExpanded(false);
+    setSearchQuery("");
+    setProfileResults([]);
+    setEventResults([]);
   };
 
   // compute breakpoints only when we have a real width
@@ -169,7 +255,7 @@ export const Navbar: React.FC = () => {
                 </span>
                 <input
                   type="search"
-                  placeholder="Search users..."
+                  placeholder="Search users and events..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="ml-2 w-44 max-w-[80vw] bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none"
@@ -185,40 +271,102 @@ export const Navbar: React.FC = () => {
                     <div className="p-4 text-center text-sm text-[var(--text-secondary)]">
                       Searching...
                     </div>
-                  ) : searchResults.length > 0 ? (
+                  ) : profileResults.length > 0 || eventResults.length > 0 ? (
                     <div className="py-2">
-                      {searchResults.map((profile) => (
-                        <button
-                          key={profile.id}
-                          onClick={() => handleProfileClick(profile.id)}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-primary)] transition-colors text-left"
-                        >
-                          <img
-                            src={profile.avatar_url || "/images/avatar_placeholder.png"}
-                            alt={profile.full_name || "User"}
-                            className="h-10 w-10 rounded-full object-cover flex-shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-[var(--text-primary)] truncate">
-                              {profile.full_name || profile.username || "Unknown User"}
-                            </div>
-                            {profile.username && profile.username !== profile.full_name && (
-                              <div className="text-xs text-[var(--text-secondary)] truncate">
-                                @{profile.username}
-                              </div>
-                            )}
-                            {profile.graduation_year && (
-                              <div className="text-xs text-[var(--text-secondary)]">
-                                Class of {String(profile.graduation_year).slice(-2)}
-                              </div>
-                            )}
+                      {/* Users Section */}
+                      {profileResults.length > 0 && (
+                        <>
+                          <div className="px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                            Users
                           </div>
-                        </button>
-                      ))}
+                          {profileResults.map((profile) => (
+                            <button
+                              key={profile.id}
+                              onClick={() => handleProfileClick(profile.id)}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-primary)] transition-colors text-left"
+                            >
+                              <img
+                                src={profile.avatar_url || "/images/avatar_placeholder.png"}
+                                alt={profile.full_name || "User"}
+                                className="h-10 w-10 rounded-full object-cover flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                                  {profile.full_name || profile.username || "Unknown User"}
+                                </div>
+                                {profile.username && profile.username !== profile.full_name && (
+                                  <div className="text-xs text-[var(--text-secondary)] truncate">
+                                    @{profile.username}
+                                  </div>
+                                )}
+                                {profile.graduation_year && (
+                                  <div className="text-xs text-[var(--text-secondary)]">
+                                    Class of {String(profile.graduation_year).slice(-2)}
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                      
+                      {/* Events Section */}
+                      {eventResults.length > 0 && (
+                        <>
+                          {profileResults.length > 0 && (
+                            <div className="border-t border-[var(--card-border)] my-1" />
+                          )}
+                          <div className="px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                            Events
+                          </div>
+                          {eventResults.map((event) => (
+                            <button
+                              key={event.id}
+                              onClick={() => handleEventClick(event.id)}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-primary)] transition-colors text-left"
+                            >
+                              <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-primary)] flex items-center justify-center">
+                                {event.imageSrc ? (
+                                  <img
+                                    src={event.imageSrc}
+                                    alt={event.title}
+                                    className="h-full w-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = "/images/avatar_placeholder.png";
+                                    }}
+                                  />
+                                ) : (
+                                  <img
+                                    src="/svgs/events.svg"
+                                    alt="Event"
+                                    className="h-5 w-5 svg-icon opacity-50"
+                                  />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                                  {event.title}
+                                </div>
+                                {event.description && (
+                                  <div className="text-xs text-[var(--text-secondary)] truncate mt-0.5">
+                                    {event.description}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-secondary)]">
+                                  <span className="truncate">{event.location}</span>
+                                  <span>·</span>
+                                  <span className="truncate">{event.datetime}</span>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="p-4 text-center text-sm text-[var(--text-secondary)]">
-                      No users found
+                      No results found
                     </div>
                   )}
                 </div>
@@ -250,7 +398,7 @@ export const Navbar: React.FC = () => {
                     <input
                       ref={inputRef}
                       type="search"
-                      placeholder="Search users..."
+                      placeholder="Search users and events..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onBlur={() => {
@@ -258,7 +406,7 @@ export const Navbar: React.FC = () => {
                       }}
                       style={{ fontSize: '16px' }}
                       className="ml-2 w-full bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none"
-                      aria-label="Search users"
+                      aria-label="Search users and events"
                     />
                   </div>
                   {/* Search Results */}
@@ -271,41 +419,104 @@ export const Navbar: React.FC = () => {
                         <div className="p-4 text-center text-sm text-[var(--text-secondary)]">
                           Searching...
                         </div>
-                      ) : searchResults.length > 0 ? (
+                      ) : profileResults.length > 0 || eventResults.length > 0 ? (
                         <div className="py-2">
-                          {searchResults.map((profile) => (
-                            <button
-                              key={profile.id}
-                              onClick={() => handleProfileClick(profile.id)}
-                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-primary)] transition-colors text-left"
-                            >
-                              <img
-                                src={profile.avatar_url || "/images/avatar_placeholder.png"}
-                                alt={profile.full_name || "User"}
-                                className="h-10 w-10 rounded-full object-cover flex-shrink-0"
-                                loading="lazy"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-[var(--text-primary)] truncate">
-                                  {profile.full_name || profile.username || "Unknown User"}
-                                </div>
-                                {profile.username && profile.username !== profile.full_name && (
-                                  <div className="text-xs text-[var(--text-secondary)] truncate">
-                                    @{profile.username}
-                                  </div>
-                                )}
-                                {profile.graduation_year && (
-                                  <div className="text-xs text-[var(--text-secondary)]">
-                                    Class of {String(profile.graduation_year).slice(-2)}
-                                  </div>
-                                )}
+                          {/* Users Section */}
+                          {profileResults.length > 0 && (
+                            <>
+                              <div className="px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                                Users
                               </div>
-                            </button>
-                          ))}
+                              {profileResults.map((profile) => (
+                                <button
+                                  key={profile.id}
+                                  onClick={() => handleProfileClick(profile.id)}
+                                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-primary)] transition-colors text-left"
+                                >
+                                  <img
+                                    src={profile.avatar_url || "/images/avatar_placeholder.png"}
+                                    alt={profile.full_name || "User"}
+                                    className="h-10 w-10 rounded-full object-cover flex-shrink-0"
+                                    loading="lazy"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                                      {profile.full_name || profile.username || "Unknown User"}
+                                    </div>
+                                    {profile.username && profile.username !== profile.full_name && (
+                                      <div className="text-xs text-[var(--text-secondary)] truncate">
+                                        @{profile.username}
+                                      </div>
+                                    )}
+                                    {profile.graduation_year && (
+                                      <div className="text-xs text-[var(--text-secondary)]">
+                                        Class of {String(profile.graduation_year).slice(-2)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Events Section */}
+                          {eventResults.length > 0 && (
+                            <>
+                              {profileResults.length > 0 && (
+                                <div className="border-t border-[var(--card-border)] my-1" />
+                              )}
+                              <div className="px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                                Events
+                              </div>
+                              {eventResults.map((event) => (
+                                <button
+                                  key={event.id}
+                                  onClick={() => handleEventClick(event.id)}
+                                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-primary)] transition-colors text-left"
+                                >
+                                  <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-primary)] flex items-center justify-center">
+                                    {event.imageSrc ? (
+                                      <img
+                                        src={event.imageSrc}
+                                        alt={event.title}
+                                        className="h-full w-full object-cover"
+                                        loading="lazy"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.src = "/images/avatar_placeholder.png";
+                                        }}
+                                      />
+                                    ) : (
+                                      <img
+                                        src="/svgs/events.svg"
+                                        alt="Event"
+                                        className="h-5 w-5 svg-icon opacity-50"
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                                      {event.title}
+                                    </div>
+                                    {event.description && (
+                                      <div className="text-xs text-[var(--text-secondary)] truncate mt-0.5">
+                                        {event.description}
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-secondary)]">
+                                      <span className="truncate">{event.location}</span>
+                                      <span>·</span>
+                                      <span className="truncate">{event.datetime}</span>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </>
+                          )}
                         </div>
                       ) : (
                         <div className="p-4 text-center text-sm text-[var(--text-secondary)]">
-                          No users found
+                          No results found
                         </div>
                       )}
                     </div>
