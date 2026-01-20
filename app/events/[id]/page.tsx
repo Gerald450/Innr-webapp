@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -40,6 +40,14 @@ export default function EventDetail() {
   const [joined, setJoined] = useState<boolean>(false);
   const [isJoining, setIsJoining] = useState<boolean>(false);
   const [attendeeCount, setAttendeeCount] = useState<number>(0);
+  const [showAttendeesModal, setShowAttendeesModal] = useState<boolean>(false);
+  const [attendees, setAttendees] = useState<Array<{
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  }>>([]);
+  const [loadingAttendees, setLoadingAttendees] = useState<boolean>(false);
+  const attendeesModalOverlayRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!eventId) return;
@@ -227,6 +235,20 @@ export default function EventDetail() {
     };
   }, [eventId]);
 
+  // Handle escape key for attendees modal
+  useEffect(() => {
+    if (!showAttendeesModal) return;
+    
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowAttendeesModal(false);
+        setAttendees([]);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showAttendeesModal]);
+
   const handleToggleAttend = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isJoining) return;
@@ -331,6 +353,57 @@ export default function EventDetail() {
       alert("Link copied to clipboard");
     } catch {
       console.error("Failed to copy link");
+    }
+  };
+
+  const handleShowAttendees = async () => {
+    if (!eventId) return;
+    
+    setShowAttendeesModal(true);
+    setLoadingAttendees(true);
+
+    try {
+      // Fetch attendees with their profile information
+      const { data: attendeesData, error: attendeesError } = await supabase
+        .from("event_attendees")
+        .select(`
+          user_id,
+          profiles!inner (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq("event_id", eventId);
+
+      if (attendeesError) {
+        console.error("Error fetching attendees:", attendeesError);
+        setAttendees([]);
+      } else {
+        // Transform the data to a simpler structure
+        const transformedAttendees = (attendeesData || []).map((item: any) => ({
+          id: item.profiles.id,
+          full_name: item.profiles.full_name,
+          avatar_url: item.profiles.avatar_url,
+        }));
+        setAttendees(transformedAttendees);
+      }
+    } catch (err) {
+      console.error("Unexpected error loading attendees:", err);
+      setAttendees([]);
+    } finally {
+      setLoadingAttendees(false);
+    }
+  };
+
+  const handleCloseAttendeesModal = () => {
+    setShowAttendeesModal(false);
+    setAttendees([]);
+  };
+
+  const handleAttendeesModalOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === attendeesModalOverlayRef.current) {
+      handleCloseAttendeesModal();
     }
   };
 
@@ -471,9 +544,12 @@ export default function EventDetail() {
 
           {/* Attendee Count */}
           {attendeeCount > 0 && (
-            <div className="text-sm text-[var(--text-secondary)] mb-4">
+            <button
+              onClick={handleShowAttendees}
+              className="text-sm text-[var(--text-secondary)] mb-4 hover:text-[var(--text-primary)] transition-colors cursor-pointer underline-offset-2 hover:underline"
+            >
               {attendeeCount} {attendeeCount === 1 ? "person is" : "people are"} attending
-            </div>
+            </button>
           )}
 
           {/* Action Buttons */}
@@ -733,6 +809,92 @@ export default function EventDetail() {
           )}
         </div>
       </div>
+
+      {/* Attendees Modal */}
+      {showAttendeesModal && (
+        <div
+          ref={attendeesModalOverlayRef}
+          onClick={handleAttendeesModalOverlayClick}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto"
+          aria-modal="true"
+          role="dialog"
+        >
+          <div className="w-full max-w-md max-h-[80vh] rounded-2xl bg-[var(--card-bg)] p-6 shadow-xl transition-colors flex flex-col">
+            <div className="flex items-start justify-between gap-4 mb-4 flex-shrink-0">
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+                Attendees ({attendeeCount})
+              </h2>
+              <button
+                onClick={handleCloseAttendeesModal}
+                aria-label="Close"
+                className="rounded-full px-2 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 pr-2">
+              {loadingAttendees ? (
+                <div className="text-center py-8 text-[var(--text-secondary)]">
+                  Loading attendees...
+                </div>
+              ) : attendees.length === 0 ? (
+                <div className="text-center py-8 text-[var(--text-secondary)]">
+                  No attendees found.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {attendees.map((attendee) => (
+                    <button
+                      key={attendee.id}
+                      onClick={() => {
+                        router.push(`/users/${attendee.id}`);
+                        handleCloseAttendeesModal();
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--bg-primary)] transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--bg-primary)] flex-shrink-0">
+                        {attendee.avatar_url ? (
+                          <img
+                            src={attendee.avatar_url}
+                            alt={attendee.full_name || "User"}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/images/avatar_placeholder.png";
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-[var(--color-accent)]/10">
+                            <svg
+                              className="w-6 h-6 text-[var(--color-accent)]"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-[var(--text-primary)] truncate">
+                          {attendee.full_name || "Unknown User"}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
   );
 }
