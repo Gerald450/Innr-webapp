@@ -47,6 +47,7 @@ export default function EventDetail() {
     avatar_url: string | null;
   }>>([]);
   const [loadingAttendees, setLoadingAttendees] = useState<boolean>(false);
+  const [isShowingFiltered, setIsShowingFiltered] = useState<boolean>(false);
   const attendeesModalOverlayRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -241,8 +242,7 @@ export default function EventDetail() {
     
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setShowAttendeesModal(false);
-        setAttendees([]);
+        handleCloseAttendeesModal();
       }
     };
     document.addEventListener("keydown", onKey);
@@ -357,13 +357,40 @@ export default function EventDetail() {
   };
 
   const handleShowAttendees = async () => {
-    if (!eventId) return;
+    if (!eventId || !event) return;
     
     setShowAttendeesModal(true);
     setLoadingAttendees(true);
 
     try {
-      // Fetch attendees with their profile information
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        // If not authenticated, don't show attendees
+        setAttendees([]);
+        setLoadingAttendees(false);
+        return;
+      }
+
+      // Get user's profile ID
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error("Error getting profile:", profileError);
+        setAttendees([]);
+        setLoadingAttendees(false);
+        return;
+      }
+
+      const currentUserId = profile.id;
+      const isEventCreator = event.organizerId === currentUserId;
+
+      // Fetch all attendees with their profile information
       const { data: attendeesData, error: attendeesError } = await supabase
         .from("event_attendees")
         .select(`
@@ -379,13 +406,54 @@ export default function EventDetail() {
       if (attendeesError) {
         console.error("Error fetching attendees:", attendeesError);
         setAttendees([]);
+        setIsShowingFiltered(false);
       } else {
         // Transform the data to a simpler structure
-        const transformedAttendees = (attendeesData || []).map((item: any) => ({
+        let transformedAttendees = (attendeesData || []).map((item: any) => ({
           id: item.profiles.id,
           full_name: item.profiles.full_name,
           avatar_url: item.profiles.avatar_url,
         }));
+
+        // If not the event creator, filter to only show connections
+        if (!isEventCreator) {
+          setIsShowingFiltered(true);
+          // Get attendee IDs
+          const attendeeIds = transformedAttendees.map(a => a.id);
+          
+          if (attendeeIds.length > 0) {
+            // Check connections: either user follows attendee OR attendee follows user
+            const [followsUserData, followedByUserData] = await Promise.all([
+              // Attendees that current user follows
+              supabase
+                .from("follows")
+                .select("following_id")
+                .eq("follower_id", currentUserId)
+                .in("following_id", attendeeIds),
+              // Attendees that follow current user
+              supabase
+                .from("follows")
+                .select("follower_id")
+                .eq("following_id", currentUserId)
+                .in("follower_id", attendeeIds)
+            ]);
+
+            const followsUserIds = new Set(
+              (followsUserData.data || []).map((f: any) => f.following_id)
+            );
+            const followedByUserIds = new Set(
+              (followedByUserData.data || []).map((f: any) => f.follower_id)
+            );
+
+            // Filter attendees to only those who are connections
+            transformedAttendees = transformedAttendees.filter(attendee => 
+              followsUserIds.has(attendee.id) || followedByUserIds.has(attendee.id)
+            );
+          }
+        } else {
+          setIsShowingFiltered(false);
+        }
+
         setAttendees(transformedAttendees);
       }
     } catch (err) {
@@ -399,6 +467,7 @@ export default function EventDetail() {
   const handleCloseAttendeesModal = () => {
     setShowAttendeesModal(false);
     setAttendees([]);
+    setIsShowingFiltered(false);
   };
 
   const handleAttendeesModalOverlayClick = (e: React.MouseEvent) => {
@@ -821,9 +890,16 @@ export default function EventDetail() {
         >
           <div className="w-full max-w-md max-h-[80vh] rounded-2xl bg-[var(--card-bg)] p-6 shadow-xl transition-colors flex flex-col">
             <div className="flex items-start justify-between gap-4 mb-4 flex-shrink-0">
-              <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-                Attendees ({attendeeCount})
-              </h2>
+              <div>
+                <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+                  {isShowingFiltered ? "Your Connections" : "Attendees"} ({isShowingFiltered ? attendees.length : attendeeCount})
+                </h2>
+                {isShowingFiltered && (
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    Only showing attendees you're connected with
+                  </p>
+                )}
+              </div>
               <button
                 onClick={handleCloseAttendeesModal}
                 aria-label="Close"
@@ -840,7 +916,9 @@ export default function EventDetail() {
                 </div>
               ) : attendees.length === 0 ? (
                 <div className="text-center py-8 text-[var(--text-secondary)]">
-                  No attendees found.
+                  {isShowingFiltered 
+                    ? "None of your connections are attending this event."
+                    : "No attendees found."}
                 </div>
               ) : (
                 <div className="space-y-3">
