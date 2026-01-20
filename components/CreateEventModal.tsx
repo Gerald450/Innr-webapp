@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 // Upload media to Supabase Storage and create post_media records.
 async function uploadPostMedia(
@@ -567,12 +568,12 @@ export default function CreateEventModal({
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                 Location Address <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <AddressAutocomplete
                 value={locationAddress}
-                onChange={(e) => setLocationAddress(e.target.value)}
-                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] placeholder:text-[var(--text-secondary)] transition-colors"
+                onChange={setLocationAddress}
                 placeholder="Full address"
+                className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] placeholder:text-[var(--text-secondary)] transition-colors"
+                disabled={isSubmitting}
               />
             </div>
           </div>
