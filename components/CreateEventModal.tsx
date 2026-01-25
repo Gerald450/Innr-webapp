@@ -216,6 +216,15 @@ export default function CreateEventModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
+  // Recurring event state
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState<"daily" | "weekly" | "biweekly" | "monthly" | "yearly" | null>(null);
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceDaysOfWeek, setRecurrenceDaysOfWeek] = useState<number[]>([]);
+  const [recurrenceDayOfMonth, setRecurrenceDayOfMonth] = useState<number | null>(null);
+  const [recurrenceEndsNever, setRecurrenceEndsNever] = useState(true);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
+
   // Options for dropdowns
   const eventTypeOptions = [
     "Academic",
@@ -296,6 +305,15 @@ export default function CreateEventModal({
     return () => previews.forEach((preview) => URL.revokeObjectURL(preview.url));
   }, [mediaFiles]);
 
+  // Default recurrence_days_of_week from start date when weekly/biweekly and none selected
+  useEffect(() => {
+    if (!isRecurring || !startsAt) return;
+    if (recurrencePattern !== "weekly" && recurrencePattern !== "biweekly") return;
+    if (recurrenceDaysOfWeek.length > 0) return;
+    const d = new Date(startsAt);
+    setRecurrenceDaysOfWeek([d.getDay()]);
+  }, [isRecurring, startsAt, recurrencePattern, recurrenceDaysOfWeek.length]);
+
   function handleOverlayClick(e: React.MouseEvent) {
     if (e.target === overlayRef.current) onClose();
   }
@@ -340,6 +358,28 @@ export default function CreateEventModal({
     if (mediaFiles.length === 0) {
       alert("Please upload at least one event image or media file");
       return;
+    }
+    if (isRecurring) {
+      if (!recurrencePattern) {
+        alert("Please select a repeat pattern (e.g. Daily, Weekly) for recurring events.");
+        return;
+      }
+      if ((recurrencePattern === "weekly" || recurrencePattern === "biweekly") && recurrenceDaysOfWeek.length === 0) {
+        alert("Please select at least one day of the week for weekly/biweekly recurrence.");
+        return;
+      }
+      if (!recurrenceEndsNever && !recurrenceEndDate) {
+        alert("Please choose an end date for the recurrence, or select \"Never\".");
+        return;
+      }
+      if (!recurrenceEndsNever && recurrenceEndDate && startsAt) {
+        const end = new Date(recurrenceEndDate);
+        const start = new Date(startsAt);
+        if (end < start) {
+          alert("Recurrence end date must be on or after the event start date.");
+          return;
+        }
+      }
     }
 
     setIsSubmitting(true);
@@ -411,22 +451,40 @@ export default function CreateEventModal({
         }));
       }
 
-      // 3. Create the event record linked to the post
+      // 3. Build event payload, including recurrence if enabled
+      const eventPayload: Record<string, unknown> = {
+        post_id: post.id,
+        starts_at: startsAt,
+        ends_at: endsAt || null,
+        location_name: locationName.trim() || null,
+        location_address: locationAddress.trim() || null,
+        external_url: externalUrl.trim() || null,
+        event_type: eventType.length > 0 ? eventType : null,
+        audience: audience.length > 0 ? audience : null,
+        logistics: logistics.length > 0 ? logistics : null,
+        special_interests: specialInterest.length > 0 ? specialInterest : null,
+        time_based: timeBased.length > 0 ? timeBased : null,
+      };
+
+      if (isRecurring && recurrencePattern) {
+        eventPayload.is_recurring = true;
+        eventPayload.recurrence_pattern = recurrencePattern;
+        eventPayload.recurrence_interval = Math.max(1, recurrenceInterval);
+        if (!recurrenceEndsNever && recurrenceEndDate) {
+          eventPayload.recurrence_end_date = new Date(recurrenceEndDate + "T23:59:59").toISOString();
+        }
+        if ((recurrencePattern === "weekly" || recurrencePattern === "biweekly") && recurrenceDaysOfWeek.length > 0) {
+          eventPayload.recurrence_days_of_week = recurrenceDaysOfWeek;
+        }
+        if (recurrencePattern === "monthly") {
+          const dom = recurrenceDayOfMonth ?? (startsAt ? new Date(startsAt).getDate() : null);
+          if (dom !== null) eventPayload.recurrence_day_of_month = dom;
+        }
+      }
+
       const { data: event, error: eventError } = await supabase
         .from("events")
-        .insert({
-          post_id: post.id,
-          starts_at: startsAt,
-          ends_at: endsAt || null,
-          location_name: locationName.trim() || null,
-          location_address: locationAddress.trim() || null,
-          external_url: externalUrl.trim() || null,
-          event_type: eventType.length > 0 ? eventType : null,
-          audience: audience.length > 0 ? audience : null,
-          logistics: logistics.length > 0 ? logistics : null,
-          special_interests: specialInterest.length > 0 ? specialInterest : null,
-          time_based: timeBased.length > 0 ? timeBased : null,
-        })
+        .insert(eventPayload)
         .select()
         .single();
 
@@ -452,6 +510,13 @@ export default function CreateEventModal({
       setTimeBased([]);
       setMediaFiles([]);
       setMediaPreviews([]);
+      setIsRecurring(false);
+      setRecurrencePattern(null);
+      setRecurrenceInterval(1);
+      setRecurrenceDaysOfWeek([]);
+      setRecurrenceDayOfMonth(null);
+      setRecurrenceEndsNever(true);
+      setRecurrenceEndDate("");
       setIsSubmitting(false);
       onClose();
       if (onSuccess) {
@@ -548,6 +613,174 @@ export default function CreateEventModal({
                 className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)] transition-colors datetime-input"
               />
             </div>
+          </div>
+
+          {/* Recurring */}
+          <div className="rounded-lg border border-[var(--card-border)] p-4 space-y-4 bg-[var(--bg-primary)]/50">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isRecurring}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setIsRecurring(checked);
+                  if (checked) {
+                    setRecurrencePattern("weekly");
+                    setRecurrenceInterval(1);
+                    setRecurrenceEndsNever(true);
+                    setRecurrenceEndDate("");
+                  } else {
+                    setRecurrencePattern(null);
+                    setRecurrenceInterval(1);
+                    setRecurrenceDaysOfWeek([]);
+                    setRecurrenceDayOfMonth(null);
+                    setRecurrenceEndsNever(true);
+                    setRecurrenceEndDate("");
+                  }
+                }}
+                className="rounded border-[var(--card-border)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+              />
+              <span className="text-sm font-medium text-[var(--text-primary)]">This is a recurring event</span>
+            </label>
+
+            {isRecurring && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      Repeats <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={recurrencePattern ?? ""}
+                      onChange={(e) => setRecurrencePattern((e.target.value || null) as typeof recurrencePattern)}
+                      className="w-full rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)]"
+                    >
+                      <option value="">Select pattern...</option>
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly">Biweekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                  {(recurrencePattern === "daily" || recurrencePattern === "weekly" || recurrencePattern === "biweekly" || recurrencePattern === "monthly" || recurrencePattern === "yearly") && (
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                        Every
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={99}
+                          value={recurrenceInterval}
+                          onChange={(e) => setRecurrenceInterval(Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 1)))}
+                          className="w-20 rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)]"
+                        />
+                        <span className="text-sm text-[var(--text-secondary)]">
+                          {recurrencePattern === "daily" && (recurrenceInterval === 1 ? "day" : "days")}
+                          {recurrencePattern === "weekly" && (recurrenceInterval === 1 ? "week" : "weeks")}
+                          {recurrencePattern === "biweekly" && (recurrenceInterval === 1 ? "2 weeks" : `${recurrenceInterval * 2} weeks`)}
+                          {recurrencePattern === "monthly" && (recurrenceInterval === 1 ? "month" : "months")}
+                          {recurrencePattern === "yearly" && (recurrenceInterval === 1 ? "year" : "years")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {(recurrencePattern === "weekly" || recurrencePattern === "biweekly") && (
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                      Repeat on
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
+                        <label
+                          key={day}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[var(--card-border)] cursor-pointer hover:bg-[var(--bg-primary)] has-[:checked]:border-[var(--color-accent)] has-[:checked]:bg-[color-mix(in_oklab,var(--color-accent)_15%,transparent)]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={recurrenceDaysOfWeek.includes(i)}
+                            onChange={() => {
+                              if (recurrenceDaysOfWeek.includes(i)) {
+                                setRecurrenceDaysOfWeek(recurrenceDaysOfWeek.filter((d) => d !== i));
+                              } else {
+                                setRecurrenceDaysOfWeek([...recurrenceDaysOfWeek, i].sort((a, b) => a - b));
+                              }
+                            }}
+                            className="rounded border-[var(--card-border)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                          />
+                          <span className="text-sm text-[var(--text-primary)]">{day}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {recurrenceDaysOfWeek.length === 0 && (
+                      <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Pick at least one day (defaults to start day if none).</p>
+                    )}
+                  </div>
+                )}
+
+                {recurrencePattern === "monthly" && (
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      Day of month
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <select
+                        value={recurrenceDayOfMonth ?? ""}
+                        onChange={(e) => setRecurrenceDayOfMonth(e.target.value === "last" ? -1 : (e.target.value ? parseInt(e.target.value, 10) : null))}
+                        className="rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)]"
+                      >
+                        <option value="">Same as start date</option>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                        <option value="last">Last day of month</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                    Ends
+                  </label>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="recurrenceEnd"
+                        checked={recurrenceEndsNever}
+                        onChange={() => { setRecurrenceEndsNever(true); setRecurrenceEndDate(""); }}
+                        className="border-[var(--card-border)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                      />
+                      <span className="text-sm text-[var(--text-primary)]">Never</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="recurrenceEnd"
+                        checked={!recurrenceEndsNever}
+                        onChange={() => setRecurrenceEndsNever(false)}
+                        className="border-[var(--card-border)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                      />
+                      <span className="text-sm text-[var(--text-primary)]">On date</span>
+                    </label>
+                    {!recurrenceEndsNever && (
+                      <input
+                        type="date"
+                        value={recurrenceEndDate}
+                        onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                        min={startsAt ? new Date(startsAt).toISOString().slice(0, 10) : undefined}
+                        className="rounded-md border border-[var(--card-border)] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[color-mix(in_oklab,var(--color-accent)_40%,transparent)] text-[var(--text-primary)] bg-[var(--card-bg)]"
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Location */}

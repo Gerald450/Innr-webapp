@@ -7,6 +7,8 @@ import { getRelativeTime } from "@/utils/relativeTime";
 
 type NotificationType =
   | "new_follower"
+  | "connection_request"
+  | "connection_accepted"
   | "post_liked"
   | "comment_added"
   | "comment_replied"
@@ -56,6 +58,8 @@ type GroupedNotification = {
 const getNotificationIcon = (type: NotificationType) => {
   switch (type) {
     case "new_follower":
+    case "connection_request":
+    case "connection_accepted":
       return (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -115,6 +119,10 @@ const getNotificationText = (type: NotificationType, metadata: any = {}): string
   switch (type) {
     case "new_follower":
       return "started following you";
+    case "connection_request":
+      return "wants to connect with you";
+    case "connection_accepted":
+      return "accepted your connection request";
     case "post_liked":
       return "liked your post";
     case "comment_added":
@@ -174,12 +182,14 @@ const validateNotifications = async (
     n.type === "comment_added" || n.type === "comment_replied"
   );
   const followerNotifications = notifications.filter((n) => n.type === "new_follower");
+  const connectionRequestNotifications = notifications.filter((n) => n.type === "connection_request");
   const otherNotifications = notifications.filter(
     (n) => 
       n.type !== "post_liked" && 
       n.type !== "comment_added" && 
       n.type !== "comment_replied" && 
-      n.type !== "new_follower"
+      n.type !== "new_follower" &&
+      n.type !== "connection_request"
   );
 
   // Validate post_liked notifications
@@ -280,6 +290,43 @@ const validateNotifications = async (
     }
   }
 
+  // Validate connection request notifications
+  if (connectionRequestNotifications.length > 0) {
+    const requesterIds = new Set<string>();
+
+    connectionRequestNotifications.forEach((n) => {
+      if (n.actor_id) {
+        requesterIds.add(n.actor_id);
+      }
+    });
+
+    if (requesterIds.size > 0) {
+      // Check if requests are still pending
+      const { data: followsData } = await supabase
+        .from("follows")
+        .select("follower_id, status")
+        .eq("following_id", userId)
+        .eq("status", "pending")
+        .in("follower_id", Array.from(requesterIds));
+
+      const pendingRequesterIds = new Set(
+        (followsData || []).map((f: any) => f.follower_id)
+      );
+
+      connectionRequestNotifications.forEach((notification) => {
+        if (notification.actor_id && pendingRequesterIds.has(notification.actor_id)) {
+          validNotifications.push(notification);
+        } else if (notification.actor_id) {
+          // Request was accepted or rejected, remove notification
+          notificationIdsToDelete.push(notification.id);
+        } else {
+          // If no actor_id, keep it (shouldn't happen but be safe)
+          validNotifications.push(notification);
+        }
+      });
+    }
+  }
+
   // Add other notifications (they're always valid)
   validNotifications.push(...otherNotifications);
 
@@ -305,6 +352,7 @@ const groupNotifications = (notifications: Notification[]): GroupedNotification[
     "comment_added",
     "comment_replied",
     "new_follower",
+    "connection_request",
     "mentioned",
   ];
 
@@ -328,9 +376,9 @@ const groupNotifications = (notifications: Notification[]): GroupedNotification[
       groupKey += `_comment_${notification.comment_id}`;
     } else if (notification.event_id) {
       groupKey += `_event_${notification.event_id}`;
-    } else if (notification.type === "new_follower") {
-      // For followers, group all together (no specific resource)
-      groupKey += "_followers";
+    } else if (notification.type === "new_follower" || notification.type === "connection_request") {
+      // For followers and connection requests, group all together (no specific resource)
+      groupKey += notification.type === "connection_request" ? "_requests" : "_followers";
     } else if (notification.type === "mentioned") {
       // For mentions, group by post_id if available
       groupKey += notification.post_id ? `_post_${notification.post_id}` : `_mention_${notification.id}`;
@@ -384,6 +432,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [markingRead, setMarkingRead] = useState<Set<string>>(new Set());
+  const [processingRequest, setProcessingRequest] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let mounted = true;
@@ -636,8 +685,8 @@ export default function NotificationsPage() {
       router.push(`/posts/${groupedNotification.post_id}`);
     } else if (groupedNotification.event_id) {
       router.push(`/events/${groupedNotification.event_id}`);
-    } else if (groupedNotification.type === "new_follower" && groupedNotification.actors.length > 0) {
-      // For new followers, navigate to the first follower's profile
+    } else if ((groupedNotification.type === "new_follower" || groupedNotification.type === "connection_request" || groupedNotification.type === "connection_accepted") && groupedNotification.actors.length > 0) {
+      // For followers and connection requests, navigate to the first actor's profile
       router.push(`/users/${groupedNotification.actors[0].id}`);
     } else if (groupedNotification.conversation_id) {
       router.push(`/chats`);
@@ -675,6 +724,116 @@ export default function NotificationsPage() {
       }, 200);
     } catch (err) {
       console.error("Error marking all notifications as read:", err);
+    }
+  };
+
+  const handleAcceptConnection = async (requesterId: string, notificationId: string) => {
+    if (processingRequest.has(notificationId)) return;
+
+    try {
+      setProcessingRequest((prev) => new Set(prev).add(notificationId));
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      // Update the connection request to accepted
+      const { error: updateError } = await supabase
+        .from("follows")
+        .update({ status: "accepted" })
+        .eq("follower_id", requesterId)
+        .eq("following_id", user.id);
+
+      if (updateError) {
+        console.error("Error accepting connection:", updateError);
+        return;
+      }
+
+      // Create bidirectional connection (user -> requester)
+      const { error: insertError } = await supabase
+        .from("follows")
+        .insert({
+          follower_id: user.id,
+          following_id: requesterId,
+          status: "accepted",
+        })
+        .select()
+        .single();
+
+      // Ignore unique constraint error (connection might already exist)
+      if (insertError && insertError.code !== "23505") {
+        console.error("Error creating bidirectional connection:", insertError);
+      }
+
+      // Create notification for the requester that their request was accepted
+      await supabase.from("notifications").insert({
+        user_id: requesterId,
+        type: "connection_accepted",
+        actor_id: user.id,
+        is_read: false,
+      });
+
+      // Remove the connection_request notification
+      await supabase
+        .from("notifications")
+        .delete()
+        .eq("id", notificationId);
+
+      // Reload notifications
+      window.location.reload();
+    } catch (err) {
+      console.error("Error accepting connection request:", err);
+    } finally {
+      setProcessingRequest((prev) => {
+        const next = new Set(prev);
+        next.delete(notificationId);
+        return next;
+      });
+    }
+  };
+
+  const handleRejectConnection = async (requesterId: string, notificationId: string) => {
+    if (processingRequest.has(notificationId)) return;
+
+    try {
+      setProcessingRequest((prev) => new Set(prev).add(notificationId));
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      // Update the connection request to rejected
+      const { error: updateError } = await supabase
+        .from("follows")
+        .update({ status: "rejected" })
+        .eq("follower_id", requesterId)
+        .eq("following_id", user.id);
+
+      if (updateError) {
+        console.error("Error rejecting connection:", updateError);
+        return;
+      }
+
+      // Remove the notification
+      await supabase
+        .from("notifications")
+        .delete()
+        .eq("id", notificationId);
+
+      // Reload notifications
+      window.location.reload();
+    } catch (err) {
+      console.error("Error rejecting connection request:", err);
+    } finally {
+      setProcessingRequest((prev) => {
+        const next = new Set(prev);
+        next.delete(notificationId);
+        return next;
+      });
     }
   };
 
@@ -821,6 +980,32 @@ export default function NotificationsPage() {
                           <p className="text-xs text-[var(--text-secondary)] mt-1 italic truncate">
                             {groupedNotification.metadata.snippet}
                           </p>
+                        )}
+
+                        {/* Accept/Reject buttons for connection requests */}
+                        {groupedNotification.type === "connection_request" && hasActors && (
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAcceptConnection(groupedNotification.actors[0].id, groupedNotification.id);
+                              }}
+                              disabled={processingRequest.has(groupedNotification.id)}
+                              className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[var(--color-accent)] text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {processingRequest.has(groupedNotification.id) ? "..." : "Accept"}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRejectConnection(groupedNotification.actors[0].id, groupedNotification.id);
+                              }}
+                              disabled={processingRequest.has(groupedNotification.id)}
+                              className="px-4 py-1.5 text-xs font-semibold rounded-lg border border-[var(--card-border)] text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {processingRequest.has(groupedNotification.id) ? "..." : "Reject"}
+                            </button>
+                          </div>
                         )}
                       </div>
 

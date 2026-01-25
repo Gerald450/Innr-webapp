@@ -422,19 +422,21 @@ export default function EventDetail() {
           const attendeeIds = transformedAttendees.map(a => a.id);
           
           if (attendeeIds.length > 0) {
-            // Check connections: either user follows attendee OR attendee follows user
+            // Check connections: either user follows attendee OR attendee follows user (both must be accepted)
             const [followsUserData, followedByUserData] = await Promise.all([
-              // Attendees that current user follows
+              // Attendees that current user follows (accepted connections only)
               supabase
                 .from("follows")
                 .select("following_id")
                 .eq("follower_id", currentUserId)
+                .eq("status", "accepted")
                 .in("following_id", attendeeIds),
-              // Attendees that follow current user
+              // Attendees that follow current user (accepted connections only)
               supabase
                 .from("follows")
                 .select("follower_id")
                 .eq("following_id", currentUserId)
+                .eq("status", "accepted")
                 .in("follower_id", attendeeIds)
             ]);
 
@@ -445,7 +447,7 @@ export default function EventDetail() {
               (followedByUserData.data || []).map((f: any) => f.follower_id)
             );
 
-            // Filter attendees to only those who are connections
+            // Filter attendees to only those who are accepted connections
             transformedAttendees = transformedAttendees.filter(attendee => 
               followsUserIds.has(attendee.id) || followedByUserIds.has(attendee.id)
             );

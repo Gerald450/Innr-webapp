@@ -216,7 +216,6 @@ export default function Home() {
         ))}
       </div>
       )}
-
       {/* Floating circular bubble (appears only when MakePost is out of view, modal is closed, and user is admin) */}
       {mounted && showBubble && userRole === "admin" && !showModal && (
         <button

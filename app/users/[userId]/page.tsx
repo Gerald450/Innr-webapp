@@ -46,6 +46,8 @@ export default function UserProfilePage() {
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [isTogglingFollow, setIsTogglingFollow] = useState<boolean>(false);
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
+  const [connectionStatus, setConnectionStatus] = useState<"pending" | "accepted" | "rejected" | null>(null);
+  const [canViewContent, setCanViewContent] = useState<boolean>(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -112,6 +114,9 @@ export default function UserProfilePage() {
   // Load user's posts when Posts tab is active
   useEffect(() => {
     if (activeTab !== "posts" || !profile?.id) return;
+    
+    // Only load if user can view content (own profile or connected)
+    if (!isOwnProfile && !canViewContent) return;
 
     if (loadedTabs.has("posts")) return;
 
@@ -304,11 +309,14 @@ export default function UserProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [activeTab, profile?.id, profile?.full_name, profile?.graduation_year, profile?.avatar_url, loadedTabs]);
+  }, [activeTab, profile?.id, profile?.full_name, profile?.graduation_year, profile?.avatar_url, loadedTabs, isOwnProfile, canViewContent]);
 
   // Load user's reposted posts when Reposted tab is active
   useEffect(() => {
     if (activeTab !== "reposted" || !profile?.id) return;
+    
+    // Only load if user can view content (own profile or connected)
+    if (!isOwnProfile && !canViewContent) return;
 
     if (loadedTabs.has("reposted")) return;
 
@@ -534,7 +542,7 @@ export default function UserProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [activeTab, profile?.id, loadedTabs]);
+  }, [activeTab, profile?.id, loadedTabs, isOwnProfile, canViewContent]);
 
   // Check follow status and load connections count when profile loads
   useEffect(() => {
@@ -546,31 +554,73 @@ export default function UserProfilePage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
-        // Check if current user is following this profile
+        // Check if current user is following this profile and get status
+        // Also check bidirectional connection (if profile user is following current user)
         if (user) {
-          const { data, error } = await supabase
-            .from("follows")
-            .select("id")
-            .eq("follower_id", user.id)
-            .eq("following_id", profile.id)
-            .single();
+          const [userToProfile, profileToUser] = await Promise.all([
+            supabase
+              .from("follows")
+              .select("id, status")
+              .eq("follower_id", user.id)
+              .eq("following_id", profile.id)
+              .single(),
+            supabase
+              .from("follows")
+              .select("id, status")
+              .eq("follower_id", profile.id)
+              .eq("following_id", user.id)
+              .single()
+          ]);
 
-          if (error && error.code !== "PGRST116") {
-            // PGRST116 is "not found" which is fine
-            console.error("Error checking follow status:", error);
-            if (mounted) setIsFollowing(false);
+          const userToProfileData = userToProfile.data;
+          const profileToUserData = profileToUser.data;
+          const userToProfileError = userToProfile.error;
+          const profileToUserError = profileToUser.error;
+
+          // Check for connection in either direction
+          if (userToProfileData) {
+            if (mounted) {
+              setIsFollowing(true);
+              setConnectionStatus(userToProfileData.status as "pending" | "accepted" | "rejected");
+              // Can view content if status is accepted (bidirectional)
+              setCanViewContent(userToProfileData.status === "accepted");
+            }
+          } else if (profileToUserData && profileToUserData.status === "accepted") {
+            // Profile user has accepted connection to current user (bidirectional)
+            if (mounted) {
+              setIsFollowing(false); // Current user hasn't sent request
+              setConnectionStatus(null);
+              setCanViewContent(true); // Can view because of bidirectional connection
+            }
           } else {
-            if (mounted) setIsFollowing(!!data);
+            if (mounted) {
+              setIsFollowing(false);
+              setConnectionStatus(null);
+              setCanViewContent(false);
+            }
+          }
+
+          // Log errors only if they're not "not found" errors
+          if (userToProfileError && userToProfileError.code !== "PGRST116") {
+            console.error("Error checking follow status:", userToProfileError);
+          }
+          if (profileToUserError && profileToUserError.code !== "PGRST116") {
+            console.error("Error checking bidirectional follow status:", profileToUserError);
           }
         } else {
-          if (mounted) setIsFollowing(false);
+          if (mounted) {
+            setIsFollowing(false);
+            setConnectionStatus(null);
+            setCanViewContent(false);
+          }
         }
 
-        // Get connections count (number of people following this user)
+        // Get connections count (number of people following this user with accepted status)
         const { count, error: countError } = await supabase
           .from("follows")
           .select("*", { count: "exact", head: true })
-          .eq("following_id", profile.id);
+          .eq("following_id", profile.id)
+          .eq("status", "accepted");
 
         if (countError) {
           console.error("Error loading connections count:", countError);
@@ -579,7 +629,11 @@ export default function UserProfilePage() {
         }
       } catch (err) {
         console.error("Unexpected error checking follow status and connections:", err);
-        if (mounted) setIsFollowing(false);
+        if (mounted) {
+          setIsFollowing(false);
+          setConnectionStatus(null);
+          setCanViewContent(false);
+        }
       }
     };
 
@@ -590,7 +644,7 @@ export default function UserProfilePage() {
     };
   }, [profile?.id]);
 
-  // Handle follow/unfollow toggle
+  // Handle connection request/unfollow toggle
   const handleToggleFollow = async () => {
     if (!profile?.id || isTogglingFollow) return;
 
@@ -604,41 +658,73 @@ export default function UserProfilePage() {
         return;
       }
 
-      if (isFollowing) {
-        // Unfollow: DELETE
-        const { error } = await supabase
-          .from("follows")
-          .delete()
-          .eq("follower_id", user.id)
-          .eq("following_id", profile.id);
+      if (isFollowing && connectionStatus === "accepted") {
+        // Unfollow: DELETE both directions (A→B and B→A if exists)
+        const [deleteError, deleteBidirectionalError] = await Promise.all([
+          supabase
+            .from("follows")
+            .delete()
+            .eq("follower_id", user.id)
+            .eq("following_id", profile.id),
+          supabase
+            .from("follows")
+            .delete()
+            .eq("follower_id", profile.id)
+            .eq("following_id", user.id)
+        ]);
 
-        if (error) {
-          console.error("Error unfollowing user:", error);
+        if (deleteError.error) {
+          console.error("Error unfollowing user:", deleteError.error);
           return;
         }
+        // Ignore error for bidirectional delete (might not exist)
 
         setIsFollowing(false);
+        setConnectionStatus(null);
+        setCanViewContent(false);
         // Update connections count optimistically
         setConnectionsCount((prev) => Math.max(0, prev - 1));
-      } else {
-        // Follow: INSERT
+      } else if (!isFollowing || connectionStatus === "pending") {
+        // Send connection request: INSERT with status 'pending'
         const { error } = await supabase
           .from("follows")
-          .insert({ follower_id: user.id, following_id: profile.id });
+          .insert({ 
+            follower_id: user.id, 
+            following_id: profile.id,
+            status: "pending"
+          });
 
         if (error) {
-          // Handle unique constraint violation (already following)
+          // Handle unique constraint violation (already has request)
           if (error.code === "23505") {
-            setIsFollowing(true);
+            // Update existing request to pending if it was rejected
+            const { error: updateError } = await supabase
+              .from("follows")
+              .update({ status: "pending" })
+              .eq("follower_id", user.id)
+              .eq("following_id", profile.id);
+
+            if (updateError) {
+              console.error("Error updating connection request:", updateError);
+              return;
+            }
           } else {
-            console.error("Error following user:", error);
+            console.error("Error sending connection request:", error);
+            return;
           }
-          return;
         }
 
+        // Create notification for the user being requested
+        await supabase.from("notifications").insert({
+          user_id: profile.id,
+          type: "connection_request",
+          actor_id: user.id,
+          is_read: false,
+        });
+
         setIsFollowing(true);
-        // Update connections count optimistically
-        setConnectionsCount((prev) => prev + 1);
+        setConnectionStatus("pending");
+        setCanViewContent(false);
       }
     } catch (err) {
       console.error("Unexpected error toggling follow:", err);
@@ -761,12 +847,20 @@ export default function UserProfilePage() {
                     onClick={handleToggleFollow}
                     disabled={isTogglingFollow}
                     className={`px-5 py-2.5 rounded-lg font-semibold transition shadow-sm text-sm sm:text-base ${
-                      isFollowing
+                      connectionStatus === "accepted"
                         ? "border border-[var(--card-border)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        : connectionStatus === "pending"
+                        ? "border border-[var(--card-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] cursor-not-allowed"
                         : "bg-[var(--color-accent)] text-white hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)]"
                     } ${isTogglingFollow ? "opacity-60 cursor-not-allowed" : ""}`}
                   >
-                    {isTogglingFollow ? "..." : isFollowing ? "Connected" : "Connect"}
+                    {isTogglingFollow 
+                      ? "..." 
+                      : connectionStatus === "accepted" 
+                      ? "Connected" 
+                      : connectionStatus === "pending"
+                      ? "Request Sent"
+                      : "Connect"}
                   </button>
                 </div>
               </div>
@@ -816,7 +910,35 @@ export default function UserProfilePage() {
 
           {/* Tab Content */}
           <div className="p-0 sm:p-6">
-            {activeTab === "posts" && (
+            {/* Private Account Message */}
+            {!isOwnProfile && !canViewContent && (
+              <div className="text-center py-12 px-4">
+                <div className="max-w-md mx-auto">
+                  <div className="mb-4">
+                    <svg className="w-16 h-16 mx-auto text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
+                    This profile is private
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)] mb-6">
+                    Connect to see {profile.full_name || "this user"}'s posts, reposts, and activity
+                  </p>
+                  {connectionStatus !== "pending" && (
+                    <button
+                      onClick={handleToggleFollow}
+                      disabled={isTogglingFollow}
+                      className="px-6 py-2.5 rounded-lg bg-[var(--color-accent)] text-white font-semibold hover:bg-[color-mix(in_oklab,var(--color-accent)_85%,black)] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isTogglingFollow ? "..." : "Connect"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {activeTab === "posts" && (isOwnProfile || canViewContent) && (
               <div>
                 {/* Post Filter Tabs */}
                 <div className="flex gap-2 border-b border-[var(--card-border)] mb-6 -mx-6 px-6 pb-4 overflow-x-auto">
@@ -1001,7 +1123,7 @@ export default function UserProfilePage() {
               </div>
             )}
 
-            {activeTab === "reposted" && (
+            {activeTab === "reposted" && (isOwnProfile || canViewContent) && (
               <div>
                 {/* Post Filter Tabs */}
                 <div className="flex gap-2 border-b border-[var(--card-border)] mb-6 -mx-6 px-6 pb-4 overflow-x-auto">
@@ -1198,7 +1320,7 @@ export default function UserProfilePage() {
               </div>
             )}
 
-            {activeTab === "about" && (
+            {activeTab === "about" && (isOwnProfile || canViewContent) && (
               <div className="max-w-2xl mx-auto space-y-6">
                 {profile.bio && (
                   <div className="pb-4 border-b border-[var(--card-border)]">

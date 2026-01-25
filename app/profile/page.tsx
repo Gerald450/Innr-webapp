@@ -232,11 +232,12 @@ function MyProfilePageContent() {
 
     const loadConnectionsCount = async () => {
       try {
-        // Get connections count (number of people following this user)
+        // Get connections count (number of people following this user with accepted status)
         const { count, error: countError } = await supabase
           .from("follows")
           .select("*", { count: "exact", head: true })
-          .eq("following_id", profile.id);
+          .eq("following_id", profile.id)
+          .eq("status", "accepted");
 
         if (countError) {
           console.error("Error loading connections count:", countError);

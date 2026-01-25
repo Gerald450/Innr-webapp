@@ -33,9 +33,33 @@ async function fetchEventsPage(
   userId: string,
   universityId: string | null
 ): Promise<{ events: EventItem[]; attendeeCounts: Record<string, number>; joinedMap: Record<string, boolean>; hasMore: boolean; totalCount: number | null }> {
-  // Build query with pagination
   const from = page * EVENTS_PER_PAGE;
   const to = from + EVENTS_PER_PAGE - 1;
+
+  // When filtering by university, use a two-query approach to avoid PostgREST 500 errors
+  // from filtering on nested resources (events -> posts.university_id).
+  let universityPostIds: string[] | null = null;
+  if (universityId) {
+    const { data: postRows, error: postsErr } = await supabase
+      .from("posts")
+      .select("id")
+      .eq("university_id", universityId);
+
+    if (postsErr) {
+      console.error("Events: failed to fetch university post IDs", postsErr);
+      throw new Error(`Error loading events: ${postsErr.message}`);
+    }
+    universityPostIds = (postRows ?? []).map((r: { id: string }) => r.id);
+    if (universityPostIds.length === 0) {
+      return {
+        events: [],
+        attendeeCounts: {},
+        joinedMap: {},
+        hasMore: false,
+        totalCount: 0,
+      };
+    }
+  }
 
   let query = supabase
     .from("events")
@@ -75,14 +99,14 @@ async function fetchEventsPage(
     .order("starts_at", { ascending: true })
     .range(from, to);
 
-  // Filter by university_id if provided
-  if (universityId) {
-    query = query.eq("posts.university_id", universityId);
+  if (universityPostIds && universityPostIds.length > 0) {
+    query = query.in("post_id", universityPostIds);
   }
 
   const { data: eventsData, error: eventsError, count } = await query;
 
   if (eventsError) {
+    console.error("Events: Supabase error", eventsError);
     throw new Error(`Error loading events: ${eventsError.message}`);
   }
 
