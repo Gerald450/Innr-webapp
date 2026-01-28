@@ -11,6 +11,7 @@ export type EventItem = {
   datetime: string;
   location: string;
   imageSrc?: string;
+  images?: string[];
   organizer?: string;
   attendees?: number;
   description?: string;
@@ -161,11 +162,11 @@ async function fetchEventsPage(
       const post = row.posts as any;
       const author = post?.profiles as any;
       const media = (post?.post_media as any[]) ?? [];
-      const firstMedia =
-        media
-          .slice()
-          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ??
-        null;
+      const sortedMedia = media
+        .slice()
+        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+      const firstMedia = sortedMedia[0] ?? null;
+      const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
 
       const startDate = new Date(row.starts_at);
       const formattedDate = startDate.toLocaleDateString("en-US", {
@@ -184,6 +185,7 @@ async function fetchEventsPage(
         datetime: formattedDate,
         location: row.location_name || row.location_address || "Location TBD",
         imageSrc: firstMedia?.url,
+        images: allImages.length > 0 ? allImages : undefined,
         organizer: author?.full_name || "Unknown",
         attendees: countsMap[row.id] || 0,
         starts_at: row.starts_at,

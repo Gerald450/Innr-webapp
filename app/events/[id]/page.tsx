@@ -49,6 +49,11 @@ export default function EventDetail() {
   const [loadingAttendees, setLoadingAttendees] = useState<boolean>(false);
   const [isShowingFiltered, setIsShowingFiltered] = useState<boolean>(false);
   const attendeesModalOverlayRef = useRef<HTMLDivElement | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [event?.id]);
 
   useEffect(() => {
     if (!eventId) return;
@@ -564,43 +569,100 @@ export default function EventDetail() {
         </button>
       </div>
 
-      {/* Hero Image */}
+      {/* Hero Image / Carousel */}
       <div className="max-w-4xl mx-auto px-4 mb-6">
         <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-2xl overflow-hidden bg-[var(--card-bg)]">
-          {event.imageSrc ? (
-            <Image
-              src={event.imageSrc}
-              alt={event.title}
-              width={1200}
-              height={600}
-              className="w-full h-full object-cover"
-              priority
-              unoptimized
-              onError={(e) => {
-                // Fallback to placeholder on error (e.g., timeout)
-                const target = e.target as HTMLImageElement;
-                target.src = "/images/avatar_placeholder.png";
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-accent)]/5">
-              <div className="text-center">
-                <svg
-                  className="w-16 h-16 mx-auto text-[var(--color-accent)]/30"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+          {(() => {
+            const imageList = event.images?.length ? event.images : (event.imageSrc ? [event.imageSrc] : []);
+            const hasMultipleImages = imageList.length > 1;
+
+            if (imageList.length === 0) {
+              return (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-accent)]/5">
+                  <div className="text-center">
+                    <svg
+                      className="w-16 h-16 mx-auto text-[var(--color-accent)]/30"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="relative w-full h-full">
+                {imageList.map((src, index) => (
+                  <div
+                    key={index}
+                    className={`transition-opacity duration-500 w-full h-full ${
+                      index === currentImageIndex ? "opacity-100 relative" : "opacity-0 absolute inset-0"
+                    }`}
+                  >
+                    <Image
+                      src={src}
+                      alt={`${event.title} ${index + 1}`}
+                      width={1200}
+                      height={600}
+                      className="w-full h-full object-cover"
+                      priority={index === 0}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      unoptimized
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/images/avatar_placeholder.png";
+                      }}
+                    />
+                  </div>
+                ))}
+                {hasMultipleImages && (
+                  <>
+                    <button
+                      onClick={() => setCurrentImageIndex((p) => (p - 1 + imageList.length) % imageList.length)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                      aria-label="Previous image"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setCurrentImageIndex((p) => (p + 1) % imageList.length)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                      aria-label="Next image"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                      {imageList.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentImageIndex(idx)}
+                          className={`transition-all rounded-full ${
+                            idx === currentImageIndex ? "bg-white w-8 h-2" : "bg-white/50 w-2 h-2 hover:bg-white/75"
+                          }`}
+                          aria-label={`Go to image ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="absolute top-4 right-4 bg-black/50 text-white text-sm px-3 py-1.5 rounded-lg z-10">
+                      {currentImageIndex + 1} / {imageList.length}
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 

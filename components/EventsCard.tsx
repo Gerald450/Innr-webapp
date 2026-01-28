@@ -10,6 +10,7 @@ type EventItem = {
   datetime: string;
   location: string;
   imageSrc?: string;
+  images?: string[];
   organizer?: string;
   attendees?: number;
   description?: string;
@@ -54,6 +55,29 @@ export default function EventsCard({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [showArrows, setShowArrows] = useState(false);
+
+  const imageList = event.images?.length ? event.images : (event.imageSrc ? [event.imageSrc] : []);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const hasMultipleImages = imageList.length > 1;
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % imageList.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + imageList.length) % imageList.length);
+  };
+
+  const goToImage = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setCurrentImageIndex(index);
+  };
+
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [event.id]);
 
   // Collect all tags into a single array
   const allTags = [
@@ -124,23 +148,67 @@ export default function EventsCard({
     >
       {/* MOBILE: flex row | DESKTOP: block */}
       <div className="flex md:block w-full items-stretch">
-        {/* IMAGE - Left thumbnail on mobile */}
+        {/* IMAGE - Left thumbnail on mobile; carousel when multiple */}
         <div className="w-24 h-[140px] md:w-full md:h-56 flex-shrink-0 overflow-hidden flex items-center justify-center bg-[var(--bg-primary)] relative">
-          {event.imageSrc ? (
-            <Image
-              src={event.imageSrc}
-              alt={event.title}
-              width={400}
-              height={224}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              unoptimized
-              onError={(e) => {
-                // Fallback to placeholder on error (e.g., timeout)
-                const target = e.target as HTMLImageElement;
-                target.src = "/images/avatar_placeholder.png";
-              }}
-            />
+          {imageList.length > 0 ? (
+            <div className="relative w-full h-full">
+              {imageList.map((src, index) => (
+                <div
+                  key={index}
+                  className={`transition-opacity duration-300 w-full h-full ${
+                    index === currentImageIndex ? "opacity-100 relative" : "opacity-0 absolute inset-0"
+                  }`}
+                >
+                  <Image
+                    src={src}
+                    alt={`${event.title} ${index + 1}`}
+                    width={400}
+                    height={224}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    unoptimized
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/images/avatar_placeholder.png";
+                    }}
+                  />
+                </div>
+              ))}
+              {hasMultipleImages && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors md:left-2 md:w-8 md:h-8"
+                    aria-label="Previous image"
+                  >
+                    <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors md:right-2 md:w-8 md:h-8"
+                    aria-label="Next image"
+                  >
+                    <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                    {imageList.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={(e) => goToImage(e, idx)}
+                        className={`transition-all rounded-full ${
+                          idx === currentImageIndex ? "bg-white w-4 h-1.5" : "bg-white/50 w-1.5 h-1.5 hover:bg-white/75"
+                        }`}
+                        aria-label={`Go to image ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           ) : (
             <div className="w-full h-full bg-[var(--bg-primary)] flex items-center justify-center">
               <span className="text-[var(--text-secondary)] text-xs">No image</span>

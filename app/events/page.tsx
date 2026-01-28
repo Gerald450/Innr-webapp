@@ -31,10 +31,11 @@ function transformEventToEventItem(
     minute: "2-digit",
   });
 
-  // Get first media (sorted by order_index)
-  const firstMedia = media
+  const sortedMedia = media
     .slice()
-    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ?? null;
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+  const firstMedia = sortedMedia[0] ?? null;
+  const allImages = sortedMedia.map((m: { url: string }) => m.url).filter(Boolean);
 
   return {
     id: event.id,
@@ -44,6 +45,7 @@ function transformEventToEventItem(
     datetime: formattedDate,
     location: event.location_name || event.location_address || "Location TBD",
     imageSrc: firstMedia?.url,
+    images: allImages.length > 0 ? allImages : undefined,
     organizer: profile.full_name || "Unknown",
     attendees: 0, // New event has 0 attendees
     starts_at: event.starts_at,
