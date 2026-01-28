@@ -144,6 +144,30 @@ export function setCachedLoadedTabs(userId: string, loadedTabs: Set<string>): vo
   setCachedItem(key, Array.from(loadedTabs));
 }
 
+const PROFILE_REFRESH_KEY = "innr_profile_refresh";
+
+/** Set when a post/event was edited or deleted; profile pages should reload and skip cache. */
+export function setProfileRefreshNeeded(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(PROFILE_REFRESH_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Returns true if flag was set, and clears it. Call when profile mounts to trigger refetch. */
+export function consumeProfileRefreshFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const v = sessionStorage.getItem(PROFILE_REFRESH_KEY);
+    sessionStorage.removeItem(PROFILE_REFRESH_KEY);
+    return v === "1";
+  } catch {
+    return false;
+  }
+}
+
 // Clear all user-related cache (useful for logout)
 export function clearUserCache(userId?: string): void {
   // Clear general cache keys

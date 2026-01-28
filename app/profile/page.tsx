@@ -12,6 +12,8 @@ import {
   setCachedActivityPosts,
   getCachedLoadedTabs,
   setCachedLoadedTabs,
+  consumeProfileRefreshFlag,
+  clearUserCache,
 } from "@/utils/storage";
 
 type PostItem = {
@@ -190,6 +192,16 @@ function MyProfilePageContent() {
       mounted = false;
     };
   }, [router]);
+
+  // When returning from post/event edit or delete: clear cache and force refetch (no cache)
+  useEffect(() => {
+    if (!profile?.id) return;
+    if (!consumeProfileRefreshFlag()) return;
+    clearUserCache(profile.id);
+    setLoadedTabs(new Set());
+    setUserPosts([]);
+    setActivityPosts([]);
+  }, [profile?.id]);
 
   // Restore cached data when profile loads
   useEffect(() => {

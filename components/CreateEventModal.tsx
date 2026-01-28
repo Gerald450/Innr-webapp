@@ -482,17 +482,42 @@ export default function CreateEventModal({
         }
       }
 
-      const { data: event, error: eventError } = await supabase
+      let event: { id: string; [k: string]: unknown } | null = null;
+      const { data: insertData, error: insertError } = await supabase
         .from("events")
         .insert(eventPayload)
         .select()
         .single();
 
-      if (eventError || !event) {
-        // If event creation fails, we should ideally rollback the post
-        // For now, just log the error
-        console.error("Event creation failed:", eventError);
-        throw eventError || new Error("Event insert failed");
+      if (insertError) {
+        const isDuplicatePostId =
+          (insertError.code === "23505" || (insertError as { status?: number }).status === 409) &&
+          (insertError.message?.includes("events_post_id_key") ||
+            insertError.message?.includes("duplicate key") ||
+            insertError.message?.includes("already exists"));
+
+        if (isDuplicatePostId) {
+          const { data: existingEvent, error: fetchError } = await supabase
+            .from("events")
+            .select("*")
+            .eq("post_id", post.id)
+            .maybeSingle();
+
+          if (fetchError || !existingEvent) {
+            console.error("Event fetch (after duplicate) failed:", fetchError);
+            throw fetchError || new Error("Event already exists but could not be fetched");
+          }
+          event = existingEvent as { id: string; [k: string]: unknown };
+        } else {
+          console.error("Event creation failed:", insertError);
+          throw insertError || new Error("Event insert failed");
+        }
+      } else {
+        event = insertData as { id: string; [k: string]: unknown };
+      }
+
+      if (!event) {
+        throw new Error("Event insert failed");
       }
 
       // 4. Reset and close

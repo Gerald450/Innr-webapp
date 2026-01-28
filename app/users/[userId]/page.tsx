@@ -5,6 +5,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useParams } from "next/navigation";
 import { Post } from "@/components/PostsCard";
+import { consumeProfileRefreshFlag } from "@/utils/storage";
 
 type PostItem = {
   id: string;
@@ -101,6 +102,15 @@ export default function UserProfilePage() {
       mounted = false;
     };
   }, [userId, router]);
+
+  // When returning from post/event edit or delete: force refetch (no cache)
+  useEffect(() => {
+    if (!profile?.id) return;
+    if (!consumeProfileRefreshFlag()) return;
+    setLoadedTabs(new Set());
+    setUserPosts([]);
+    setRepostedPosts([]);
+  }, [profile?.id]);
 
   // Ensure activeTab is valid for user role
   useEffect(() => {

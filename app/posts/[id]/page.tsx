@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Post } from "@/components/PostsCard";
 import Comments from "@/components/Comments";
 import { invalidatePosts } from "@/utils/cacheInvalidation";
+import { setProfileRefreshNeeded } from "@/utils/storage";
 
 type PostDetail = {
   id: string;
@@ -320,22 +321,19 @@ export default function PostDetailPage() {
             showMenu={true}
             onLikeChange={handleLikeChange}
             onPostUpdate={(postId, newText) => {
+              setProfileRefreshNeeded();
               setPost((prev) => prev ? { ...prev, text: newText } : null);
             }}
             onPostDelete={async () => {
-              // Invalidate React Query cache for posts (will trigger refetch on pages using React Query)
+              setProfileRefreshNeeded();
               invalidatePosts(queryClient);
               
-              // Navigate back to previous page
               const referrer = sessionStorage.getItem("postDetailReferrer");
               sessionStorage.removeItem("postDetailReferrer");
               
               if (referrer && typeof window !== "undefined" && referrer !== window.location.pathname) {
-                // Use referrer if available and different from current page
-                // This will trigger a full navigation and the page will load fresh data
                 router.push(referrer);
               } else {
-                // Fallback to router.back()
                 router.back();
               }
             }}
