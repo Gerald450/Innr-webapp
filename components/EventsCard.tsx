@@ -217,7 +217,7 @@ export default function EventsCard({
         </div>
 
         {/* CONTENT SECTION - Middle and Right on mobile */}
-        <div className="flex flex-1 flex-row md:flex-col p-3 md:p-3">
+        <div className="flex flex-1 flex-row md:flex-col p-3 md:p-3 relative">
           {/* MIDDLE SECTION (date + title + location + tags + additional info) */}
           <div className="flex-1 pr-3 md:pr-0 min-w-0">
             <div className="text-xs text-[var(--text-secondary)]">
@@ -373,7 +373,7 @@ export default function EventsCard({
               </div>
             </div>
 
-            {/* RIGHT SIDE — Attend and Share buttons (column on mobile, row on desktop) */}
+            {/* RIGHT SIDE — Attend button (+ loading); Share at bottom-right on mobile */}
             <div className="flex flex-col items-end gap-2 md:flex-row md:items-center md:gap-2">
               <button
                 type="button"
@@ -418,19 +418,21 @@ export default function EventsCard({
                 </div>
               )}
 
-              {/* Share button */}
-              <button
-                type="button"
-                onClick={(e) => onShare(e, event)}
-                aria-label="Share event"
-                className="flex h-8 w-8 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors flex-shrink-0"
-              >
-                <img
-                  src="/svgs/share.svg"
-                  alt="Share"
-                  className="w-4 h-4 svg-icon"
-                />
-              </button>
+              {/* Share button — bottom-right on mobile, inline on desktop */}
+              <div className="absolute bottom-3 right-3 z-10 md:static md:bottom-auto md:right-auto">
+                <button
+                  type="button"
+                  onClick={(e) => onShare(e, event)}
+                  aria-label="Share event"
+                  className="flex h-8 w-8 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors flex-shrink-0"
+                >
+                  <img
+                    src="/svgs/share.svg"
+                    alt="Share"
+                    className="w-4 h-4 svg-icon"
+                  />
+                </button>
+              </div>
             </div>
           </div>
         </div>
