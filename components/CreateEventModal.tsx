@@ -320,7 +320,8 @@ export default function CreateEventModal({
 
   function handleMediaChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files ? Array.from(e.target.files) : [];
-    setMediaFiles(files);
+    // Only one photo allowed as event cover
+    setMediaFiles(files.length ? [files[0]] : []);
   }
 
   async function handleSubmit() {
@@ -356,7 +357,7 @@ export default function CreateEventModal({
       return;
     }
     if (mediaFiles.length === 0) {
-      alert("Please upload at least one event image or media file");
+      alert("Please upload an event cover photo");
       return;
     }
     if (isRecurring) {
@@ -908,53 +909,36 @@ export default function CreateEventModal({
             </div>
           </div>
 
-          {/* Media Upload */}
+          {/* Event Cover (single photo) */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-              Event Image/Media <span className="text-red-500">*</span>
+              Event Cover <span className="text-red-500">*</span>
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm border border-[var(--card-border)] hover:bg-[var(--bg-primary)] transition-colors">
               <input
                 type="file"
-                accept="image/*,video/*"
+                accept="image/*"
                 onChange={handleMediaChange}
                 className="hidden"
-                multiple
                 disabled={isSubmitting}
               />
-              <span className="text-sm text-[var(--text-secondary)]">Attach media</span>
+              <span className="text-sm text-[var(--text-secondary)]">Choose cover photo</span>
             </label>
             {mediaPreviews.length > 0 && (
               <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {mediaPreviews.map((preview, i) => {
-                  const isVideo = preview.type.startsWith("video/");
-                  return (
-                    <div key={preview.id} className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--card-border)] bg-[var(--bg-primary)]">
-                      {isVideo ? (
-                        <video 
-                          src={preview.url} 
-                          className="w-full h-full object-cover"
-                          controls
-                          preload="metadata"
-                        />
-                      ) : (
-                        <img 
-                          src={preview.url} 
-                          alt={`Preview ${i + 1}`} 
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                      <button
-                        onClick={() => {
-                          const newFiles = [...mediaFiles];
-                          const newPreviews = [...mediaPreviews];
-                          newFiles.splice(i, 1);
-                          newPreviews.splice(i, 1);
-                          // Revoke the object URL before removing
-                          URL.revokeObjectURL(preview.url);
-                          setMediaFiles(newFiles);
-                          setMediaPreviews(newPreviews);
-                        }}
+                {mediaPreviews.map((preview, i) => (
+                  <div key={preview.id} className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--card-border)] bg-[var(--bg-primary)]">
+                    <img
+                      src={preview.url}
+                      alt="Event cover preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      onClick={() => {
+                        URL.revokeObjectURL(preview.url);
+                        setMediaFiles([]);
+                        setMediaPreviews([]);
+                      }}
                         disabled={isSubmitting}
                         className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 hover:bg-black/90 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
                         aria-label="Remove media"
@@ -974,8 +958,7 @@ export default function CreateEventModal({
                         </svg>
                       </button>
                     </div>
-                  );
-                })}
+                ))}
               </div>
             )}
           </div>
