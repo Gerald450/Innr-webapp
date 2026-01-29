@@ -373,8 +373,8 @@ export default function EventsCard({
               </div>
             </div>
 
-            {/* RIGHT SIDE — Attend and Share buttons (aligned in a row on mobile and desktop) */}
-            <div className="flex flex-row items-center gap-2 flex-wrap">
+            {/* RIGHT SIDE — Attend and Share buttons (column on mobile, row on desktop) */}
+            <div className="flex flex-col items-end gap-2 md:flex-row md:items-center md:gap-2">
               <button
                 type="button"
                 onClick={(e) => onToggleAttend(e, event.id)}
