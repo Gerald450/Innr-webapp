@@ -342,7 +342,7 @@ export default function EventsCard({
               <span className="truncate">{event.location}</span>
             </div>
 
-            {/* Additional info on mobile (organizer, attendee count, share) - shown inline */}
+            {/* Additional info on mobile (organizer, attendee count) - share is with Attend button */}
             <div className="flex items-center gap-2 mt-1.5 md:hidden text-[10px] text-[var(--text-secondary)]">
               {event.organizer && (
                 <>
@@ -351,18 +351,6 @@ export default function EventsCard({
                 </>
               )}
               <span>{event.attendees ?? 0} attending</span>
-              <button
-                type="button"
-                onClick={(e) => onShare(e, event)}
-                aria-label="Share event"
-                className="ml-auto flex h-6 w-6 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors flex-shrink-0"
-              >
-                <img
-                  src="/svgs/share.svg"
-                  alt="Share"
-                  className="w-3 h-3 svg-icon"
-                />
-              </button>
             </div>
           </div>
 
@@ -385,8 +373,8 @@ export default function EventsCard({
               </div>
             </div>
 
-            {/* RIGHT SIDE — Attend button and loading indicator */}
-            <div className="flex flex-col items-end gap-1 md:flex-row md:items-center md:gap-2">
+            {/* RIGHT SIDE — Attend and Share buttons (aligned in a row on mobile and desktop) */}
+            <div className="flex flex-row items-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={(e) => onToggleAttend(e, event.id)}
@@ -430,12 +418,12 @@ export default function EventsCard({
                 </div>
               )}
 
-              {/* Share button - desktop only */}
+              {/* Share button */}
               <button
                 type="button"
                 onClick={(e) => onShare(e, event)}
                 aria-label="Share event"
-                className="hidden md:flex h-8 w-8 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors"
+                className="flex h-8 w-8 border border-[var(--card-border)] rounded-full items-center justify-center hover:bg-[var(--bg-primary)] transition-colors flex-shrink-0"
               >
                 <img
                   src="/svgs/share.svg"
