@@ -3,9 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { getRelativeTime } from "@/utils/relativeTime";
+import { invalidateEvents } from "@/utils/cacheInvalidation";
 
 type EventDetail = {
   id: string;
@@ -33,6 +35,7 @@ type EventDetail = {
 export default function EventDetail() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const eventId = params?.id as string;
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -50,6 +53,10 @@ export default function EventDetail() {
   const [isShowingFiltered, setIsShowingFiltered] = useState<boolean>(false);
   const attendeesModalOverlayRef = useRef<HTMLDivElement | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentUserProfileId, setCurrentUserProfileId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setCurrentImageIndex(0);
@@ -187,6 +194,10 @@ export default function EventDetail() {
             .eq("id", user.id)
             .single();
 
+          if (!profileError && profile && mounted) {
+            setCurrentUserProfileId(profile.id);
+          }
+
           if (!profileError && profile) {
             const userId = profile.id;
 
@@ -216,6 +227,7 @@ export default function EventDetail() {
             }
           }
         } else {
+          if (mounted) setCurrentUserProfileId(null);
           // If not authenticated, still get attendee count
           const { count, error: countErr } = await supabase
             .from("event_attendees")
@@ -253,6 +265,69 @@ export default function EventDetail() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [showAttendeesModal]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  const isCreator = !!event && !!currentUserProfileId && event.organizerId === currentUserProfileId;
+
+  const handleEditEvent = () => {
+    setMenuOpen(false);
+    router.push(`/events/${eventId}/edit`);
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!event || isDeleting) return;
+    if (!confirm("Are you sure you want to delete this event? This cannot be undone.")) return;
+
+    setMenuOpen(false);
+    setIsDeleting(true);
+    try {
+      // 1. Delete the event row from the events table
+      const { error: eventError } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", eventId);
+
+      if (eventError) {
+        console.error("Error deleting event:", eventError);
+        alert("Failed to delete event. Please try again.");
+        setIsDeleting(false);
+        return;
+      }
+
+      // 2. Soft-delete the associated post
+      const { error: postError } = await supabase
+        .from("posts")
+        .update({ is_deleted: true })
+        .eq("id", event.post_id);
+
+      if (postError) {
+        console.error("Error soft-deleting post:", postError);
+        alert("Failed to delete event. Please try again.");
+        setIsDeleting(false);
+        return;
+      }
+
+      // Clear events cache so the list refetches fresh data when we navigate
+      queryClient.removeQueries({ queryKey: ["events"] });
+      invalidateEvents(queryClient);
+      router.push("/events");
+    } catch (err) {
+      console.error("Unexpected error deleting event:", err);
+      alert("Failed to delete event. Please try again.");
+      setIsDeleting(false);
+    }
+  };
 
   const handleToggleAttend = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -546,11 +621,11 @@ export default function EventDetail() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] transition-colors">
-      {/* Back Button */}
-      <div className="max-w-4xl mx-auto px-4 pt-6">
+      {/* Back Button + Creator Menu */}
+      <div className="max-w-4xl mx-auto px-4 pt-6 flex items-center justify-between gap-4 mb-4">
         <button
           onClick={() => router.back()}
-          className="mb-4 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 transition-colors"
+          className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2 transition-colors"
         >
           <svg
             className="w-4 h-4"
@@ -567,6 +642,45 @@ export default function EventDetail() {
           </svg>
           Back
         </button>
+        {isCreator && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((prev) => !prev)}
+              disabled={isDeleting}
+              className="p-2 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)] transition-colors disabled:opacity-50"
+              aria-label="Event options"
+              aria-expanded={menuOpen}
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="5" r="1.5" />
+                <circle cx="12" cy="12" r="1.5" />
+                <circle cx="12" cy="19" r="1.5" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 py-1 min-w-[140px] bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg shadow-lg z-50 transition-colors">
+                <button
+                  onClick={handleEditEvent}
+                  className="w-full px-4 py-2 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--bg-primary)] flex items-center gap-2 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit
+                </button>
+                <button
+                  onClick={handleDeleteEvent}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-500/10 flex items-center gap-2 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Hero Image / Carousel */}

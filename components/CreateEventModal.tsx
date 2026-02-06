@@ -498,10 +498,12 @@ export default function CreateEventModal({
             insertError.message?.includes("already exists"));
 
         if (isDuplicatePostId) {
+          // Fetch parent event specifically (recurring events have multiple rows per post_id)
           const { data: existingEvent, error: fetchError } = await supabase
             .from("events")
             .select("*")
             .eq("post_id", post.id)
+            .is("parent_event_id", null)
             .maybeSingle();
 
           if (fetchError || !existingEvent) {
