@@ -341,7 +341,7 @@ export default function EventsCard({
               </>
             )}
 
-            <div className="text-xs text-[var(--text-secondary)] flex items-center gap-1.5 mt-1.5">
+            <div className="text-xs text-[var(--text-secondary)] flex items-center gap-1.5 mt-1.5 min-w-0">
               <svg
                 className="w-3.5 h-3.5 text-[var(--text-secondary)] flex-shrink-0"
                 fill="none"
@@ -359,7 +359,10 @@ export default function EventsCard({
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="truncate">{event.location}</span>
+              <span className="truncate min-w-0 md:hidden" title={event.location}>
+                {event.location.length > 15 ? `${event.location.slice(0, 15)}...` : event.location}
+              </span>
+              <span className="hidden md:inline truncate min-w-0" title={event.location}>{event.location}</span>
             </div>
 
             {/* Additional info on mobile (organizer, attendee count) - share is with Attend button */}
@@ -375,7 +378,7 @@ export default function EventsCard({
           </div>
 
           {/* RIGHT SECTION - Attend button and loading indicator on mobile */}
-          <div className="flex flex-col items-end justify-start md:static md:flex-row md:items-center md:justify-between md:mt-2 md:w-full">
+          <div className="flex flex-col items-end justify-start flex-shrink-0 md:static md:flex-row md:items-center md:justify-between md:mt-2 md:w-full">
             {/* LEFT SIDE ONLY DESKTOP (view + attendees) */}
             <div className="hidden md:flex items-center gap-2">
               <Link

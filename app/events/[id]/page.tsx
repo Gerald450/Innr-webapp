@@ -945,7 +945,7 @@ export default function EventDetail() {
             </div>
 
             {/* Location */}
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-4 min-w-0">
               <div className="w-12 h-12 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center flex-shrink-0">
                 <svg
                   className="w-6 h-6 text-[var(--color-accent)]"
@@ -967,15 +967,15 @@ export default function EventDetail() {
                   />
                 </svg>
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-[var(--text-secondary)] mb-1">
                   Location
                 </div>
-                <div className="font-semibold text-[var(--text-primary)]">
+                <div className="font-semibold text-[var(--text-primary)] truncate md:whitespace-normal" title={event.location_name || "Venue"}>
                   {event.location_name || "Venue"}
                 </div>
                 {event.location_address && (
-                  <div className="text-sm text-[var(--text-secondary)]">
+                  <div className="text-sm text-[var(--text-secondary)] truncate md:whitespace-normal" title={event.location_address}>
                     {event.location_address}
                   </div>
                 )}
