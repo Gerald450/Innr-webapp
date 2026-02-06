@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { getRecurrenceOccurrences } from "@/utils/recurrence";
 
 type CalendarEvent = {
   id: string;
@@ -63,7 +64,7 @@ export default function EventsCalendar() {
           return;
         }
 
-        // Get events user has joined
+        // Get events user has joined (include recurrence fields so we can expand recurring events to all dates)
         const { data: attendeesData, error: attendeesError } = await supabase
           .from("event_attendees")
           .select(
@@ -75,6 +76,12 @@ export default function EventsCalendar() {
               ends_at,
               location_name,
               location_address,
+              is_recurring,
+              recurrence_pattern,
+              recurrence_interval,
+              recurrence_end_date,
+              recurrence_days_of_week,
+              recurrence_day_of_month,
               posts!inner (
                 title
               )
@@ -90,29 +97,62 @@ export default function EventsCalendar() {
           return;
         }
 
-        // Organize events by date
+        // Range for expanding recurring events: first and last day of visible month
+        const rangeStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const rangeEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+
+        // Organize events by date; recurring events expand to all occurrence dates
         const eventsMap: EventsByDate = {};
         (attendeesData ?? []).forEach((row: any) => {
           const event = row.events as any;
           const post = event?.posts as any;
           if (!event || !post) return;
 
-          const startDate = new Date(event.starts_at);
-          const dateKey = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-${String(startDate.getDate()).padStart(2, "0")}`;
+          const title = post.title || "Untitled Event";
+          const location = event.location_name || event.location_address || "Location TBD";
 
-          if (!eventsMap[dateKey]) {
-            eventsMap[dateKey] = [];
+          if (event.is_recurring && event.recurrence_pattern) {
+            const occurrences = getRecurrenceOccurrences(
+              {
+                id: event.id,
+                starts_at: event.starts_at,
+                ends_at: event.ends_at,
+                is_recurring: event.is_recurring,
+                recurrence_pattern: event.recurrence_pattern,
+                recurrence_interval: event.recurrence_interval,
+                recurrence_end_date: event.recurrence_end_date,
+                recurrence_days_of_week: event.recurrence_days_of_week,
+                recurrence_day_of_month: event.recurrence_day_of_month,
+              },
+              rangeStart,
+              rangeEnd
+            );
+            occurrences.forEach((occ) => {
+              if (!eventsMap[occ.dateKey]) eventsMap[occ.dateKey] = [];
+              eventsMap[occ.dateKey].push({
+                id: event.id,
+                title,
+                starts_at: occ.starts_at,
+                ends_at: occ.ends_at ?? undefined,
+                location_name: event.location_name,
+                location_address: event.location_address,
+                location,
+              });
+            });
+          } else {
+            const startDate = new Date(event.starts_at);
+            const dateKey = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-${String(startDate.getDate()).padStart(2, "0")}`;
+            if (!eventsMap[dateKey]) eventsMap[dateKey] = [];
+            eventsMap[dateKey].push({
+              id: event.id,
+              title,
+              starts_at: event.starts_at,
+              ends_at: event.ends_at,
+              location_name: event.location_name,
+              location_address: event.location_address,
+              location,
+            });
           }
-
-          eventsMap[dateKey].push({
-            id: event.id,
-            title: post.title || "Untitled Event",
-            starts_at: event.starts_at,
-            ends_at: event.ends_at,
-            location_name: event.location_name,
-            location_address: event.location_address,
-            location: event.location_name || event.location_address || "Location TBD",
-          });
         });
 
         if (mounted) {
@@ -130,7 +170,7 @@ export default function EventsCalendar() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [currentDate]);
 
   const navigateMonth = (direction: "prev" | "next") => {
     setCurrentDate((prev) => {

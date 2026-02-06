@@ -24,7 +24,23 @@ type EventItem = {
   logistics?: string[] | null;
   special_interests?: string[] | null;
   time_based?: string[] | null;
+  is_recurring?: boolean;
+  recurrence_pattern?: "daily" | "weekly" | "biweekly" | "monthly" | "yearly" | null;
+  recurrence_interval?: number;
 };
+
+// Recurrence tag label for display (e.g. "every week", "every day")
+function getRecurrenceTagLabel(event: EventItem): string | null {
+  if (!event.is_recurring || !event.recurrence_pattern) return null;
+  const interval = Math.max(1, event.recurrence_interval ?? 1);
+  const pattern = event.recurrence_pattern;
+  if (pattern === "daily") return interval === 1 ? "every day" : `every ${interval} days`;
+  if (pattern === "weekly") return interval === 1 ? "every week" : `every ${interval} weeks`;
+  if (pattern === "biweekly") return interval === 1 ? "every 2 weeks" : `every ${interval * 2} weeks`;
+  if (pattern === "monthly") return interval === 1 ? "every month" : `every ${interval} months`;
+  if (pattern === "yearly") return interval === 1 ? "every year" : `every ${interval} years`;
+  return null;
+}
 
 type EventsCardProps = {
   event: EventItem;
@@ -79,8 +95,12 @@ export default function EventsCard({
     setCurrentImageIndex(0);
   }, [event.id]);
 
-  // Collect all tags into a single array
+  // Recurring event tag (e.g. "every week") shown first when present
+  const recurrenceTag = getRecurrenceTagLabel(event);
+
+  // Collect all tags into a single array (recurrence tag first, then rest)
   const allTags = [
+    ...(recurrenceTag ? [recurrenceTag] : []),
     ...(event.event_type || []),
     ...(event.audience || []),
     ...(event.logistics || []),

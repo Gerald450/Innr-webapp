@@ -41,7 +41,7 @@ const supabase = createClient(supabaseUrl, key, {
   auth: { persistSession: false },
 });
 
-const SAME_IMAGE_URL = "https://placehold.co/600x400/1a1a2e/eee?text=Event";
+const SAME_IMAGE_URL = "/images/logo.png";
 const SAME_LOCATION = {
   location_name: "Main Campus Hall",
   location_address: "123 University Ave",

@@ -377,6 +377,30 @@ export default function EventDetail() {
         // Update local state
         setJoined(false);
         setAttendeeCount((prev) => Math.max(0, prev - 1));
+
+        // Sync events list cache so back button shows updated state in real time
+        queryClient.setQueriesData(
+          { queryKey: ["events"] },
+          (old: unknown) => {
+            const data = old as { pages?: Array<{ attendeeCounts?: Record<string, number>; joinedMap?: Record<string, boolean> }> };
+            if (!data?.pages) return old;
+            return {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                attendeeCounts: {
+                  ...page.attendeeCounts,
+                  [eventId]: Math.max(0, (page.attendeeCounts?.[eventId] ?? 0) - 1),
+                },
+                joinedMap: {
+                  ...page.joinedMap,
+                  [eventId]: false,
+                },
+              })),
+            };
+          }
+        );
+        invalidateEvents(queryClient);
       } else {
         // Attend: Insert into event_attendees
         const { error: insertError } = await supabase
@@ -403,6 +427,30 @@ export default function EventDetail() {
           setJoined(true);
           setAttendeeCount((prev) => prev + 1);
         }
+
+        // Sync events list cache so back button shows updated state in real time
+        queryClient.setQueriesData(
+          { queryKey: ["events"] },
+          (old: unknown) => {
+            const data = old as { pages?: Array<{ attendeeCounts?: Record<string, number>; joinedMap?: Record<string, boolean> }> };
+            if (!data?.pages) return old;
+            return {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                attendeeCounts: {
+                  ...page.attendeeCounts,
+                  [eventId]: (page.attendeeCounts?.[eventId] ?? 0) + 1,
+                },
+                joinedMap: {
+                  ...page.joinedMap,
+                  [eventId]: true,
+                },
+              })),
+            };
+          }
+        );
+        invalidateEvents(queryClient);
       }
     } catch (err) {
       console.error("Error toggling attendance:", err);
@@ -924,7 +972,7 @@ export default function EventDetail() {
                   Location
                 </div>
                 <div className="font-semibold text-[var(--text-primary)]">
-                  {event.location_name || "Location TBD"}
+                  {event.location_name || "Venue"}
                 </div>
                 {event.location_address && (
                   <div className="text-sm text-[var(--text-secondary)]">

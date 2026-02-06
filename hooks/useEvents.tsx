@@ -25,6 +25,13 @@ export type EventItem = {
   logistics?: string[] | null;
   special_interests?: string[] | null;
   time_based?: string[] | null;
+  /** Recurring: one event representing the series; attendance adds all dates to calendar */
+  is_recurring?: boolean;
+  recurrence_pattern?: "daily" | "weekly" | "biweekly" | "monthly" | "yearly" | null;
+  recurrence_interval?: number;
+  recurrence_end_date?: string | null;
+  recurrence_days_of_week?: number[] | null;
+  recurrence_day_of_month?: number | null;
 };
 
 const EVENTS_PER_PAGE = 20;
@@ -78,6 +85,13 @@ async function fetchEventsPage(
         logistics,
         special_interests,
         time_based,
+        is_recurring,
+        recurrence_pattern,
+        recurrence_interval,
+        recurrence_end_date,
+        recurrence_days_of_week,
+        recurrence_day_of_month,
+        parent_event_id,
         posts!inner (
           id,
           title,
@@ -103,6 +117,9 @@ async function fetchEventsPage(
   if (universityPostIds && universityPostIds.length > 0) {
     query = query.in("post_id", universityPostIds);
   }
+
+  // Only show parent events so recurring series appear as one event (not multiple instances)
+  query = query.is("parent_event_id", null);
 
   const { data: eventsData, error: eventsError, count } = await query;
 
@@ -198,6 +215,12 @@ async function fetchEventsPage(
         logistics: row.logistics,
         special_interests: row.special_interests,
         time_based: row.time_based,
+        is_recurring: row.is_recurring ?? false,
+        recurrence_pattern: row.recurrence_pattern ?? null,
+        recurrence_interval: row.recurrence_interval ?? 1,
+        recurrence_end_date: row.recurrence_end_date ?? null,
+        recurrence_days_of_week: row.recurrence_days_of_week ?? null,
+        recurrence_day_of_month: row.recurrence_day_of_month ?? null,
       };
     })
     .filter((e: EventItem | null) => e !== null) as EventItem[];

@@ -58,6 +58,12 @@ function transformEventToEventItem(
     logistics: event.logistics,
     special_interests: event.special_interests,
     time_based: event.time_based,
+    is_recurring: event.is_recurring ?? false,
+    recurrence_pattern: event.recurrence_pattern ?? null,
+    recurrence_interval: event.recurrence_interval ?? 1,
+    recurrence_end_date: event.recurrence_end_date ?? null,
+    recurrence_days_of_week: event.recurrence_days_of_week ?? null,
+    recurrence_day_of_month: event.recurrence_day_of_month ?? null,
   };
 }
 
