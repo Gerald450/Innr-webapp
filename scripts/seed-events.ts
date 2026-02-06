@@ -41,13 +41,15 @@ const supabase = createClient(supabaseUrl, key, {
   auth: { persistSession: false },
 });
 
-const SAME_IMAGE_URL = "/images/logo.png";
+const IMAGE_PATH_RELATIVE = "public/images/logo.png";
 const SAME_LOCATION = {
   location_name: "Main Campus Hall",
   location_address: "123 University Ave",
 };
 
 const EVENT_COUNT = 20;
+const BUCKET = "post-media";
+const SEED_STORAGE_PATH = "seed/logo.png";
 
 function getConsecutiveStartEnd(dayOffset: number): { starts_at: string; ends_at: string } {
   const d = new Date();
@@ -57,6 +59,30 @@ function getConsecutiveStartEnd(dayOffset: number): { starts_at: string; ends_at
   d.setHours(20, 0, 0, 0);
   const ends_at = d.toISOString();
   return { starts_at, ends_at };
+}
+
+/** Upload the seed image to post-media bucket and return public URL + storage path. */
+async function uploadSeedImage(): Promise<{ url: string; storage_path: string }> {
+  const absPath = resolve(process.cwd(), IMAGE_PATH_RELATIVE);
+  if (!existsSync(absPath)) {
+    throw new Error(`Seed image not found at ${absPath}. Run from my-app with public/images/logo.png present.`);
+  }
+  const buffer = readFileSync(absPath);
+
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(SEED_STORAGE_PATH, buffer, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: "image/png",
+    });
+
+  if (uploadError || !uploadData) {
+    throw new Error(`Storage upload failed: ${uploadError?.message ?? "unknown"}`);
+  }
+
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(uploadData.path);
+  return { url: urlData.publicUrl, storage_path: uploadData.path };
 }
 
 async function main() {
@@ -100,12 +126,16 @@ async function main() {
     process.exit(1);
   }
 
+  // Upload seed image to bucket and get public URL (like normal image upload)
+  const { url: imageUrl, storage_path: imageStoragePath } = await uploadSeedImage();
+  console.log("Uploaded seed image to bucket:", imageUrl);
+
   // Build post_media and events arrays from post ids
-  const postMedia = insertedPosts.map((p, i) => ({
+  const postMedia = insertedPosts.map((p) => ({
     post_id: p.id,
     media_type: "image" as const,
-    storage_path: `seed/event-${i + 1}.png`,
-    url: SAME_IMAGE_URL,
+    storage_path: imageStoragePath,
+    url: imageUrl,
     order_index: 0,
   }));
 
@@ -136,4 +166,7 @@ async function main() {
   console.log(`Inserted ${insertedPosts.length} posts, ${postMedia.length} post_media, ${events.length} events.`);
 }
 
-main();
+main().catch((err) => {
+  console.error(err?.message ?? err);
+  process.exit(1);
+});
