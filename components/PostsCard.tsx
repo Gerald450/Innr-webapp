@@ -17,6 +17,8 @@ interface PostProps {
   created_at?: string; // ISO timestamp string
   image?: string;
   images?: string[]; // Multiple images for carousel
+  /** Media with type so we can render video vs image */
+  media?: { url: string; type: "image" | "video" | "pdf" }[];
   likeCount?: number;
   isLiked?: boolean;
   commentCount?: number;
@@ -47,6 +49,7 @@ export const Post: React.FC<PostProps> = ({
   created_at,
   image,
   images,
+  media,
   likeCount: initialLikeCount = 0,
   isLiked: initialIsLiked = false,
   commentCount = 0,
@@ -112,19 +115,22 @@ export const Post: React.FC<PostProps> = ({
     };
   }, [menuOpen]);
   
-  // Carousel state
-  const imageList = images && images.length > 0 ? images : image ? [image] : [];
+  // Carousel state: use media (url + type) when available, else fall back to images (urls only)
+  const mediaList =
+    media && media.length > 0
+      ? media
+      : (images && images.length > 0 ? images : image ? [image] : []).map((url) => ({ url, type: "image" as const }));
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const hasMultipleImages = imageList.length > 1;
+  const hasMultipleImages = mediaList.length > 1;
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % imageList.length);
+    setCurrentImageIndex((prev) => (prev + 1) % mediaList.length);
   };
 
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev - 1 + imageList.length) % imageList.length);
+    setCurrentImageIndex((prev) => (prev - 1 + mediaList.length) % mediaList.length);
   };
 
   const goToImage = (index: number) => {
@@ -615,34 +621,43 @@ export const Post: React.FC<PostProps> = ({
         </p>
       </div>
 
-      {/* IMAGE SECTION – full width, no padding with carousel */}
-      {imageList.length > 0 && (
+      {/* MEDIA SECTION – full width, no padding with carousel (images + videos) */}
+      {mediaList.length > 0 && (
         <div className="w-full bg-black relative">
           <div className="w-full max-h-[80vh] overflow-hidden bg-[var(--bg-primary)] relative">
             {/* Carousel Container */}
             <div className="relative w-full">
-              {imageList.map((img, index) => (
+              {mediaList.map((item, index) => (
                 <div
                   key={index}
                   className={`transition-opacity duration-500 ${
                     index === currentImageIndex ? "opacity-100 relative" : "opacity-0 absolute inset-0"
                   }`}
                 >
-                  <Image
-                    src={img}
-                    alt={`Post Media ${index + 1}`}
-                    width={1200}
-                    height={800}
-                    className="w-full h-auto object-cover"
-                    style={{ display: "block" }}
-                    loading={index === 0 ? "eager" : "lazy"}
-                    unoptimized
-                    onError={(e) => {
-                      // Hide broken images on error (e.g., timeout)
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = "none";
-                    }}
-                  />
+                  {item.type === "video" ? (
+                    <video
+                      src={item.url}
+                      controls
+                      playsInline
+                      className="w-full h-auto max-h-[80vh] object-contain bg-black"
+                      preload="metadata"
+                    />
+                  ) : (
+                    <Image
+                      src={item.url}
+                      alt={`Post Media ${index + 1}`}
+                      width={1200}
+                      height={800}
+                      className="w-full h-auto object-cover"
+                      style={{ display: "block" }}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      unoptimized
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                      }}
+                    />
+                  )}
                 </div>
               ))}
 
@@ -698,10 +713,10 @@ export const Post: React.FC<PostProps> = ({
                 </>
               )}
 
-              {/* Carousel Indicators - Only show if multiple images */}
+              {/* Carousel Indicators - Only show if multiple items */}
               {hasMultipleImages && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                  {imageList.map((_, index) => (
+                  {mediaList.map((_, index) => (
                     <button
                       key={index}
                       onClick={(e) => {
@@ -719,10 +734,10 @@ export const Post: React.FC<PostProps> = ({
                 </div>
               )}
 
-              {/* Image Counter - Only show if multiple images */}
+              {/* Media Counter - Only show if multiple items */}
               {hasMultipleImages && (
                 <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded z-10">
-                  {currentImageIndex + 1} / {imageList.length}
+                  {currentImageIndex + 1} / {mediaList.length}
                 </div>
               )}
             </div>

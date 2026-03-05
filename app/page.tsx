@@ -196,6 +196,7 @@ export default function Home() {
             gradYear={p.gradYear}
             image={p.image}
             images={p.images}
+            media={p.media}
             avatar={p.avatar}
             authorId={p.authorId}
             likeCount={p.likeCount}

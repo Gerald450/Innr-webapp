@@ -18,6 +18,7 @@ type PostDetail = {
   gradYear: string;
   image: string;
   images?: string[];
+  media?: { url: string; type: "image" | "video" | "pdf" }[];
   avatar?: string;
   authorId?: string;
   likeCount?: number;
@@ -85,7 +86,8 @@ export default function PostDetailPage() {
               ),
               post_media (
                 url,
-                order_index
+                order_index,
+                media_type
               )
             `
             )
@@ -116,6 +118,12 @@ export default function PostDetailPage() {
           .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
         const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
         const firstMedia = sortedMedia[0] ?? null;
+        const mediaWithType = sortedMedia
+          .filter((m: any) => m.url)
+          .map((m: any) => ({
+            url: m.url,
+            type: (m.media_type === "video" ? "video" : m.media_type === "pdf" ? "pdf" : "image") as "image" | "video" | "pdf",
+          }));
 
         const postIdFromData = postDataTyped.id;
 
@@ -180,6 +188,7 @@ export default function PostDetailPage() {
               : "",
           image: firstMedia?.url ?? "",
           images: allImages.length > 0 ? allImages : undefined,
+          media: mediaWithType.length > 0 ? mediaWithType : undefined,
           avatar: author?.avatar_url ?? undefined,
           authorId: postDataTyped.author_id,
           likeCount,
@@ -315,6 +324,7 @@ export default function PostDetailPage() {
             created_at={post.created_at}
             image={post.image}
             images={post.images}
+            media={post.media}
             authorId={post.authorId}
             likeCount={post.likeCount}
             isLiked={post.isLiked}

@@ -153,7 +153,8 @@ export default function UserProfilePage() {
               post_type,
               post_media (
                 url,
-                order_index
+                order_index,
+                media_type
               )
             `
             )
@@ -279,6 +280,12 @@ export default function UserProfilePage() {
               .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
             const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
             const firstMedia = sortedMedia[0] ?? null;
+            const mediaWithType = sortedMedia
+              .filter((m: any) => m.url)
+              .map((m: any) => ({
+                url: m.url,
+                type: (m.media_type === "video" ? "video" : m.media_type === "pdf" ? "pdf" : "image") as "image" | "video" | "pdf",
+              }));
 
             return {
               id: row.id,
@@ -291,6 +298,7 @@ export default function UserProfilePage() {
                   : "",
               image: firstMedia?.url ?? "",
               images: allImages.length > 0 ? allImages : undefined,
+              media: mediaWithType.length > 0 ? mediaWithType : undefined,
               avatar: profile.avatar_url ?? undefined,
               authorId: row.author_id,
               likeCount: likeCountMap[row.id] || 0,
@@ -506,6 +514,12 @@ export default function UserProfilePage() {
               .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
             const allImages = sortedMedia.map((m: any) => m.url).filter(Boolean);
             const firstMedia = sortedMedia[0] ?? null;
+            const mediaWithType = sortedMedia
+              .filter((m: any) => m.url)
+              .map((m: any) => ({
+                url: m.url,
+                type: (m.media_type === "video" ? "video" : m.media_type === "pdf" ? "pdf" : "image") as "image" | "video" | "pdf",
+              }));
 
             return {
               id: row.id,
@@ -518,6 +532,7 @@ export default function UserProfilePage() {
                   : "",
               image: firstMedia?.url ?? "",
               images: allImages.length > 0 ? allImages : undefined,
+              media: mediaWithType.length > 0 ? mediaWithType : undefined,
               avatar: author?.avatar_url ?? undefined,
               authorId: row.author_id,
               likeCount: likeCountMap[row.id] || 0,
