@@ -75,6 +75,7 @@ export default function SavesPage() {
           .select(
             `
             id,
+            title,
             body,
             created_at,
             author_id,
@@ -221,6 +222,7 @@ export default function SavesPage() {
             id: row.id,
             name: author?.full_name ?? "Unknown",
             text: row.body ?? "",
+            title: row.title ? String(row.title).trim() : undefined,
             created_at: row.created_at,
             gradYear:
               author?.graduation_year != null
@@ -365,6 +367,7 @@ export default function SavesPage() {
               id={p.id}
               name={p.name}
               text={p.text}
+              title={p.title}
               created_at={p.created_at}
               gradYear={p.gradYear}
               image={p.image}

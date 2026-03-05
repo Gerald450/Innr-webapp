@@ -13,6 +13,7 @@ type NewPostPayload = {
   id: string;
   name: string;
   text: string;
+  title?: string;
   created_at: string;
   gradYear: string;
   images: string[];
@@ -190,6 +191,7 @@ export default function Home() {
             id={p.id}
             name={p.name}
             text={p.text}
+            title={p.title}
             created_at={p.created_at}
             gradYear={p.gradYear}
             image={p.image}

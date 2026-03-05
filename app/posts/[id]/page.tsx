@@ -13,6 +13,7 @@ type PostDetail = {
   id: string;
   name: string;
   text: string;
+  title?: string;
   created_at: string;
   gradYear: string;
   image: string;
@@ -73,6 +74,7 @@ export default function PostDetailPage() {
             .select(
               `
               id,
+              title,
               body,
               created_at,
               author_id,
@@ -170,6 +172,7 @@ export default function PostDetailPage() {
           id: postIdFromData,
           name: author?.full_name ?? "Unknown",
           text: (postData as any).body ?? "",
+          title: postDataTyped.title ? String(postDataTyped.title).trim() : undefined,
           created_at: postDataTyped.created_at,
           gradYear:
             author?.graduation_year != null
@@ -307,6 +310,7 @@ export default function PostDetailPage() {
             name={post.name}
             gradYear={post.gradYear}
             avatar={post.avatar}
+            title={post.title}
             text={post.text}
             created_at={post.created_at}
             image={post.image}

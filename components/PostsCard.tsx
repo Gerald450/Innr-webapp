@@ -12,6 +12,7 @@ interface PostProps {
   gradYear?: string;
   avatar?: string;
   authorId?: string; // User ID of the post author
+  title?: string;
   text: string;
   created_at?: string; // ISO timestamp string
   image?: string;
@@ -41,6 +42,7 @@ export const Post: React.FC<PostProps> = ({
   gradYear,
   avatar,
   authorId,
+  title,
   text,
   created_at,
   image,
@@ -597,8 +599,13 @@ export const Post: React.FC<PostProps> = ({
         </div>
       </header>
 
-      {/* TEXT */}
+      {/* TITLE + TEXT */}
       <div className="px-3 sm:px-4 pb-3 border-b border-[var(--card-border)]">
+        {title && title.trim() && (
+          <h3 className="text-[var(--text-primary)] text-base font-semibold leading-tight mb-1.5">
+            {title.trim()}
+          </h3>
+        )}
         <p className={`text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-line ${
           postType === "event" 
             ? "line-clamp-2" 

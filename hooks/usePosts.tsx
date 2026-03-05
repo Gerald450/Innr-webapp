@@ -8,6 +8,7 @@ export type PostItem = {
   id: number | string;
   name: string;
   text: string;
+  title?: string;
   created_at: string;
   gradYear: string;
   image: string;
@@ -32,6 +33,7 @@ async function fetchPosts(universityId: string, userId: string): Promise<PostIte
     .select(
       `
       id,
+      title,
       body,
       created_at,
       author_id,
@@ -181,6 +183,7 @@ async function fetchPosts(universityId: string, userId: string): Promise<PostIte
       id: row.id,
       name: author?.full_name ?? "Unknown",
       text: row.body ?? "",
+      title: row.title ? String(row.title).trim() : undefined,
       created_at: row.created_at,
       gradYear:
         author?.graduation_year != null

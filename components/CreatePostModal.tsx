@@ -1,6 +1,89 @@
  "use client";
 import React, { useEffect, useRef, useState } from "react";
+import * as tus from "tus-js-client";
+import imageCompression from "browser-image-compression";
 import { supabase } from "@/lib/supabaseClient";
+
+// Use resumable (TUS) upload for files larger than 6MB (Supabase recommendation) or for videos
+const RESUMABLE_THRESHOLD_BYTES = 6 * 1024 * 1024;
+// Max file size: 50MB on Supabase Free; increase if your project has a higher limit
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+// Compress images larger than this (saves bandwidth and helps stay under max size)
+const IMAGE_COMPRESS_THRESHOLD_BYTES = 1 * 1024 * 1024;
+const BUCKET = "post-media";
+
+function getStoragePath(authorId: string, postId: string, index: number, file: File): string {
+  const ext = file.name.split(".").pop() || "bin";
+  return `${authorId}/${postId}/${Date.now()}-${index}.${ext}`;
+}
+
+function getMediaType(file: File): string {
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type === "application/pdf") return "pdf";
+  return "image";
+}
+
+function useResumableUpload(file: File): boolean {
+  return file.size > RESUMABLE_THRESHOLD_BYTES || file.type.startsWith("video/");
+}
+
+/** Compress image to reduce file size; returns original file if not an image or compression fails. */
+async function compressImageIfNeeded(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  if (file.size <= IMAGE_COMPRESS_THRESHOLD_BYTES) return file;
+  try {
+    const maxSizeMB = Math.min(4, Math.ceil(MAX_FILE_SIZE_BYTES / (1024 * 1024)) - 2);
+    const compressed = await imageCompression(file, {
+      maxSizeMB,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+    });
+    return compressed;
+  } catch {
+    return file;
+  }
+}
+
+/** Resumable upload via TUS (for large/video files). Returns storage path on success. */
+function uploadWithTus(file: File, filePath: string): Promise<void> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return Promise.reject(new Error("Missing NEXT_PUBLIC_SUPABASE_URL"));
+  const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+
+  return new Promise((resolve, reject) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.access_token) {
+        reject(new Error("Not authenticated"));
+        return;
+      }
+      const upload = new tus.Upload(file, {
+        endpoint: `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+        },
+        uploadDataDuringCreation: true,
+        removeFingerprintOnSuccess: true,
+        chunkSize: 6 * 1024 * 1024, // 6MB required by Supabase
+        metadata: {
+          bucketName: BUCKET,
+          objectName: filePath,
+          contentType: file.type || "application/octet-stream",
+          cacheControl: "3600",
+        },
+        onError: (err) => reject(err),
+        onSuccess: () => resolve(),
+      });
+      upload.findPreviousUploads().then((previousUploads) => {
+        if (previousUploads.length) {
+          upload.resumeFromPreviousUpload(previousUploads[0]);
+        }
+        upload.start();
+      });
+    });
+  });
+}
 
 // Upload media to Supabase Storage and create post_media records.
 async function uploadPostMedia(
@@ -8,51 +91,40 @@ async function uploadPostMedia(
   authorId: string,
   files: File[]
 ): Promise<{ url: string }[]> {
-  // Upload files sequentially for large videos to prevent UI blocking
-  // Use sequential uploads instead of Promise.all to prevent freezing
   const uploads: { url: string }[] = [];
-  
+
   for (let index = 0; index < files.length; index++) {
     const file = files[index];
-    const ext = file.name.split(".").pop() || "bin";
-    const filePath = `${authorId}/${postId}/${Date.now()}-${index}.${ext}`;
+    const filePath = getStoragePath(authorId, postId, index, file);
 
-    // Yield to event loop periodically to prevent UI freeze
     if (index > 0) {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((r) => setTimeout(r, 0));
     }
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("post-media")
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError || !uploadData) {
-      throw uploadError || new Error("Upload failed without error details");
+    let storagePath: string;
+    if (useResumableUpload(file)) {
+      await uploadWithTus(file, filePath);
+      storagePath = filePath;
+    } else {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+      if (uploadError || !uploadData) {
+        throw uploadError || new Error("Upload failed without error details");
+      }
+      storagePath = uploadData.path;
     }
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("post-media").getPublicUrl(uploadData.path);
-
-    // Derive media_type from file.type
-    let mediaType = "image"; // default
-    if (file.type.startsWith("video/")) {
-      mediaType = "video";
-    } else if (file.type.startsWith("image/")) {
-      mediaType = "image";
-    } else if (file.type === "application/pdf") {
-      mediaType = "pdf";
-    }
+    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+    const publicUrl = urlData.publicUrl;
+    const mediaType = getMediaType(file);
 
     const { data: mediaRow, error: mediaError } = await supabase
       .from("post_media")
       .insert({
         post_id: postId,
         media_type: mediaType,
-        storage_path: uploadData.path,
+        storage_path: storagePath,
         url: publicUrl,
         order_index: index,
       })
@@ -77,6 +149,7 @@ type CreatePostModalProps = {
     id: string;
     name: string;
     text: string;
+    title?: string;
     created_at: string;
     gradYear: string;
     images: string[]; // now multiple media URLs
@@ -91,10 +164,12 @@ export default function CreatePostModal({
 }: CreatePostModalProps) {
   const [name, setName] = useState(initialName);
   const [gradYear, setGradYear] = useState(initialGradYear);
+  const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [mediaPreviews, setMediaPreviews] = useState<Array<{ url: string; type: string; id: string }>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -124,9 +199,42 @@ export default function CreatePostModal({
     if (e.target === overlayRef.current) onClose();
   }
 
-  function handleMediaChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    setMediaFiles(files);
+  async function handleMediaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const rawFiles = e.target.files ? Array.from(e.target.files) : [];
+    if (!rawFiles.length) return;
+
+    const maxMB = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024));
+    const tooLargeVideos = rawFiles.filter(
+      (f) => f.type.startsWith("video/") && f.size > MAX_FILE_SIZE_BYTES
+    );
+    if (tooLargeVideos.length) {
+      alert(
+        `Videos can't be auto-compressed. Some are over ${maxMB} MB. Try a shorter clip, record at 720p, or use a tool like HandBrake to reduce size.`
+      );
+      e.target.value = "";
+      return;
+    }
+
+    setIsCompressing(true);
+    try {
+      const processed: File[] = [];
+      for (const file of rawFiles) {
+        const compressed = await compressImageIfNeeded(file);
+        if (compressed.size > MAX_FILE_SIZE_BYTES) {
+          alert(
+            `"${compressed.name}" is still too large (${maxMB} MB max). Use a smaller file or compress it elsewhere.`
+          );
+          e.target.value = "";
+          setIsCompressing(false);
+          return;
+        }
+        processed.push(compressed);
+      }
+      setMediaFiles(processed);
+    } finally {
+      setIsCompressing(false);
+      e.target.value = "";
+    }
   }
 
   async function handleSubmit() {
@@ -183,6 +291,7 @@ export default function CreatePostModal({
           author_id: authorId,
           university_id: universityId,
           post_type: mediaFiles.length ? "media" : "text",
+          title: title.trim() || null,
           body: text.trim(),
           visibility: "public",
         })
@@ -204,12 +313,14 @@ export default function CreatePostModal({
         id: post.id,
         name: displayName,
         text: post.body ?? "",
+        title: post.title ?? undefined,
         created_at: post.created_at,
         gradYear: displayGradYear,
         images: uploadedMedia.map((m) => m.url),
       });
 
       // 4. Reset state and close modal
+      setTitle("");
       setText("");
       setMediaFiles([]);
       setMediaPreviews([]);
@@ -219,8 +330,24 @@ export default function CreatePostModal({
         fileInputRef.current.value = "";
       }
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to create post:", err);
+      const message =
+        (err instanceof Error ? err.message : null) ??
+        (typeof err === "object" && err !== null && "message" in err
+          ? String((err as { message: unknown }).message)
+          : String(err));
+      if (
+        message.includes("maximum allowed size") ||
+        message.includes("exceeded") ||
+        message.includes("Payload too large")
+      ) {
+        alert(
+          "File too large. Supabase Free tier allows 50 MB per file. Use a smaller video or increase the limit in Supabase Dashboard → Storage → post-media → File size limit."
+        );
+      } else {
+        alert(message || "Failed to create post. Please try again.");
+      }
       setIsSubmitting(false);
     }
   }
@@ -264,6 +391,16 @@ export default function CreatePostModal({
 
         {/* Content */}
         <div className="p-6">
+          {/* Optional Title */}
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Add a title (optional)"
+            maxLength={120}
+            className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors mb-3"
+            disabled={isSubmitting}
+          />
           {/* Text Input */}
           <textarea
             value={text}
@@ -333,7 +470,9 @@ export default function CreatePostModal({
           {/* Footer Actions */}
           <div className="mt-6 flex items-center justify-between gap-4">
             {/* Media Upload Button */}
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] px-4 py-2.5 text-sm text-[var(--text-secondary)] hover:bg-[var(--card-bg)] transition-colors">
+            <label
+              className={`flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] px-4 py-2.5 text-sm text-[var(--text-secondary)] hover:bg-[var(--card-bg)] transition-colors ${isCompressing ? "pointer-events-none opacity-70" : ""}`}
+            >
               <input
                 ref={fileInputRef}
                 type="file"
@@ -341,7 +480,7 @@ export default function CreatePostModal({
                 onChange={handleMediaChange}
                 className="hidden"
                 multiple
-                disabled={isSubmitting}
+                disabled={isSubmitting || isCompressing}
               />
               <svg
                 className="w-5 h-5"
@@ -356,7 +495,7 @@ export default function CreatePostModal({
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
-              <span className="font-medium">Add Media</span>
+              <span className="font-medium">{isCompressing ? "Compressing…" : "Add Media"}</span>
             </label>
 
             {/* Action Buttons */}
